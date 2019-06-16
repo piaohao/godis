@@ -9,32 +9,58 @@ import (
 
 func Test_GetSet(t *testing.T) {
 	gtest.Case(t, func() {
-		redis, err := godis.NewBinaryRedis(godis.RedisOptions{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Password: "123456",
-			Db:       2,
+		redis := godis.NewRedis(godis.ShardInfo{
+			Host: "172.17.0.2",
+			Port: 6379,
+			Db:   0,
 		})
+		err := redis.Connect()
+		defer redis.Close()
 		gtest.Assert(err, nil)
-		ret, err := redis.Set([]byte("godis"), []byte("1"))
+		ret, err := redis.Set("godis", "1")
 		gtest.Assert(err, nil)
 		t.Log(ret)
 
-		arr, err := redis.Get([]byte("godis"))
+		arr, err := redis.Get("godis")
 		gtest.Assert(err, nil)
 		t.Log(string(arr))
 
-		count, err := redis.Del([]byte("godis"))
+		count, err := redis.Del("godis")
 		gtest.Assert(err, nil)
 		t.Log(count)
 
-		count, err = redis.DelBatch([]byte("godis"), []byte("godis2"))
+		count, err = redis.Del("godis", "godis2")
 		gtest.Assert(err, nil)
 		t.Log(count)
 
-		arr, err = redis.Get([]byte("godis"))
+		arr, err = redis.Get("godis")
 		gtest.Assert(err, nil)
 		t.Log(string(arr))
+
+		info, err := redis.Info()
+		gtest.Assert(err, nil)
+		t.Log(info)
+	})
+}
+
+func Test_Pool(t *testing.T) {
+	gtest.Case(t, func() {
+		factory := godis.NewFactory(godis.ShardInfo{
+			Host: "172.17.0.2",
+			Port: 6379,
+			Db:   0,
+		})
+		pool := godis.NewPool(godis.PoolConfig{}, *factory)
+		redis, err := pool.GetResource()
+		defer redis.Close()
+		gtest.Assert(err, nil)
+		arr, err := redis.Info()
+		gtest.Assert(err, nil)
+		t.Log(string(arr))
+
+		keys, err := redis.Keys("*")
+		gtest.Assert(err, nil)
+		t.Log(keys)
 	})
 }
 

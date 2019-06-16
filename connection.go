@@ -42,10 +42,6 @@ func NewConnection(host string, port, connectionTimeout, soTimeout int, ssl bool
 }
 
 func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
-	//arr := make([][]byte, 0)
-	//for _, a := range args {
-	//	arr = append(arr, []byte(a))
-	//}
 	if err := c.Protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
 		return err
 	}
@@ -68,6 +64,9 @@ func (c *Connection) getStatusCodeReply() (string, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return "", err
+	}
+	if reply == nil {
+		return "", nil
 	}
 	switch t := reply.(type) {
 	case keyword:
@@ -109,6 +108,9 @@ func (c *Connection) getIntegerReply() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	if reply == nil {
+		return 0, nil
+	}
 	resp := reply.(int64)
 	return resp, nil
 }
@@ -125,18 +127,28 @@ func (c *Connection) getMultiBulkReply() ([]string, error) {
 	return resp, nil
 }
 
-func (c *Connection) getBinaryMultiBulkReply() ([]byte, error) {
+func (c *Connection) getBinaryMultiBulkReply() ([]string, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
 	}
-	return reply.([]byte), nil
+	if reply == nil {
+		return []string{}, nil
+	}
+	resp := make([]string, 0)
+	for _, r := range reply.([]interface{}) {
+		resp = append(resp, string(r.([]byte)))
+	}
+	return resp, nil
 }
 
 func (c *Connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
+	}
+	if reply == nil {
+		return []interface{}{}, nil
 	}
 	return reply.([]interface{}), nil
 }
@@ -149,6 +161,9 @@ func (c *Connection) getIntegerMultiBulkReply() ([]int64, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
+	}
+	if reply == nil {
+		return []int64{}, nil
 	}
 	return reply.([]int64), nil
 }
@@ -180,4 +195,8 @@ func (c *Connection) Connect() error {
 }
 
 func (c *Connection) IsConnected() {
+}
+
+func (c *Connection) Close() error {
+	return c.Socket.Close()
 }
