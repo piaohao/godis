@@ -1,5 +1,7 @@
 package godis
 
+import "strconv"
+
 type Client struct {
 	*Connection
 	//Host              string
@@ -486,8 +488,16 @@ func (c *Client) ZrangeByLex(key, min, max string) error {
 	return c.SendCommand(CMD_ZRANGEBYLEX, []byte(key), []byte(min), []byte(max))
 }
 
-func (c *Client) ZrevrangeByLex(key, min, max string) error {
-	return c.SendCommand(CMD_ZREVRANGEBYLEX, []byte(key), []byte(min), []byte(max))
+func (c *Client) ZrangeByLexBatch(key, min, max string, offset, count int) error {
+	return c.SendCommand(CMD_ZRANGEBYLEX, []byte(key), []byte(min), []byte(max), IntToByteArray(offset), IntToByteArray(count))
+}
+
+func (c *Client) ZrevrangeByLex(key, max, min string) error {
+	return c.SendCommand(CMD_ZREVRANGEBYLEX, []byte(key), []byte(max), []byte(min))
+}
+
+func (c *Client) ZrevrangeByLexBatch(key, max, min string, offset, count int) error {
+	return c.SendCommand(CMD_ZRANGEBYLEX, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
 }
 
 func (c *Client) ZremrangeByLex(key, min, max string) error {
@@ -661,30 +671,38 @@ func (c *Client) Readonly() error {
 	return c.SendCommand(CMD_READONLY)
 }
 
-func (c *Client) Geoadd(key []byte, longitude, latitude float64, member []byte) error {
-	return c.SendCommand(CMD_GEOADD, key, Float64ToByteArray(longitude), Float64ToByteArray(latitude), member)
+func (c *Client) Geoadd(key string, longitude, latitude float64, member string) error {
+	return c.SendCommand(CMD_GEOADD, []byte(key), Float64ToByteArray(longitude), Float64ToByteArray(latitude), []byte(member))
 }
 
-func (c *Client) Geodist(key, member1, member2 []byte) error {
-	return c.SendCommand(CMD_GEODIST, key, member1, member2)
-}
-
-func (c *Client) Geohash(key []byte, members ...[]byte) error {
+func (c *Client) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, key)
-	for _, m := range members {
-		arr = append(arr, m)
+	arr = append(arr, []byte(key))
+	for k, v := range memberCoordinateMap {
+		arr = append(arr, Float64ToByteArray(v.longitude))
+		arr = append(arr, Float64ToByteArray(v.latitude))
+		arr = append(arr, []byte(k))
 	}
-	return c.SendCommand(CMD_GEOHASH, arr...)
+	return c.SendCommand(CMD_GEOADD, arr...)
 }
 
-func (c *Client) Geopos(key []byte, members [][]byte) error {
+func (c *Client) Geodist(key, member1, member2 string, unit ...GeoUnit) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, key)
-	for _, m := range members {
-		arr = append(arr, m)
+	arr = append(arr, []byte(key))
+	arr = append(arr, []byte(member1))
+	arr = append(arr, []byte(member2))
+	for _, u := range unit {
+		arr = append(arr, u.GetRaw())
 	}
-	return c.SendCommand(CMD_GEOPOS, arr...)
+	return c.SendCommand(CMD_GEODIST, arr...)
+}
+
+func (c *Client) Geohash(key string, members ...string) error {
+	return c.SendCommand(CMD_GEOHASH, StringStringArrayToByteArray(key, members)...)
+}
+
+func (c *Client) Geopos(key string, members ...string) error {
+	return c.SendCommand(CMD_GEOPOS, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *Client) FlushDB() error {
@@ -745,4 +763,120 @@ func (c *Client) ZrangeByScoreBatch(key, max, min string, offset, count int) err
 
 func (c *Client) ZrevrangeByScoreBatch(key, max, min string, offset, count int) error {
 	return c.SendCommand(CMD_ZREVRANGEBYSCORE, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
+}
+
+func (c *Client) Linsert(key string, where ListOption, pivot, value string) error {
+	return c.SendCommand(CMD_LINSERT, []byte(key), where.GetRaw(), []byte(pivot), []byte(value))
+}
+
+func (c *Client) Bitcount(key string) error {
+	return c.SendCommand(CMD_BITCOUNT, []byte(key))
+}
+
+func (c *Client) BitcountRange(key string, start, end int64) error {
+	return c.SendCommand(CMD_BITCOUNT, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+}
+
+func (c *Client) Bitpos(key string, value bool, params ...BitPosParams) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, BoolToByteArray(value))
+	for _, p := range params {
+		arr = append(arr, p.params...)
+	}
+	return c.SendCommand(CMD_BITPOS, arr...)
+}
+
+func (c *Client) Scan(cursor string, params ...ScanParams) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(cursor))
+	for _, p := range params {
+		arr = append(arr, p.getParams()...)
+	}
+	return c.SendCommand(CMD_SCAN, arr...)
+}
+
+func (c *Client) Hscan(key, cursor string, params ...ScanParams) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, []byte(cursor))
+	for _, p := range params {
+		arr = append(arr, p.getParams()...)
+	}
+	return c.SendCommand(CMD_HSCAN, arr...)
+}
+
+func (c *Client) Sscan(key, cursor string, params ...ScanParams) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, []byte(cursor))
+	for _, p := range params {
+		arr = append(arr, p.getParams()...)
+	}
+	return c.SendCommand(CMD_HSCAN, arr...)
+}
+
+func (c *Client) Zscan(key, cursor string, params ...ScanParams) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, []byte(cursor))
+	for _, p := range params {
+		arr = append(arr, p.getParams()...)
+	}
+	return c.SendCommand(CMD_HSCAN, arr...)
+}
+
+func (c *Client) Unwatch() error {
+	return c.SendCommand(CMD_UNWATCH)
+}
+
+func (c *Client) BlpopTimout(timeout int, keys ...string) error {
+	arr := make([]string, 0)
+	for _, k := range keys {
+		arr = append(arr, k)
+	}
+	arr = append(arr, strconv.Itoa(timeout))
+	return c.Blpop(arr)
+}
+
+func (c *Client) BrpopTimout(timeout int, keys ...string) error {
+	arr := make([]string, 0)
+	for _, k := range keys {
+		arr = append(arr, k)
+	}
+	arr = append(arr, strconv.Itoa(timeout))
+	return c.Brpop(arr)
+}
+
+func (c *Client) Pfadd(key string, elements ...string) error {
+	return c.SendCommand(CMD_PFADD, StringStringArrayToByteArray(key, elements)...)
+}
+
+func (c *Client) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, Float64ToByteArray(longitude))
+	arr = append(arr, Float64ToByteArray(latitude))
+	arr = append(arr, Float64ToByteArray(radius))
+	arr = append(arr, unit.GetRaw())
+	for _, p := range param {
+		arr = append(arr, p.getParams([][]byte{})...)
+	}
+	return c.SendCommand(CMD_GEORADIUS, arr...)
+}
+
+func (c *Client) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(key))
+	arr = append(arr, []byte(member))
+	arr = append(arr, Float64ToByteArray(radius))
+	arr = append(arr, unit.GetRaw())
+	for _, p := range param {
+		arr = append(arr, p.getParams([][]byte{})...)
+	}
+	return c.SendCommand(CMD_GEORADIUSBYMEMBER, arr...)
+}
+
+func (c *Client) Bitfield(key string, arguments ...string) error {
+	return c.SendCommand(CMD_BITFIELD, StringStringArrayToByteArray(key, arguments)...)
 }

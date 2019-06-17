@@ -124,11 +124,11 @@ type RedisCommands interface {
 	//Bitpos(key string, value bool) (int64, error)
 	Bitpos(key string, value bool, params ...BitPosParams) (int64, error)
 	//Hscan(key string, cursor string) (ScanResult, error)
-	Hscan(key, cursor string, params ...ScanParams) (ScanResult, error)
+	Hscan(key, cursor string, params ...ScanParams) (*ScanResult, error)
 	//Sscan(key string, cursor string) (ScanResult, error)
-	Sscan(key, cursor string, params ...ScanParams) (ScanResult, error)
+	Sscan(key, cursor string, params ...ScanParams) (*ScanResult, error)
 	//Zscan(key string, cursor string) (ScanResult, error)
-	Zscan(key, cursor string, params ...ScanParams) (ScanResult, error)
+	Zscan(key, cursor string, params ...ScanParams) (*ScanResult, error)
 	Pfadd(key string, elements ...string) (int64, error)
 	//Pfcount(key string) (int64, error)
 
@@ -138,11 +138,11 @@ type RedisCommands interface {
 	//Geodist(key string, member1, member2 string) (float64, error)
 	Geodist(key string, member1, member2 string, unit ...GeoUnit) (float64, error)
 	Geohash(key string, members ...string) ([]string, error)
-	Geopos(key string, members ...string) ([]GeoCoordinate, error)
+	Geopos(key string, members ...string) ([]*GeoCoordinate, error)
 	//Georadius(key string, longitude float64, latitude float64, radius float64, unit GeoUnit) ([]GeoCoordinate, error)
-	Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error)
+	Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error)
 	//GeoradiusByMember(key string, member string, radius float64, unit GeoUnit) ([]GeoCoordinate, error)
-	GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error)
+	GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error)
 	Bitfield(key string, arguments ...string) ([]int64, error)
 }
 
@@ -188,6 +188,15 @@ type ScanParams struct {
 	params map[keyword][]byte
 }
 
+func (s ScanParams) getParams() [][]byte {
+	arr := make([][]byte, 0)
+	for k, v := range s.params {
+		arr = append(arr, k.GetRaw())
+		arr = append(arr, []byte(v))
+	}
+	return arr
+}
+
 type ListOption struct {
 	Name string
 }
@@ -225,7 +234,39 @@ var (
 )
 
 type GeoRadiusParam struct {
-	params map[string][]byte
+	params map[string]interface{}
+}
+
+func (g GeoRadiusParam) getParams(args [][]byte) [][]byte {
+	arr := make([][]byte, 0)
+	for _, a := range args {
+		arr = append(arr, a)
+	}
+
+	if g.contains("WITHCOORD") {
+		arr = append(arr, []byte("WITHCOORD"))
+	}
+	if g.contains("WITHDIST") {
+		arr = append(arr, []byte("WITHDIST"))
+	}
+
+	if g.contains("COUNT") {
+		arr = append(arr, []byte("COUNT"))
+		arr = append(arr, IntToByteArray(g.params["COUNT"].(int)))
+	}
+
+	if g.contains("ASC") {
+		arr = append(arr, []byte("ASC"))
+	} else if g.contains("DESC") {
+		arr = append(arr, []byte("DESC"))
+	}
+
+	return arr
+}
+
+func (g GeoRadiusParam) contains(key string) bool {
+	_, ok := g.params[key]
+	return ok
 }
 
 type Tuple struct {
@@ -281,13 +322,13 @@ type MultiKeyCommands interface {
 	RandomKey() (string, error)
 	Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error)
 	//Scan(cursor string) (ScanResult, error)
-	Scan(cursor string, params ...ScanParams) (ScanResult, error)
+	Scan(cursor string, params ...ScanParams) (*ScanResult, error)
 	Pfmerge(destkey string, sourcekeys ...string) (string, error)
 	Pfcount(keys ...string) (int64, error)
 }
 
 type ScanResult struct {
-	Cursor  []byte
+	Cursor  string
 	Results []string
 }
 

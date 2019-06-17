@@ -1763,25 +1763,25 @@ func (r *Redis) ZrangeByLex(key, min, max string) ([]string, error) {
 func (r *Redis) ZrangeByLexBatch(key, min, max string, offset, count int) ([]string, error) {
 	err := r.Client.ZrangeByLexBatch(key, min, max, offset, count)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ZrevrangeByLex(key, max, min string) ([]string, error) {
 	err := r.Client.ZrevrangeByLex(key, max, min)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]string, error) {
 	err := r.Client.ZrevrangeByLexBatch(key, max, min, offset, count)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ZremrangeByLex(key, min, max string) (int64, error) {
@@ -1825,39 +1825,39 @@ func (r *Redis) BitcountRange(key string, start, end int64) (int64, error) {
 }
 
 func (r *Redis) Bitpos(key string, value bool, params ...BitPosParams) (int64, error) {
-	err := r.Client.Bitpos(key, value, params)
+	err := r.Client.Bitpos(key, value, params...)
 	if err != nil {
 		return 0, err
 	}
 	return r.Client.getIntegerReply()
 }
 
-func (r *Redis) Hscan(key, cursor string, params ...ScanParams) (ScanResult, error) {
-	err := r.Client.Hscan(key, cursor, params)
+func (r *Redis) Hscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+	err := r.Client.Hscan(key, cursor, params...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToScanResultReply(r.Client.getObjectMultiBulkReply())
 }
 
-func (r *Redis) Sscan(key, cursor string, params ...ScanParams) (ScanResult, error) {
-	err := r.Client.Sscan(key, cursor, params)
+func (r *Redis) Sscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+	err := r.Client.Sscan(key, cursor, params...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToScanResultReply(r.Client.getObjectMultiBulkReply())
 }
 
-func (r *Redis) Zscan(key, cursor string, params ...ScanParams) (ScanResult, error) {
-	err := r.Client.Zscan(key, cursor, params)
+func (r *Redis) Zscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+	err := r.Client.Zscan(key, cursor, params...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToScanResultReply(r.Client.getObjectMultiBulkReply())
 }
 
 func (r *Redis) Pfadd(key string, elements ...string) (int64, error) {
-	err := r.Client.Pfadd(key, elements)
+	err := r.Client.Pfadd(key, elements...)
 	if err != nil {
 		return 0, err
 	}
@@ -1865,7 +1865,7 @@ func (r *Redis) Pfadd(key string, elements ...string) (int64, error) {
 }
 
 func (r *Redis) Geoadd(key string, longitude, latitude float64, member string) (int64, error) {
-	err := r.Client.Geoadd(key, longitude, latitude)
+	err := r.Client.Geoadd(key, longitude, latitude, member)
 	if err != nil {
 		return 0, err
 	}
@@ -1881,51 +1881,51 @@ func (r *Redis) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordi
 }
 
 func (r *Redis) Geodist(key, member1, member2 string, unit ...GeoUnit) (float64, error) {
-	err := r.Client.Geodist(key, member1, member2, unit)
+	err := r.Client.Geodist(key, member1, member2, unit...)
 	if err != nil {
 		return 0, err
 	}
-	return r.Client.getIntegerReply()
+	return StringToFloat64Reply(r.Client.getBulkReply())
 }
 
 func (r *Redis) Geohash(key string, members ...string) ([]string, error) {
-	err := r.Client.Geohash(key, members)
+	err := r.Client.Geohash(key, members...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
-func (r *Redis) Geopos(key string, members ...string) ([]GeoCoordinate, error) {
-	err := r.Client.Geopos(key, members)
+func (r *Redis) Geopos(key string, members ...string) ([]*GeoCoordinate, error) {
+	err := r.Client.Geopos(key, members...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToGeoCoordinateReply(r.Client.getObjectMultiBulkReply())
 }
 
-func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error) {
-	err := r.Client.Georadius(key, longitude, latitude, radius, unit, param)
+func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+	err := r.Client.Georadius(key, longitude, latitude, radius, unit, param...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToGeoCoordinateReply(r.Client.getObjectMultiBulkReply())
 }
 
-func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error) {
-	err := r.Client.GeoradiusByMember(key, member, radius, unit, param)
+func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+	err := r.Client.GeoradiusByMember(key, member, radius, unit, param...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToGeoCoordinateReply(r.Client.getObjectMultiBulkReply())
 }
 
 func (r *Redis) Bitfield(key string, arguments ...string) ([]int64, error) {
-	err := r.Client.Bitfield(key, arguments)
+	err := r.Client.Bitfield(key, arguments...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getIntegerMultiBulkReply()
 }
 
 //</editor-fold>
@@ -2223,19 +2223,19 @@ func (r *Redis) Zinterstore(dstkey string, sets ...string) (int64, error) {
 }
 
 func (r *Redis) BlpopTimout(timeout int, keys ...string) ([]string, error) {
-	err := r.Client.BlpopTimout(timeout, keys)
+	err := r.Client.BlpopTimout(timeout, keys...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) BrpopTimout(timeout int, keys ...string) ([]string, error) {
-	err := r.Client.BrpopTimout(timeout, keys)
+	err := r.Client.BrpopTimout(timeout, keys...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 /**
@@ -2309,11 +2309,11 @@ func (r *Redis) Blpop(args ...string) ([]string, error) {
 }
 
 func (r *Redis) Brpop(args ...string) ([]string, error) {
-	err := r.Client.Brpop(args...)
+	err := r.Client.Brpop(args)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) SortMulti(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
@@ -2327,9 +2327,9 @@ func (r *Redis) SortMulti(key, dstkey string, sortingParameters ...SortingParams
 func (r *Redis) Unwatch() (string, error) {
 	err := r.Client.Unwatch()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
@@ -2351,9 +2351,9 @@ func (r *Redis) ZunionstoreWithParams(dstkey string, params ZParams, sets ...str
 func (r *Redis) Brpoplpush(source, destination string, timeout int) (string, error) {
 	err := r.Client.Brpoplpush(source, destination, timeout)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) Publish(channel, message string) (int64, error) {
@@ -2396,12 +2396,12 @@ func (r *Redis) Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error
 	return r.Client.getIntegerReply()
 }
 
-func (r *Redis) Scan(cursor string, params ...ScanParams) (ScanResult, error) {
-	err := r.Client.Scan(cursor, params)
+func (r *Redis) Scan(cursor string, params ...ScanParams) (*ScanResult, error) {
+	err := r.Client.Scan(cursor, params...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToScanResultReply(r.Client.getObjectMultiBulkReply())
 }
 
 func (r *Redis) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
@@ -2426,17 +2426,17 @@ func (r *Redis) Pfcount(keys ...string) (int64, error) {
 func (r *Redis) ConfigGet(pattern string) ([]string, error) {
 	err := r.Client.ConfigGet(pattern)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ConfigSet(parameter, value string) (string, error) {
 	err := r.Client.ConfigSet(parameter, value)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) SlowlogReset() (string, error) {

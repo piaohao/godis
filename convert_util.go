@@ -6,6 +6,13 @@ import (
 	"strconv"
 )
 
+func BoolToByteArray(a bool) []byte {
+	if a {
+		return BYTES_TRUE
+	}
+	return BYTES_FALSE
+}
+
 func IntToByteArray(a int) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, int64(a), 10)
@@ -20,6 +27,11 @@ func Float64ToByteArray(a float64) []byte {
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], math.Float64bits(a))
 	return buf[:]
+}
+
+func ByteToFloat64(bytes []byte) float64 {
+	bits := binary.LittleEndian.Uint64(bytes)
+	return math.Float64frombits(bits)
 }
 
 func StringStringArrayToByteArray(str string, arr []string) [][]byte {
@@ -76,4 +88,35 @@ func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 		newArr = append(newArr, Tuple{element: []byte(reply[i]), score: f})
 	}
 	return newArr, err
+}
+
+func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, error) {
+	if err != nil || len(reply) == 0 {
+		return nil, err
+	}
+	nexCursor := string(reply[0].([]byte))
+	result := make([]string, 0)
+	for _, r := range reply[1].([][]byte) {
+		result = append(result, string(r))
+	}
+	return &ScanResult{Cursor: nexCursor, Results: result}, err
+}
+
+func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordinate, error) {
+	if err != nil || len(reply) == 0 {
+		return nil, err
+	}
+	arr := make([]*GeoCoordinate, 0)
+	for _, r := range reply {
+		if r == nil {
+			arr = append(arr, nil)
+		} else {
+			rArr := r.([][]byte)
+			arr = append(arr, &GeoCoordinate{
+				longitude: ByteToFloat64(rArr[0]),
+				latitude:  ByteToFloat64(rArr[1]),
+			})
+		}
+	}
+	return arr, err
 }
