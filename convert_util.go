@@ -62,3 +62,18 @@ func Int64ToBoolReply(reply int64, err error) (bool, error) {
 func ByteToStringReply(reply []byte, err error) (string, error) {
 	return string(reply), err
 }
+
+func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
+	if len(reply) == 0 {
+		return []Tuple{}, nil
+	}
+	newArr := make([]Tuple, len(reply)/2)
+	for i := 0; i < len(reply); i += 2 {
+		f, err := strconv.ParseFloat(reply[i+1], 64)
+		if err != nil {
+			return nil, err
+		}
+		newArr = append(newArr, Tuple{element: []byte(reply[i]), score: f})
+	}
+	return newArr, err
+}

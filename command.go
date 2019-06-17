@@ -14,9 +14,9 @@ type RedisCommands interface {
 	PexpireAt(key string, millisecondsTimestamp int64) (int64, error)
 	Ttl(key string) (int64, error)
 	Pttl(key string) (int64, error)
-	SetbitWithBool(key string, offset int64, value bool)
-	Setbit(key string, offset int64, value string)
-	Getbit(key string, offset int64)
+	SetbitWithBool(key string, offset int64, value bool) (bool, error)
+	Setbit(key string, offset int64, value string) (bool, error)
+	Getbit(key string, offset int64) (bool, error)
 	Setrange(key string, offset int64, value string) (int64, error)
 	Getrange(key string, startOffset, endOffset int64) (string, error)
 	GetSet(key, value string) (string, error)
@@ -97,59 +97,83 @@ type RedisCommands interface {
 	//ZrangeByScoreWithScores(key string, min float64, max float64) ([]Tuple, error)
 	//ZrevrangeByScoreWithScores(key string, max float64, min float64) ([]Tuple, error)
 	//ZrangeByScoreWithScoresBatch(key string, min float64, max float64, offset int, count int) ([]Tuple, error)
-	Zcore(key string, max string, min string, offset int, count int) ([]string, error)
-	ZrangeByScoreWithScores(key string, min string, max string) ([]Tuple, error)
-	ZrevrangeByScoreWithScores(key string, max string, min string) ([]Tuple, error)
-	ZrangeByScoreWithScoresBatch(key string, min string, max string, offset int, count int) ([]Tuple, error)
+	//Zcore(key, max, min string, offset, count int) ([]string, error)
+	ZrangeByScoreWithScores(key, min, max string) ([]Tuple, error)
+	ZrevrangeByScoreWithScores(key, max, min string) ([]Tuple, error)
+	ZrangeByScoreWithScoresBatch(key, min, max string, offset, count int) ([]Tuple, error)
 	//ZrevrangeByScoreWithScores(key string, max float64, min float64, offset int, count int) ([]Tuple, error)
-	ZrevrangeByScoreWithScoresBatch(key string, max string, min string, offset int, count int) ([]Tuple, error)
-	ZremrangeByRank(key string, start int64, end int64) (int64, error)
+	ZrevrangeByScoreWithScoresBatch(key, max, min string, offset, count int) ([]Tuple, error)
+	ZremrangeByRank(key string, start, end int64) (int64, error)
 	//ZremrangeByScore(key string, start float64, end float64) (int64, error)
-	ZremrangeByScore(key string, start string, end string) (int64, error)
-	Zlexcount(key string, min string, max string) (int64, error)
-	ZrangeByLex(key string, min string, max string) ([]string, error)
-	ZrangeByLexBatch(key string, min string, max string, offset int, count int) ([]string, error)
-	ZrevrangeByLex(key string, max string, min string) ([]string, error)
-	ZrevrangeByLexBatch(key string, max string, min string, offset int, count int) ([]string, error)
-	ZremrangeByLex(key string, min string, max string) (int64, error)
+	ZremrangeByScore(key, start, end string) (int64, error)
+	Zlexcount(key, min, max string) (int64, error)
+	ZrangeByLex(key, min, max string) ([]string, error)
+	ZrangeByLexBatch(key, min, max string, offset, count int) ([]string, error)
+	ZrevrangeByLex(key, max, min string) ([]string, error)
+	ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]string, error)
+	ZremrangeByLex(key, min, max string) (int64, error)
 	Linsert(key string, where ListOption, pivot, value string) (int64, error)
 	Lpushx(key string, String ...string) (int64, error)
 	Rpushx(key string, String ...string) (int64, error)
 	//Brpop(timeout int, key string) ([]string, error)
 	//Del(key string) (int64, error)
-	Echo(String string) (string, error)
+	Echo(str string) (string, error)
 	Move(key string, dbIndex int) (int64, error)
 	Bitcount(key string) (int64, error)
 	BitcountRange(key string, start int64, end int64) (int64, error)
 	//Bitpos(key string, value bool) (int64, error)
 	Bitpos(key string, value bool, params ...BitPosParams) (int64, error)
 	//Hscan(key string, cursor string) (ScanResult, error)
-	Hscan(key string, cursor string, params ...ScanParams) (ScanResult, error)
+	Hscan(key, cursor string, params ...ScanParams) (ScanResult, error)
 	//Sscan(key string, cursor string) (ScanResult, error)
-	Sscan(key string, cursor string, params ...ScanParams) (ScanResult, error)
+	Sscan(key, cursor string, params ...ScanParams) (ScanResult, error)
 	//Zscan(key string, cursor string) (ScanResult, error)
-	Zscan(key string, cursor string, params ...ScanParams) (ScanResult, error)
+	Zscan(key, cursor string, params ...ScanParams) (ScanResult, error)
 	Pfadd(key string, elements ...string) (int64, error)
 	//Pfcount(key string) (int64, error)
 
 	// Geo Commands
-	Geoadd(key string, longitude float64, latitude float64, member string) (int64, error)
+	Geoadd(key string, longitude, latitude float64, member string) (int64, error)
 	GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) (int64, error)
 	//Geodist(key string, member1, member2 string) (float64, error)
 	Geodist(key string, member1, member2 string, unit ...GeoUnit) (float64, error)
 	Geohash(key string, members ...string) ([]string, error)
 	Geopos(key string, members ...string) ([]GeoCoordinate, error)
 	//Georadius(key string, longitude float64, latitude float64, radius float64, unit GeoUnit) ([]GeoCoordinate, error)
-	Georadius(key string, longitude float64, latitude float64, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error)
+	Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error)
 	//GeoradiusByMember(key string, member string, radius float64, unit GeoUnit) ([]GeoCoordinate, error)
 	GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]GeoCoordinate, error)
 	Bitfield(key string, arguments ...string) ([]int64, error)
 }
 
 type ZAddParams struct {
-	XX bool
-	NX bool
-	CH bool
+	XX     bool
+	NX     bool
+	CH     bool
+	params map[string]string
+}
+
+func (p ZAddParams) getByteParams(key []byte, args ...[]byte) [][]byte {
+	arr := make([][]byte, 0)
+	arr = append(arr, key)
+	if p.contains("XX") {
+		arr = append(arr, []byte("XX"))
+	}
+	if p.contains("NX") {
+		arr = append(arr, []byte("NX"))
+	}
+	if p.contains("CH") {
+		arr = append(arr, []byte("CH"))
+	}
+	for _, a := range args {
+		arr = append(arr, a)
+	}
+	return arr
+}
+
+func (p ZAddParams) contains(key string) bool {
+	_, ok := p.params[key]
+	return ok
 }
 
 type BitPosParams struct {
@@ -252,8 +276,8 @@ type MultiKeyCommands interface {
 	ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error)
 	Brpoplpush(source, destination string, timeout int) (string, error)
 	Publish(channel, message string) (int64, error)
-	Subscribe(jedisPubSub JedisPubSub, channels ...string) error
-	Psubscribe(jedisPubSub JedisPubSub, patterns ...string) error
+	Subscribe(redisPubSub RedisPubSub, channels ...string) error
+	Psubscribe(redisPubSub RedisPubSub, patterns ...string) error
 	RandomKey() (string, error)
 	Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error)
 	//Scan(cursor string) (ScanResult, error)
@@ -285,7 +309,7 @@ var (
 	ZParams_MAX = newZParams("MAX")
 )
 
-type JedisPubSub struct {
+type RedisPubSub struct {
 }
 
 type BitOP struct {
@@ -314,9 +338,9 @@ type AdvancedJedisCommands interface {
 	SlowlogLen() (int64, error)
 	//SlowlogGet() ([]Slowlog, error)
 	SlowlogGet(entries ...int64) ([]Slowlog, error)
-	ObjectRefcount(String string) (int64, error)
-	ObjectEncoding(String string) (string, error)
-	ObjectIdletime(String string) (int64, error)
+	ObjectRefcount(str string) (int64, error)
+	ObjectEncoding(str string) (string, error)
+	ObjectIdletime(str string) (int64, error)
 }
 
 type Slowlog struct {
@@ -357,7 +381,7 @@ type BasicCommands interface {
 	Info(section ...string) (string, error)
 	Slaveof(host string, port int) (string, error)
 	SlaveofNoOne() (string, error)
-	GetDB() (int64, error)
+	GetDB() int
 	Debug(params DebugParams) (string, error)
 	ConfigResetStat() (string, error)
 	WaitReplicas(replicas int, timeout int64) (int64, error)

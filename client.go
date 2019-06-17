@@ -81,8 +81,8 @@ func (c *Client) Quit() error {
 	return c.SendCommand(CMD_QUIT)
 }
 
-func (c *Client) Info() error {
-	return c.SendCommand(CMD_INFO)
+func (c *Client) Info(section ...string) error {
+	return c.SendCommand(CMD_INFO, StringArrayToByteArray(section)...)
 }
 
 func (c *Client) Auth(password string) error {
@@ -98,8 +98,12 @@ func (c *Client) Set(key, value string) error {
 	return c.SendCommand(CMD_SET, []byte(key), []byte(value))
 }
 
-func (c *Client) SetWithParams(key, value, nxxx, expx string, time int64) error {
+func (c *Client) SetWithParamsAndTime(key, value, nxxx, expx string, time int64) error {
 	return c.SendCommand(CMD_SET, []byte(key), []byte(value), []byte(nxxx), []byte(expx), Int64ToByteArray(time))
+}
+
+func (c *Client) SetWithParams(key, value, nxxx string) error {
+	return c.SendCommand(CMD_SET, []byte(key), []byte(value), []byte(nxxx))
 }
 
 func (c *Client) Get(key string) error {
@@ -138,8 +142,20 @@ func (c *Client) ExpireAt(key string, unixTime int64) error {
 	return c.SendCommand(CMD_EXPIREAT, []byte(key), Int64ToByteArray(unixTime))
 }
 
+func (c *Client) Pexpire(key string, milliseconds int64) error {
+	return c.SendCommand(CMD_PEXPIRE, []byte(key), Int64ToByteArray(milliseconds))
+}
+
+func (c *Client) PexpireAt(key string, unixTime int64) error {
+	return c.SendCommand(CMD_PEXPIREAT, []byte(key), Int64ToByteArray(unixTime))
+}
+
 func (c *Client) Ttl(key string) error {
 	return c.SendCommand(CMD_TTL, []byte(key))
+}
+
+func (c *Client) Pttl(key string) error {
+	return c.SendCommand(CMD_PTTL, []byte(key))
 }
 
 func (c *Client) Move(key string, dbIndex int) error {
@@ -160,6 +176,10 @@ func (c *Client) Setnx(key, value string) error {
 
 func (c *Client) Setex(key string, seconds int, value string) error {
 	return c.SendCommand(CMD_SETEX, []byte(key), IntToByteArray(seconds), []byte(value))
+}
+
+func (c *Client) Psetex(key string, milliseconds int64, value string) error {
+	return c.SendCommand(CMD_SETEX, []byte(key), Int64ToByteArray(milliseconds), []byte(value))
 }
 
 func (c *Client) Mset(keysvalues ...string) error {
@@ -356,6 +376,15 @@ func (c *Client) Zadd(key string, score float64, member string) error {
 	return c.SendCommand(CMD_ZADD, []byte(key), Float64ToByteArray(score), []byte(member))
 }
 
+func (c *Client) ZaddByMap(key string, scoreMembers map[string]float64, params ...ZAddParams) error {
+	newArr := make([][]byte, 0)
+	for k, v := range scoreMembers {
+		newArr = append(newArr, []byte(k))
+		newArr = append(newArr, Float64ToByteArray(v))
+	}
+	return c.SendCommand(CMD_ZADD, params[0].getByteParams([]byte(key), newArr...)...)
+}
+
 func (c *Client) Zrange(key string, start, end int64) error {
 	return c.SendCommand(CMD_ZRANGE, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
@@ -400,8 +429,13 @@ func (c *Client) Watch(keys ...string) error {
 	return c.SendCommand(CMD_WATCH, StringArrayToByteArray(keys)...)
 }
 
-func (c *Client) Sort(key string) error {
-	return c.SendCommand(CMD_SORT, []byte(key))
+func (c *Client) Sort(key string, sortingParameters ...SortingParams) error {
+	newArr := make([][]byte, 0)
+	newArr = append(newArr, []byte(key))
+	for _, p := range sortingParameters {
+		newArr = append(newArr, p.params...)
+	}
+	return c.SendCommand(CMD_SORT, newArr...)
 }
 
 func (c *Client) Blpop(args []string) error {
@@ -420,8 +454,12 @@ func (c *Client) ZrangeByScore(key, min, max string) error {
 	return c.SendCommand(CMD_ZRANGEBYSCORE, []byte(key), []byte(min), []byte(max))
 }
 
-func (c *Client) ZrevrangeByScore(key, min, max string) error {
-	return c.SendCommand(CMD_ZREVRANGEBYSCORE, []byte(key), []byte(min), []byte(max))
+func (c *Client) ZrevrangeByScore(key, max, min string) error {
+	return c.SendCommand(CMD_ZREVRANGEBYSCORE, []byte(key), []byte(max), []byte(min))
+}
+
+func (c *Client) ZrevrangeByScoreWithScores(key, max, min string) error {
+	return c.SendCommand(CMD_ZREVRANGEBYSCORE, []byte(key), []byte(max), []byte(min), KEYWORD_WITHSCORES.GetRaw())
 }
 
 func (c *Client) ZremrangeByRank(key string, start, end int64) error {
@@ -607,8 +645,6 @@ func (c *Client) HincrByFloat(key, field string, increment float64) error {
 	return c.SendCommand(CMD_HINCRBYFLOAT, []byte(key), []byte(field), Float64ToByteArray(increment))
 }
 
-//todo scan系列函数
-
 func (c *Client) WaitReplicas(replicas int, timeout int64) error {
 	return c.SendCommand(CMD_WAIT, IntToByteArray(replicas), Int64ToByteArray(timeout))
 }
@@ -649,4 +685,64 @@ func (c *Client) Geopos(key []byte, members [][]byte) error {
 		arr = append(arr, m)
 	}
 	return c.SendCommand(CMD_GEOPOS, arr...)
+}
+
+func (c *Client) FlushDB() error {
+	return c.SendCommand(CMD_FLUSHDB)
+}
+
+func (c *Client) DbSize() error {
+	return c.SendCommand(CMD_DBSIZE)
+}
+
+func (c *Client) FlushAll() error {
+	return c.SendCommand(CMD_FLUSHALL)
+}
+
+func (c *Client) Save() error {
+	return c.SendCommand(CMD_SAVE)
+}
+
+func (c *Client) Bgsave() error {
+	return c.SendCommand(CMD_BGSAVE)
+}
+
+func (c *Client) Bgrewriteaof() error {
+	return c.SendCommand(CMD_BGREWRITEAOF)
+}
+
+func (c *Client) Lastsave() error {
+	return c.SendCommand(CMD_LASTSAVE)
+}
+
+func (c *Client) Shutdown() error {
+	return c.SendCommand(CMD_SHUTDOWN)
+}
+
+func (c *Client) Slaveof(host string, port int) error {
+	return c.SendCommand(CMD_SLAVEOF, []byte(host), IntToByteArray(port))
+}
+
+func (c *Client) SlaveofNoOne() error {
+	return c.SendCommand(CMD_SLAVEOF, KEYWORD_NO.GetRaw(), KEYWORD_ONE.GetRaw())
+}
+
+func (c *Client) GetDB() int {
+	return c.Db
+}
+
+func (c *Client) Debug(params DebugParams) error {
+	return c.SendCommand(CMD_DEBUG, StringArrayToByteArray(params.command)...)
+}
+
+func (c *Client) ConfigResetStat() error {
+	return c.SendCommand(CMD_CONFIG, KEYWORD_RESETSTAT.GetRaw())
+}
+
+func (c *Client) ZrangeByScoreBatch(key, max, min string, offset, count int) error {
+	return c.SendCommand(CMD_ZRANGEBYSCORE, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
+}
+
+func (c *Client) ZrevrangeByScoreBatch(key, max, min string, offset, count int) error {
+	return c.SendCommand(CMD_ZREVRANGEBYSCORE, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
 }
