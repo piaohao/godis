@@ -5,6 +5,7 @@ import (
 	"github.com/piaohao/godis"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test_GetSet(t *testing.T) {
@@ -61,6 +62,113 @@ func Test_Pool(t *testing.T) {
 		keys, err := redis.Keys("*")
 		gtest.Assert(err, nil)
 		t.Log(keys)
+	})
+}
+
+func Test_PubSub(t *testing.T) {
+	gtest.Case(t, func() {
+		factory := godis.NewFactory(godis.ShardInfo{
+			Host:     "10.1.1.63",
+			Port:     6379,
+			Db:       0,
+			Password: "123456",
+		})
+		pool := godis.NewPool(godis.PoolConfig{}, *factory)
+		{
+			redis, _ := pool.GetResource()
+			reply, err := redis.Exists("gf")
+			gtest.Assert(err, nil)
+			gtest.Assert(reply, 0)
+			redis.Close()
+		}
+
+		{
+			redis, err := pool.GetResource()
+			pubsub := &godis.RedisPubSub{
+				Redis: redis,
+				OnMessage: func(channel, message string) {
+					t.Log(channel, message)
+				},
+				OnSubscribe: func(channel string, subscribedChannels int) {
+					t.Log(channel, subscribedChannels)
+				},
+				OnPong: func(channel string) {
+					t.Log("recieve pong")
+				},
+			}
+			err = pubsub.Subscribe("gf")
+			gtest.Assert(err, nil)
+			redis.Close()
+		}
+		{
+			redis, err := pool.GetResource()
+			gtest.Assert(err, nil)
+			reply, err := redis.Exists("gf")
+			gtest.Assert(reply, 0)
+			redis.Close()
+		}
+		go func() {
+			redis, err := pool.GetResource()
+			gtest.Assert(err, nil)
+			pubsub := &godis.RedisPubSub{
+				Redis: redis,
+				OnMessage: func(channel, message string) {
+					t.Log(channel, message)
+				},
+				OnSubscribe: func(channel string, subscribedChannels int) {
+					t.Log(channel, subscribedChannels)
+				},
+				OnPong: func(channel string) {
+					t.Log("recieve pong")
+				},
+			}
+			newErr := redis.Subscribe(pubsub, "gf")
+			gtest.Assert(newErr, nil)
+		}()
+		time.Sleep(500 * time.Second)
+	})
+}
+
+func Test_PubSub2(t *testing.T) {
+	gtest.Case(t, func() {
+		factory := godis.NewFactory(godis.ShardInfo{
+			Host:     "10.1.1.63",
+			Port:     6379,
+			Db:       0,
+			Password: "123456",
+		})
+		pool := godis.NewPool(godis.PoolConfig{}, *factory)
+		redis, _ := pool.GetResource()
+		defer redis.Close()
+		t.Log(redis.PubsubChannels("gf"))
+	})
+}
+
+func Test_PubSub3(t *testing.T) {
+	gtest.Case(t, func() {
+		factory := godis.NewFactory(godis.ShardInfo{
+			Host:     "10.1.1.63",
+			Port:     6379,
+			Db:       0,
+			Password: "123456",
+		})
+		pool := godis.NewPool(godis.PoolConfig{}, *factory)
+		redis, _ := pool.GetResource()
+		defer redis.Close()
+		pubsub := &godis.RedisPubSub{
+			Redis: redis,
+			OnMessage: func(channel, message string) {
+				t.Log(channel, message)
+			},
+			OnSubscribe: func(channel string, subscribedChannels int) {
+				t.Log(channel, subscribedChannels)
+			},
+			OnPong: func(channel string) {
+				t.Log("recieve pong")
+			},
+		}
+		newErr := redis.Subscribe(pubsub, "gf1")
+		gtest.Assert(newErr, nil)
 	})
 }
 

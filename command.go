@@ -1,5 +1,11 @@
 package godis
 
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
 type RedisCommands interface {
 	Set(key, value string) (string, error)
 	SetWithParamsAndTime(key, value, nxxx, expx string, time int64) (string, error)
@@ -317,8 +323,8 @@ type MultiKeyCommands interface {
 	ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error)
 	Brpoplpush(source, destination string, timeout int) (string, error)
 	Publish(channel, message string) (int64, error)
-	Subscribe(redisPubSub RedisPubSub, channels ...string) error
-	Psubscribe(redisPubSub RedisPubSub, patterns ...string) error
+	Subscribe(redisPubSub *RedisPubSub, channels ...string) error
+	Psubscribe(redisPubSub *RedisPubSub, patterns ...string) error
 	RandomKey() (string, error)
 	Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error)
 	//Scan(cursor string) (ScanResult, error)
@@ -333,15 +339,20 @@ type ScanResult struct {
 }
 
 type ZParams struct {
-	Name string
+	Name   string
+	params [][]byte
 }
 
 func (g ZParams) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
+func (g ZParams) GetParams() [][]byte {
+	return g.params
+}
+
 func newZParams(name string) ZParams {
-	return ZParams{name}
+	return ZParams{Name: name}
 }
 
 var (
@@ -350,7 +361,218 @@ var (
 	ZParams_MAX = newZParams("MAX")
 )
 
+//type redisPubSub interface {
+//	onMessage(channel, message string)
+//	onPMessage(pattern string, channel, message string)
+//	onSubscribe(channel string, subscribedChannels int)
+//	onUnsubscribe(channel string, subscribedChannels int)
+//	onPUnsubscribe(pattern string, subscribedChannels int)
+//	onPSubscribe(pattern string, subscribedChannels int)
+//	onPong(channel string)
+//}
+
 type RedisPubSub struct {
+	subscribedChannels int
+	Redis              *Redis
+	OnMessage          func(channel, message string)
+	OnPMessage         func(pattern string, channel, message string)
+	OnSubscribe        func(channel string, subscribedChannels int)
+	OnUnsubscribe      func(channel string, subscribedChannels int)
+	OnPUnsubscribe     func(pattern string, subscribedChannels int)
+	OnPSubscribe       func(pattern string, subscribedChannels int)
+	OnPong             func(channel string)
+}
+
+func (r *RedisPubSub) Subscribe(channels ...string) error {
+	if r.Redis.Client == nil {
+		return errors.New("redisPubSub is not subscribed to a Redis instance")
+	}
+	err := r.Redis.Client.Subscribe(channels...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RedisPubSub) Unsubscribe(channels ...string) error {
+	if r.Redis.Client == nil {
+		return errors.New("redisPubSub is not subscribed to a Redis instance")
+	}
+	err := r.Redis.Client.Unsubscribe(channels...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RedisPubSub) Psubscribe(channels ...string) error {
+	if r.Redis.Client == nil {
+		return errors.New("redisPubSub is not subscribed to a Redis instance")
+	}
+	err := r.Redis.Client.Psubscribe(channels...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RedisPubSub) Punsubscribe(channels ...string) error {
+	if r.Redis.Client == nil {
+		return errors.New("redisPubSub is not subscribed to a Redis instance")
+	}
+	err := r.Redis.Client.Punsubscribe(channels...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *RedisPubSub) proceed(redis *Redis, channels ...string) error {
+	r.Redis = redis
+	err := r.Redis.Client.Subscribe(channels...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return r.process(redis)
+}
+
+func (r *RedisPubSub) isSubscribed() bool {
+	return r.subscribedChannels > 0
+}
+
+func (r *RedisPubSub) proceedWithPatterns(redis *Redis, patterns ...string) error {
+	r.Redis = redis
+	err := r.Redis.Client.Psubscribe(patterns...)
+	if err != nil {
+		return err
+	}
+	err = r.Redis.Client.flush()
+	if err != nil {
+		return err
+	}
+	return r.process(redis)
+}
+
+func (r *RedisPubSub) process(redis *Redis) error {
+	for {
+		reply, err := redis.Client.Connection.getRawObjectMultiBulkReply()
+		if err != nil {
+			return err
+		}
+		firstObj := reply[0]
+		//fmt.Printf("%T\n", firstObj)
+		//switch t := firstObj.(type) {
+		//case []uint8:
+		//	break
+		//default:
+		//	return errors.New(fmt.Sprintf("Unknown message type: %v", t))
+		//}
+		resp := firstObj.([]byte)
+		respUpper := strings.ToUpper(string(resp))
+		if string(KEYWORD_SUBSCRIBE.GetRaw()) == respUpper {
+			r.subscribedChannels = int(reply[2].(int64))
+			bchannel := reply[1].([]byte)
+			strchannel := ""
+			if bchannel != nil {
+				strchannel = string(bchannel)
+			}
+			r.OnSubscribe(strchannel, int(r.subscribedChannels))
+		} else if string(KEYWORD_UNSUBSCRIBE.GetRaw()) == respUpper {
+			r.subscribedChannels = int(reply[2].(int64))
+			bchannel := reply[1].([]byte)
+			strchannel := ""
+			if bchannel != nil {
+				strchannel = string(bchannel)
+			}
+			r.OnUnsubscribe(strchannel, int(r.subscribedChannels))
+		} else if string(KEYWORD_MESSAGE.GetRaw()) == respUpper {
+			bchannel := reply[1].([]byte)
+			bmesg := reply[2].([]byte)
+			strchannel := ""
+			if bchannel != nil {
+				strchannel = string(bchannel)
+			}
+			strmesg := ""
+			if bchannel != nil {
+				strmesg = string(bmesg)
+			}
+			r.OnMessage(strchannel, strmesg)
+		} else if string(KEYWORD_PMESSAGE.GetRaw()) == respUpper {
+			bpattern := reply[1].([]byte)
+			bchannel := reply[2].([]byte)
+			bmesg := reply[31].([]byte)
+			strpattern := ""
+			if bpattern != nil {
+				strpattern = string(bpattern)
+			}
+			strchannel := ""
+			if bchannel != nil {
+				strchannel = string(bchannel)
+			}
+			strmesg := ""
+			if bchannel != nil {
+				strmesg = string(bmesg)
+			}
+			r.OnPMessage(strpattern, strchannel, strmesg)
+		} else if string(KEYWORD_PSUBSCRIBE.GetRaw()) == respUpper {
+			r.subscribedChannels = int(reply[2].(int64))
+			bpattern := reply[1].([]byte)
+			strpattern := ""
+			if bpattern != nil {
+				strpattern = string(bpattern)
+			}
+			r.OnPSubscribe(strpattern, int(r.subscribedChannels))
+		} else if string(CMD_PUNSUBSCRIBE.GetRaw()) == respUpper {
+			r.subscribedChannels = int(reply[2].(int64))
+			bpattern := reply[1].([]byte)
+			strpattern := ""
+			if bpattern != nil {
+				strpattern = string(bpattern)
+			}
+			r.OnPUnsubscribe(strpattern, int(r.subscribedChannels))
+		} else if string(KEYWORD_PONG.GetRaw()) == respUpper {
+			bpattern := reply[1].([]byte)
+			strpattern := ""
+			if bpattern != nil {
+				strpattern = string(bpattern)
+			}
+			r.OnPong(strpattern)
+		} else {
+			return errors.New(fmt.Sprintf("Unknown message type: %v", firstObj))
+		}
+
+		if !r.isSubscribed() {
+			break
+		}
+	}
+	/*
+	 * Reset pipeline count because subscribe() calls would have increased it but nothing
+	 * decremented it.
+	 */
+	redis.Client.resetPipelinedCount()
+	/* Invalidate instance since this thread is no longer listening */
+	r.Redis.Client = nil
+	return nil
 }
 
 type BitOP struct {

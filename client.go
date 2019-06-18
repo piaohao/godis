@@ -440,6 +440,16 @@ func (c *Client) Sort(key string, sortingParameters ...SortingParams) error {
 	return c.SendCommand(CMD_SORT, newArr...)
 }
 
+func (c *Client) SortMulti(key, dstkey string, sortingParameters ...SortingParams) error {
+	newArr := make([][]byte, 0)
+	newArr = append(newArr, []byte(key))
+	for _, p := range sortingParameters {
+		newArr = append(newArr, p.params...)
+	}
+	newArr = append(newArr, []byte(dstkey))
+	return c.SendCommand(CMD_SORT, newArr...)
+}
+
 func (c *Client) Blpop(args []string) error {
 	return c.SendCommand(CMD_BLPOP, StringArrayToByteArray(args)...)
 }
@@ -473,11 +483,45 @@ func (c *Client) ZremrangeByScore(key, start, end string) error {
 }
 
 func (c *Client) Zunionstore(dstkey string, sets ...string) error {
-	return c.SendCommand(CMD_ZUNIONSTORE, StringStringArrayToByteArray(dstkey, sets)...)
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(dstkey))
+	arr = append(arr, IntToByteArray(len(sets)))
+	for _, s := range sets {
+		arr = append(arr, []byte(s))
+	}
+	return c.SendCommand(CMD_ZUNIONSTORE, arr...)
+}
+
+func (c *Client) ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(dstkey))
+	arr = append(arr, IntToByteArray(len(sets)))
+	for _, s := range sets {
+		arr = append(arr, []byte(s))
+	}
+	arr = append(arr, params.GetParams()...)
+	return c.SendCommand(CMD_ZUNIONSTORE, arr...)
 }
 
 func (c *Client) Zinterstore(dstkey string, sets ...string) error {
-	return c.SendCommand(CMD_ZINTERSTORE, StringStringArrayToByteArray(dstkey, sets)...)
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(dstkey))
+	arr = append(arr, IntToByteArray(len(sets)))
+	for _, s := range sets {
+		arr = append(arr, []byte(s))
+	}
+	return c.SendCommand(CMD_ZINTERSTORE, arr...)
+}
+
+func (c *Client) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(dstkey))
+	arr = append(arr, IntToByteArray(len(sets)))
+	for _, s := range sets {
+		arr = append(arr, []byte(s))
+	}
+	arr = append(arr, params.GetParams()...)
+	return c.SendCommand(CMD_ZINTERSTORE, arr...)
 }
 
 func (c *Client) Zlexcount(key, min, max string) error {
@@ -879,4 +923,199 @@ func (c *Client) GeoradiusByMember(key, member string, radius float64, unit GeoU
 
 func (c *Client) Bitfield(key string, arguments ...string) error {
 	return c.SendCommand(CMD_BITFIELD, StringStringArrayToByteArray(key, arguments)...)
+}
+
+func (c *Client) RandomKey() error {
+	return c.SendCommand(CMD_RANDOMKEY)
+}
+
+func (c *Client) Bitop(op BitOP, destKey string, srcKeys ...string) error {
+	kw := BitOP_AND
+	switch op.Name {
+	case "AND":
+		kw = BitOP_AND
+	case "OR":
+		kw = BitOP_OR
+	case "XOR":
+		kw = BitOP_XOR
+	case "NOT":
+		kw = BitOP_NOT
+	}
+	arr := make([][]byte, 0)
+	arr = append(arr, kw.GetRaw())
+	arr = append(arr, []byte(destKey))
+	for _, s := range srcKeys {
+		arr = append(arr, []byte(s))
+	}
+	return c.SendCommand(CMD_BITOP, arr...)
+}
+
+func (c *Client) Pfmerge(destkey string, sourcekeys ...string) error {
+	return c.SendCommand(CMD_PFMERGE, StringStringArrayToByteArray(destkey, sourcekeys)...)
+}
+
+func (c *Client) Pfcount(keys ...string) error {
+	return c.SendCommand(CMD_PFCOUNT, StringArrayToByteArray(keys)...)
+}
+
+func (c *Client) SlowlogReset() error {
+	return c.SendCommand(CMD_SLOWLOG, KEYWORD_RESET.GetRaw())
+}
+
+func (c *Client) SlowlogLen() error {
+	return c.SendCommand(CMD_SLOWLOG, KEYWORD_LEN.GetRaw())
+}
+
+func (c *Client) SlowlogGet(entries ...int64) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, KEYWORD_GET.GetRaw())
+	for _, e := range entries {
+		arr = append(arr, Int64ToByteArray(e))
+	}
+	return c.SendCommand(CMD_SLOWLOG, arr...)
+}
+
+func (c *Client) ObjectRefcount(str string) error {
+	return c.SendCommand(CMD_OBJECT, KEYWORD_REFCOUNT.GetRaw(), []byte(str))
+}
+
+func (c *Client) ObjectEncoding(str string) error {
+	return c.SendCommand(CMD_OBJECT, KEYWORD_ENCODING.GetRaw(), []byte(str))
+}
+
+func (c *Client) ObjectIdletime(str string) error {
+	return c.SendCommand(CMD_OBJECT, KEYWORD_IDLETIME.GetRaw(), []byte(str))
+}
+
+func (c *Client) ClusterNodes() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_NODES))
+}
+
+func (c *Client) ClusterMeet(ip string, port int) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_MEET), []byte(ip), IntToByteArray(port))
+}
+
+func (c *Client) ClusterAddSlots(slots ...int) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(CLUSTER_ADDSLOTS))
+	for _, s := range slots {
+		arr = append(arr, IntToByteArray(s))
+	}
+	return c.SendCommand(CMD_CLUSTER, arr...)
+}
+
+func (c *Client) ClusterDelSlots(slots ...int) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(CLUSTER_DELSLOTS))
+	for _, s := range slots {
+		arr = append(arr, IntToByteArray(s))
+	}
+	return c.SendCommand(CMD_CLUSTER, arr...)
+}
+
+func (c *Client) ClusterInfo() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_INFO))
+}
+
+func (c *Client) ClusterGetKeysInSlot(slot int, count int) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_GETKEYSINSLOT), IntToByteArray(slot), IntToByteArray(count))
+}
+
+func (c *Client) ClusterSetSlotNode(slot int, nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SETSLOT_NODE), IntToByteArray(slot), []byte(nodeId))
+}
+
+func (c *Client) ClusterSetSlotMigrating(slot int, nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SETSLOT_MIGRATING), IntToByteArray(slot), []byte(nodeId))
+}
+
+func (c *Client) ClusterSetSlotImporting(slot int, nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SETSLOT_IMPORTING), IntToByteArray(slot), []byte(nodeId))
+}
+
+func (c *Client) ClusterSetSlotStable(slot int) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SETSLOT_STABLE), IntToByteArray(slot))
+}
+
+func (c *Client) ClusterForget(nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_FORGET), []byte(nodeId))
+}
+
+func (c *Client) ClusterFlushSlots() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_FLUSHSLOT))
+}
+
+func (c *Client) ClusterKeySlot(key string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_KEYSLOT), []byte(key))
+}
+
+func (c *Client) ClusterCountKeysInSlot(slot int) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_COUNTKEYINSLOT), IntToByteArray(slot))
+}
+
+func (c *Client) ClusterSaveConfig() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SAVECONFIG))
+}
+
+func (c *Client) ClusterReplicate(nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_REPLICATE), []byte(nodeId))
+}
+
+func (c *Client) ClusterSlaves(nodeId string) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SLAVES), []byte(nodeId))
+}
+
+func (c *Client) ClusterFailover() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_FAILOVER))
+}
+
+func (c *Client) ClusterSlots() error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_SLOTS))
+}
+
+func (c *Client) ClusterReset(resetType Reset) error {
+	return c.SendCommand(CMD_CLUSTER, []byte(CLUSTER_RESET), resetType.GetRaw())
+}
+
+func (c *Client) SentinelMasters() error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_MASTERS))
+}
+
+func (c *Client) SentinelGetMasterAddrByName(masterName string) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_GET_MASTER_ADDR_BY_NAME), []byte(masterName))
+}
+
+func (c *Client) SentinelReset(pattern string) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_RESET), []byte(pattern))
+}
+
+func (c *Client) SentinelSlaves(masterName string) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_SLAVES), []byte(masterName))
+}
+
+func (c *Client) SentinelFailover(masterName string) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_FAILOVER), []byte(masterName))
+}
+
+func (c *Client) SentinelMonitor(masterName, ip string, port, quorum int) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_MONITOR), []byte(masterName), []byte(ip), IntToByteArray(port), IntToByteArray(quorum))
+}
+
+func (c *Client) SentinelRemove(masterName string) error {
+	return c.SendCommand(CMD_SENTINEL, []byte(SENTINEL_REMOVE), []byte(masterName))
+}
+
+func (c *Client) SentinelSet(masterName string, parameterMap map[string]string) error {
+	arr := make([][]byte, 0)
+	arr = append(arr, []byte(SENTINEL_SET))
+	arr = append(arr, []byte(masterName))
+	for k, v := range parameterMap {
+		arr = append(arr, []byte(k))
+		arr = append(arr, []byte(v))
+	}
+	return c.SendCommand(CMD_SENTINEL, arr...)
+}
+
+func (c *Client) PubsubChannels(pattern string) error {
+	return c.SendCommand(CMD_PUBSUB, []byte(PUBSUB_CHANNELS), []byte(pattern))
 }

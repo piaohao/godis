@@ -1964,7 +1964,7 @@ func (r *Redis) Keys(pattern string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.Client.getBinaryMultiBulkReply()
+	return r.Client.getMultiBulkReply()
 }
 
 /**
@@ -2317,7 +2317,7 @@ func (r *Redis) Brpop(args ...string) ([]string, error) {
 }
 
 func (r *Redis) SortMulti(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
-	err := r.Client.SortMulti(key, dstkey, sortingParameters)
+	err := r.Client.SortMulti(key, dstkey, sortingParameters...)
 	if err != nil {
 		return 0, err
 	}
@@ -2333,7 +2333,7 @@ func (r *Redis) Unwatch() (string, error) {
 }
 
 func (r *Redis) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
-	err := r.Client.ZinterstoreWithParams(dstkey, params, sets)
+	err := r.Client.ZinterstoreWithParams(dstkey, params, sets...)
 	if err != nil {
 		return 0, err
 	}
@@ -2341,7 +2341,7 @@ func (r *Redis) ZinterstoreWithParams(dstkey string, params ZParams, sets ...str
 }
 
 func (r *Redis) ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
-	err := r.Client.ZunionstoreWithParams(dstkey, params, sets)
+	err := r.Client.ZunionstoreWithParams(dstkey, params, sets...)
 	if err != nil {
 		return 0, err
 	}
@@ -2364,32 +2364,42 @@ func (r *Redis) Publish(channel, message string) (int64, error) {
 	return r.Client.getIntegerReply()
 }
 
-func (r *Redis) Subscribe(redisPubSub RedisPubSub, channels ...string) error {
-	err := r.Client.Subscribe(redisPubSub, channels)
+func (r *Redis) Subscribe(redisPubSub *RedisPubSub, channels ...string) error {
+	err := r.Client.Connection.setTimeoutInfinite()
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return r.Client.getIntegerReply()
+	err = redisPubSub.proceed(r, channels...)
+	if err != nil {
+		r.Client.Connection.rollbackTimeout()
+		return err
+	}
+	return nil
 }
 
-func (r *Redis) Psubscribe(redisPubSub RedisPubSub, patterns ...string) error {
-	err := r.Client.Psubscribe(redisPubSub, patterns)
+func (r *Redis) Psubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
+	err := r.Client.Connection.setTimeoutInfinite()
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return r.Client.getIntegerReply()
+	err = redisPubSub.proceed(r, patterns...)
+	if err != nil {
+		r.Client.Connection.rollbackTimeout()
+		return err
+	}
+	return nil
 }
 
 func (r *Redis) RandomKey() (string, error) {
 	err := r.Client.RandomKey()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error) {
-	err := r.Client.Bitop(op, destKey, srcKeys)
+	err := r.Client.Bitop(op, destKey, srcKeys...)
 	if err != nil {
 		return 0, err
 	}
@@ -2405,15 +2415,15 @@ func (r *Redis) Scan(cursor string, params ...ScanParams) (*ScanResult, error) {
 }
 
 func (r *Redis) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
-	err := r.Client.Pfmerge(destkey, sourcekeys)
+	err := r.Client.Pfmerge(destkey, sourcekeys...)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) Pfcount(keys ...string) (int64, error) {
-	err := r.Client.Pfcount(keys)
+	err := r.Client.Pfcount(keys...)
 	if err != nil {
 		return 0, err
 	}
@@ -2442,9 +2452,9 @@ func (r *Redis) ConfigSet(parameter, value string) (string, error) {
 func (r *Redis) SlowlogReset() (string, error) {
 	err := r.Client.SlowlogReset()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) SlowlogLen() (int64, error) {
@@ -2456,11 +2466,26 @@ func (r *Redis) SlowlogLen() (int64, error) {
 }
 
 func (r *Redis) SlowlogGet(entries ...int64) ([]Slowlog, error) {
-	err := r.Client.SlowlogGet(entries)
+	err := r.Client.SlowlogGet(entries...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	reply, err := r.Client.getObjectMultiBulkReply()
+	result := make([]Slowlog, 0)
+	for _, re := range reply {
+		item := re.([]interface{})
+		args := make([]string, 0)
+		for _, a := range item[3].([][]byte) {
+			args = append(args, string(a))
+		}
+		result = append(result, Slowlog{
+			id:            item[0].(int64),
+			timeStamp:     item[1].(int64),
+			executionTime: item[2].(int64),
+			args:          args,
+		})
+	}
+	return result, err
 }
 
 func (r *Redis) ObjectRefcount(str string) (int64, error) {
@@ -2474,9 +2499,9 @@ func (r *Redis) ObjectRefcount(str string) (int64, error) {
 func (r *Redis) ObjectEncoding(str string) (string, error) {
 	err := r.Client.ObjectEncoding(str)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) ObjectIdletime(str string) (int64, error) {
@@ -2491,35 +2516,48 @@ func (r *Redis) ObjectIdletime(str string) (int64, error) {
 
 //<editor-fold desc="scriptcommands">
 func (r *Redis) Eval(script string, keyCount int, params ...string) (interface{}, error) {
-	err := r.Client.Eval(script, keyCount, params)
+	err := r.Client.Connection.setTimeoutInfinite()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	err = r.Client.Eval(script, keyCount, params...)
+	if err != nil {
+		r.Client.Connection.rollbackTimeout()
+		return nil, err
+	}
+	return ObjectToEvalResult(r.Client.getOne())
 }
 
 func (r *Redis) Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error) {
-	err := r.Client.Evalsha(sha1, keyCount, params)
+	err := r.Client.Evalsha(sha1, keyCount, params...)
 	if err != nil {
 		return 0, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectToEvalResult(r.Client.getOne())
 }
 
 func (r *Redis) ScriptExists(sha1 ...string) ([]bool, error) {
-	err := r.Client.ScriptExists(sha1)
+	err := r.Client.ScriptExists(sha1...)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	reply, err := r.Client.getIntegerMultiBulkReply()
+	if err != nil {
+		return nil, err
+	}
+	arr := make([]bool, 0)
+	for _, re := range reply {
+		arr = append(arr, re == 1)
+	}
+	return arr, nil
 }
 
 func (r *Redis) ScriptLoad(script string) (string, error) {
 	err := r.Client.ScriptLoad(script)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 //</editor-fold>
@@ -2679,97 +2717,97 @@ func (r *Redis) WaitReplicas(replicas int, timeout int64) (int64, error) {
 func (r *Redis) ClusterNodes() (string, error) {
 	err := r.Client.ClusterNodes()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) ClusterMeet(ip string, port int) (string, error) {
 	err := r.Client.ClusterMeet(ip, port)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getBulkReply()
 }
 
 func (r *Redis) ClusterAddSlots(slots ...int) (string, error) {
-	err := r.Client.ClusterAddSlots(slots)
+	err := r.Client.ClusterAddSlots(slots...)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterDelSlots(slots ...int) (string, error) {
-	err := r.Client.ClusterDelSlots(slots)
+	err := r.Client.ClusterDelSlots(slots...)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterInfo() (string, error) {
 	err := r.Client.ClusterInfo()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterGetKeysInSlot(slot int, count int) ([]string, error) {
 	err := r.Client.ClusterGetKeysInSlot(slot, count)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ClusterSetSlotNode(slot int, nodeId string) (string, error) {
 	err := r.Client.ClusterSetSlotNode(slot, nodeId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterSetSlotMigrating(slot int, nodeId string) (string, error) {
 	err := r.Client.ClusterSetSlotMigrating(slot, nodeId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterSetSlotImporting(slot int, nodeId string) (string, error) {
 	err := r.Client.ClusterSetSlotImporting(slot, nodeId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterSetSlotStable(slot int) (string, error) {
 	err := r.Client.ClusterSetSlotStable(slot)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterForget(nodeId string) (string, error) {
 	err := r.Client.ClusterForget(nodeId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterFlushSlots() (string, error) {
 	err := r.Client.ClusterFlushSlots()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterKeySlot(key string) (int64, error) {
@@ -2791,78 +2829,138 @@ func (r *Redis) ClusterCountKeysInSlot(slot int) (int64, error) {
 func (r *Redis) ClusterSaveConfig() (string, error) {
 	err := r.Client.ClusterSaveConfig()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterReplicate(nodeId string) (string, error) {
 	err := r.Client.ClusterReplicate(nodeId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterSlaves(nodeId string) ([]string, error) {
 	err := r.Client.ClusterSlaves(nodeId)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getMultiBulkReply()
 }
 
 func (r *Redis) ClusterFailover() (string, error) {
 	err := r.Client.ClusterFailover()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) ClusterSlots() ([]interface{}, error) {
 	err := r.Client.ClusterSlots()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getObjectMultiBulkReply()
 }
 
 func (r *Redis) ClusterReset(resetType Reset) (string, error) {
 	err := r.Client.ClusterReset(resetType)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) Readonly() (string, error) {
 	err := r.Client.Readonly()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 //</editor-fold>
 
 //<editor-fold desc="sentinelcommands">
+/**
+ * <pre>
+ * redis 127.0.0.1:26381&gt; sentinel masters
+ * 1)  1) "name"
+ *     2) "mymaster"
+ *     3) "ip"
+ *     4) "127.0.0.1"
+ *     5) "port"
+ *     6) "6379"
+ *     7) "runid"
+ *     8) "93d4d4e6e9c06d0eea36e27f31924ac26576081d"
+ *     9) "flags"
+ *    10) "master"
+ *    11) "pending-commands"
+ *    12) "0"
+ *    13) "last-ok-ping-reply"
+ *    14) "423"
+ *    15) "last-ping-reply"
+ *    16) "423"
+ *    17) "info-refresh"
+ *    18) "6107"
+ *    19) "num-slaves"
+ *    20) "1"
+ *    21) "num-other-sentinels"
+ *    22) "2"
+ *    23) "quorum"
+ *    24) "2"
+ *
+ * </pre>
+ * @return
+ */
 func (r *Redis) SentinelMasters() ([]map[string]string, error) {
 	err := r.Client.SentinelMasters()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToMapArrayReply(r.Client.getObjectMultiBulkReply())
 }
 
+/**
+ * <pre>
+ * redis 127.0.0.1:26381&gt; sentinel get-master-addr-by-name mymaster
+ * 1) "127.0.0.1"
+ * 2) "6379"
+ * </pre>
+ * @param masterName
+ * @return two elements list of strings : host and port.
+ */
 func (r *Redis) SentinelGetMasterAddrByName(masterName string) ([]string, error) {
 	err := r.Client.SentinelGetMasterAddrByName(masterName)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	reply, err := r.Client.getObjectMultiBulkReply()
+	if err != nil {
+		return nil, err
+	}
+	addrs := make([]string, 0)
+	for _, re := range reply {
+		if re == nil {
+			addrs = append(addrs, "")
+		} else {
+			addrs = append(addrs, string(re.([]byte)))
+		}
+	}
+	return addrs, err
 }
 
+/**
+ * <pre>
+ * redis 127.0.0.1:26381&gt; sentinel reset mymaster
+ * (integer) 1
+ * </pre>
+ * @param pattern
+ * @return
+ */
 func (r *Redis) SentinelReset(pattern string) (int64, error) {
 	err := r.Client.SentinelReset(pattern)
 	if err != nil {
@@ -2871,44 +2969,90 @@ func (r *Redis) SentinelReset(pattern string) (int64, error) {
 	return r.Client.getIntegerReply()
 }
 
+/**
+ * <pre>
+ * redis 127.0.0.1:26381&gt; sentinel slaves mymaster
+ * 1)  1) "name"
+ *     2) "127.0.0.1:6380"
+ *     3) "ip"
+ *     4) "127.0.0.1"
+ *     5) "port"
+ *     6) "6380"
+ *     7) "runid"
+ *     8) "d7f6c0ca7572df9d2f33713df0dbf8c72da7c039"
+ *     9) "flags"
+ *    10) "slave"
+ *    11) "pending-commands"
+ *    12) "0"
+ *    13) "last-ok-ping-reply"
+ *    14) "47"
+ *    15) "last-ping-reply"
+ *    16) "47"
+ *    17) "info-refresh"
+ *    18) "657"
+ *    19) "master-link-down-time"
+ *    20) "0"
+ *    21) "master-link-status"
+ *    22) "ok"
+ *    23) "master-host"
+ *    24) "localhost"
+ *    25) "master-port"
+ *    26) "6379"
+ *    27) "slave-priority"
+ *    28) "100"
+ * </pre>
+ * @param masterName
+ * @return
+ */
 func (r *Redis) SentinelSlaves(masterName string) ([]map[string]string, error) {
 	err := r.Client.SentinelSlaves(masterName)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return r.Client.getIntegerReply()
+	return ObjectArrToMapArrayReply(r.Client.getObjectMultiBulkReply())
 }
 
 func (r *Redis) SentinelFailover(masterName string) (string, error) {
 	err := r.Client.SentinelFailover(masterName)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) SentinelMonitor(masterName, ip string, port, quorum int) (string, error) {
 	err := r.Client.SentinelMonitor(masterName, ip, port, quorum)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) SentinelRemove(masterName string) (string, error) {
 	err := r.Client.SentinelRemove(masterName)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) SentinelSet(masterName string, parameterMap map[string]string) (string, error) {
 	err := r.Client.SentinelSet(masterName, parameterMap)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return r.Client.getIntegerReply()
+	return r.Client.getStatusCodeReply()
+}
+
+//</editor-fold>
+
+//<editor-fold desc="other commands">
+func (r *Redis) PubsubChannels(pattern string) ([]string, error) {
+	err := r.Client.PubsubChannels(pattern)
+	if err != nil {
+		return nil, err
+	}
+	return r.Client.getMultiBulkReply()
 }
 
 //</editor-fold>

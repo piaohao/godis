@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 )
 
 type Connection struct {
@@ -16,6 +17,8 @@ type Connection struct {
 	SoTimeout         int
 	Broken            bool
 	Ssl               bool
+
+	pipelinedCommands int
 }
 
 func NewConnection(host string, port, connectionTimeout, soTimeout int, ssl bool) *Connection {
@@ -39,6 +42,28 @@ func NewConnection(host string, port, connectionTimeout, soTimeout int, ssl bool
 		Broken:            false,
 		Ssl:               ssl,
 	}
+}
+
+func (c *Connection) setTimeoutInfinite() error {
+	err := c.Socket.SetDeadline(time.Time{})
+	if err != nil {
+		c.Broken = true
+		return err
+	}
+	return nil
+}
+
+func (c *Connection) rollbackTimeout() error {
+	err := c.Socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
+	if err != nil {
+		c.Broken = true
+		return err
+	}
+	return nil
+}
+
+func (c *Connection) resetPipelinedCount() {
+	c.pipelinedCommands = 0
 }
 
 func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
@@ -95,12 +120,12 @@ func (c *Connection) getBinaryBulkReply() ([]byte, error) {
 	if reply == nil {
 		return []byte{}, nil
 	}
-	resp := reply.([]byte)
-	if nil == resp {
-		return nil, nil
-	} else {
-		return resp, nil
+	resp := reply.([]interface{})
+	respArr := make([]byte, 0)
+	for _, r := range resp {
+		respArr = append(respArr, r.(byte))
 	}
+	return respArr, nil
 }
 
 func (c *Connection) getIntegerReply() (int64, error) {
@@ -116,7 +141,7 @@ func (c *Connection) getIntegerReply() (int64, error) {
 }
 
 func (c *Connection) getMultiBulkReply() ([]string, error) {
-	reply, err := c.getBinaryBulkReply()
+	reply, err := c.getBinaryMultiBulkReply()
 	if err != nil {
 		return nil, err
 	}
@@ -127,19 +152,20 @@ func (c *Connection) getMultiBulkReply() ([]string, error) {
 	return resp, nil
 }
 
-func (c *Connection) getBinaryMultiBulkReply() ([]string, error) {
+func (c *Connection) getBinaryMultiBulkReply() ([][]byte, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
 	}
 	if reply == nil {
-		return []string{}, nil
+		return [][]byte{}, nil
 	}
-	resp := make([]string, 0)
-	for _, r := range reply.([]interface{}) {
-		resp = append(resp, string(r.([]byte)))
+	resp := reply.([]interface{})
+	arr := make([][]byte, 0)
+	for _, res := range resp {
+		arr = append(arr, res.([]byte))
 	}
-	return resp, nil
+	return arr, nil
 }
 
 func (c *Connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
@@ -151,6 +177,11 @@ func (c *Connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 		return []interface{}{}, nil
 	}
 	return reply.([]interface{}), nil
+}
+
+func (c *Connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
+	reply, err := c.readProtocolWithCheckingBroken()
+	return reply.([]interface{}), err
 }
 
 func (c *Connection) getObjectMultiBulkReply() ([]interface{}, error) {
@@ -186,6 +217,10 @@ func (c *Connection) flush() error {
 
 func (c *Connection) Connect() error {
 	conn, err := net.Dial("tcp", fmt.Sprint(c.Host, ":", c.Port))
+	if err != nil {
+		return err
+	}
+	err = conn.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
 	if err != nil {
 		return err
 	}

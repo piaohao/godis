@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 )
 
 const (
@@ -71,6 +72,45 @@ var (
 	POSITIVE_INFINITY_BYTES = []byte("+inf")
 	NEGATIVE_INFINITY_BYTES = []byte("-inf")
 )
+
+type RedisOutputStream struct {
+	*bufio.Writer
+	buf   []byte
+	count int
+}
+
+func NewRedisOutputStream(bw *bufio.Writer) *RedisOutputStream {
+	return &RedisOutputStream{
+		Writer: bw,
+		buf:    make([]byte, 0),
+	}
+}
+
+func (r *RedisOutputStream) writeIntCrLf(b int) (int, error) {
+	_, err := r.Write(strconv.AppendInt(r.buf, int64(b), 10))
+	if err != nil {
+		return 0, err
+	}
+	return r.writeCrLf()
+}
+
+func (r *RedisOutputStream) writeCrLf() (int, error) {
+	return r.WriteString("\r\n")
+}
+
+type RedisInputStream struct {
+	*bufio.Reader
+	buf   []byte
+	count int
+	limit int
+}
+
+func NewRedisInputStream(br *bufio.Reader) *RedisInputStream {
+	return &RedisInputStream{
+		Reader: br,
+		buf:    make([]byte, 8192),
+	}
+}
 
 type Protocol struct {
 	os *RedisOutputStream

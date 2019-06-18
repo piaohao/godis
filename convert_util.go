@@ -120,3 +120,27 @@ func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordi
 	}
 	return arr, err
 }
+
+func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]string, error) {
+	if err != nil || len(reply) == 0 {
+		return nil, err
+	}
+	masters := make([]map[string]string, 0)
+	for _, re := range reply {
+		m := make(map[string]string)
+		arr := re.([][]byte)
+		for i := 0; i < len(arr); i += 2 {
+			m[string(arr[i])] = string(arr[i+1])
+		}
+		masters = append(masters, m)
+	}
+	return masters, nil
+}
+
+func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
+	if err != nil {
+		return nil, err
+	}
+	//todo reply解析待完成
+	return reply, err
+}
