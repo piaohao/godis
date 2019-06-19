@@ -67,6 +67,10 @@ func (c *Connection) resetPipelinedCount() {
 }
 
 func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
+	err := c.Connect()
+	if err != nil {
+		return err
+	}
 	if err := c.Protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
 		return err
 	}
@@ -216,6 +220,9 @@ func (c *Connection) flush() error {
 }
 
 func (c *Connection) Connect() error {
+	if c.IsConnected() {
+		return nil
+	}
 	conn, err := net.Dial("tcp", fmt.Sprint(c.Host, ":", c.Port))
 	if err != nil {
 		return err
@@ -225,11 +232,12 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.Socket = conn
-	c.Protocol = NewProtocol(NewRedisOutputStream(bufio.NewWriter(conn)), NewRedisInputStream(bufio.NewReader(conn)))
+	c.Protocol = NewProtocol(NewRedisOutputStream(bufio.NewWriter(c.Socket)), NewRedisInputStream(bufio.NewReader(c.Socket)))
 	return nil
 }
 
-func (c *Connection) IsConnected() {
+func (c *Connection) IsConnected() bool {
+	return c.Socket != nil
 }
 
 func (c *Connection) Close() error {

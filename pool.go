@@ -18,7 +18,7 @@ type PoolConfig struct {
 	TestOnBorrow         *bool
 }
 
-func NewPool(config PoolConfig, factory Factory) *Pool {
+func NewPool(config PoolConfig, factory *Factory) *Pool {
 	poolConfig := pool.NewDefaultPoolConfig()
 	if config.MaxTotal != nil {
 		poolConfig.MaxTotal = *config.MaxTotal
@@ -46,6 +46,10 @@ func (p *Pool) GetResource() (*Redis, error) {
 		return nil, err
 	}
 	return obj.(*Redis), nil
+}
+
+func (p *Pool) Destroy() {
+	p.internalPool.Close(nil)
 }
 
 type Factory struct {

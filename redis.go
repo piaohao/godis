@@ -3055,4 +3055,12 @@ func (r *Redis) PubsubChannels(pattern string) ([]string, error) {
 	return r.Client.getMultiBulkReply()
 }
 
+func (r *Redis) Asking() (string, error) {
+	err := r.Client.Asking()
+	if err != nil {
+		return "", err
+	}
+	return r.Client.getStatusCodeReply()
+}
+
 //</editor-fold>

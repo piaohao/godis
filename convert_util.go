@@ -45,34 +45,46 @@ func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 
 func StringArrayToByteArray(arr []string) [][]byte {
 	newArr := make([][]byte, len(arr))
-	for _, a := range newArr {
+	for _, a := range arr {
 		newArr = append(newArr, []byte(a))
 	}
 	return newArr
 }
 
 func StringToFloat64Reply(reply string, err error) (float64, error) {
+	if err != nil {
+		return 0, err
+	}
 	f, e := strconv.ParseFloat(reply, 64)
 	if e != nil {
 		return 0, e
 	}
-	return f, err
+	return f, nil
 }
 
 func StringArrayToMapReply(reply []string, err error) (map[string]string, error) {
+	if err != nil {
+		return nil, err
+	}
 	newMap := make(map[string]string, len(reply)/2)
 	for i := 0; i < len(reply); i += 2 {
 		newMap[reply[i]] = reply[i+1]
 	}
-	return newMap, err
+	return newMap, nil
 }
 
 func Int64ToBoolReply(reply int64, err error) (bool, error) {
-	return reply == 1, err
+	if err != nil {
+		return false, err
+	}
+	return reply == 1, nil
 }
 
 func ByteToStringReply(reply []byte, err error) (string, error) {
-	return string(reply), err
+	if err != nil {
+		return "", err
+	}
+	return string(reply), nil
 }
 
 func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
@@ -144,3 +156,13 @@ func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 	//todo reply解析待完成
 	return reply, err
 }
+
+//<editor-fold desc="cluster reply convert">
+func ToStringReply(reply interface{}, err error) (string, error) {
+	if err != nil {
+		return "", err
+	}
+	return reply.(string), nil
+}
+
+//</editor-fold>
