@@ -453,11 +453,19 @@ func (r *RedisCluster) Set(key, value string) (string, error) {
 }
 
 func (r *RedisCluster) SetWithParamsAndTime(key, value, nxxx, expx string, time int64) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParamsAndTime(key, value, nxxx, expx, time)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) SetWithParams(key, value, nxxx string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Get(key string) (string, error) {
@@ -469,593 +477,1191 @@ func (r *RedisCluster) Get(key string) (string, error) {
 }
 
 func (r *RedisCluster) Persist(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Persist(key)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Type(key string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Type(key)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Expire(key string, seconds int) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Expire(key, seconds)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Pexpire(key string, milliseconds int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Pexpire(key, milliseconds)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) ExpireAt(key string, unixtime int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.ExpireAt(key, unixtime)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) PexpireAt(key string, millisecondsTimestamp int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.PexpireAt(key, millisecondsTimestamp)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Ttl(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Ttl(key)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Pttl(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Pttl(key)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) SetbitWithBool(key string, offset int64, value bool) (bool, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetbitWithBool(key, offset, value)
+	}
+	return ToBoolReply(command.run(key))
 }
 
 func (r *RedisCluster) Setbit(key string, offset int64, value string) (bool, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Setbit(key, offset, value)
+	}
+	return ToBoolReply(command.run(key))
 }
 
 func (r *RedisCluster) Getbit(key string, offset int64) (bool, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Getbit(key, offset)
+	}
+	return ToBoolReply(command.run(key))
 }
 
 func (r *RedisCluster) Setrange(key string, offset int64, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Setrange(key, offset, value)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Getrange(key string, startOffset, endOffset int64) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Getrange(key, startOffset, endOffset)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) GetSet(key, value string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.GetSet(key, value)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Setnx(key, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Setnx(key, value)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Setex(key string, seconds int, value string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Setex(key, seconds, value)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Psetex(key string, milliseconds int64, value string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Psetex(key, milliseconds, value)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) DecrBy(key string, decrement int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.DecrBy(key, decrement)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) Decr(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Decr(key)
+	}
+	return ToInt64Reply(command.run(key))
 }
 
 func (r *RedisCluster) IncrBy(key string, increment int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) IncrByFloat(key string, increment float64) (float64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Incr(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Append(key, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Substr(key string, start, end int) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hset(key, field string, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hget(key, field string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hsetnx(key, field, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hmset(key string, hash map[string]string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hmget(key string, fields ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) HincrBy(key, field string, value int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) HincrByFloat(key, field string, value float64) (float64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hexists(key, field string) (bool, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hdel(key string, fields ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hlen(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hkeys(key string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hvals(key string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) HgetAll(key string) (map[string]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Rpush(key string, strings ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lpush(key string, strings ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Llen(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lrange(key string, start, stop int64) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Ltrim(key string, start, stop int64) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lindex(key string, index int64) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lset(key string, index int64, value string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lrem(key string, count int64, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lpop(key string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Rpop(key string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sadd(key string, members ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Smembers(key string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Srem(key string, members ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Spop(key string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) SpopBatch(key string, count int64) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Scard(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sismember(key string, member string) (bool, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Srandmember(key string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) SrandmemberBatch(key string, count int) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Strlen(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zadd(key string, score float64, member string, params ...ZAddParams) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZaddByMap(key string, scoreMembers map[string]float64, params ...ZAddParams) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zrange(key string, start, end int64) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zrem(key string, member ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zincrby(key string, score float64, member string, params ...ZAddParams) (float64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zrank(key, member string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zrevrank(key, member string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zrevrange(key string, start, end int64) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeWithScores(key string, start, end int64) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeWithScores(key string, start, end int64) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zcard(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zscore(key, member string) (float64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sort(key string, sortingParameters ...SortingParams) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zcount(key string, min string, max string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByScore(key string, min string, max string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeByScore(key string, max string, min string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByScoreBatch(key string, min string, max string, offset int, count int) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByScoreWithScores(key, min, max string) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeByScoreWithScores(key, max, min string) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByScoreWithScoresBatch(key, min, max string, offset, count int) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeByScoreWithScoresBatch(key, max, min string, offset, count int) ([]Tuple, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZremrangeByRank(key string, start, end int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZremrangeByScore(key, start, end string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zlexcount(key, min, max string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByLex(key, min, max string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrangeByLexBatch(key, min, max string, offset, count int) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeByLex(key, max, min string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZremrangeByLex(key, min, max string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Linsert(key string, where ListOption, pivot, value string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Lpushx(key string, String ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Rpushx(key string, String ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Echo(str string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Move(key string, dbIndex int) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Bitcount(key string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) BitcountRange(key string, start int64, end int64) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Bitpos(key string, value bool, params ...BitPosParams) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Hscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Pfadd(key string, elements ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Geoadd(key string, longitude, latitude float64, member string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Geodist(key string, member1, member2 string, unit ...GeoUnit) (float64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Geohash(key string, members ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Geopos(key string, members ...string) ([]*GeoCoordinate, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Bitfield(key string, arguments ...string) ([]int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 //</editor-fold>
 
 //<editor-fold desc="multikeycommands">
 func (r *RedisCluster) Del(keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Del(keys...)
+	}
+	return ToInt64Reply(command.runBatch(len(keys), keys...))
 }
 
 func (r *RedisCluster) Exists(keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Exists(keys...)
+	}
+	return ToInt64Reply(command.runBatch(len(keys), keys...))
 }
 
 func (r *RedisCluster) BlpopTimout(timeout int, keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) BrpopTimout(timeout int, keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Blpop(args ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Brpop(args ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Keys(pattern string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Mget(keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Mset(keysvalues ...string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Msetnx(keysvalues ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Rename(oldkey, newkey string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Renamenx(oldkey, newkey string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Rpoplpush(srckey, dstkey string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sdiff(keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sdiffstore(dstkey string, keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sinter(keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sinterstore(dstkey string, keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Smove(srckey, dstkey, member string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) SortMulti(key string, dstkey string, sortingParameters ...SortingParams) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sunion(keys ...string) ([]string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Sunionstore(dstkey string, keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Watch(keys ...string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Unwatch() (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zinterstore(dstkey string, sets ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Zunionstore(dstkey string, sets ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Brpoplpush(source, destination string, timeout int) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Publish(channel, message string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Subscribe(redisPubSub *RedisPubSub, channels ...string) error {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Psubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) RandomKey() (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.SetWithParams(key, value, nxxx)
+	}
+	return ToStringReply(command.run(key))
 }
 
 func (r *RedisCluster) Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Bitop(op, destKey, srcKeys...)
+	}
+	arr := StringStringArrayToStringArray(destKey, srcKeys)
+	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 func (r *RedisCluster) Scan(cursor string, params ...ScanParams) (*ScanResult, error) {
-	panic("implement me")
+	matchPattern := ""
+	param := NewScanParams()
+	if len(params) > 0 {
+		param = &params[1]
+	}
+	matchPattern = param.match()
+	if matchPattern == "" {
+		return nil, errors.New("only supports SCAN commands with non-empty MATCH patterns")
+	}
+	if !NewRedisClusterHashTagUtil().isClusterCompliantMatchPattern(matchPattern) {
+		return nil, errors.New("only supports SCAN commands with MATCH patterns containing hash-tags ( curly-brackets enclosed strings )")
+	}
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Scan(cursor, params...)
+	}
+	return ToScanResultReply(command.run(matchPattern))
 }
 
 func (r *RedisCluster) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Pfmerge(destkey, sourcekeys...)
+	}
+	arr := StringStringArrayToStringArray(destkey, sourcekeys)
+	return ToStringReply(command.runBatch(len(arr), arr...))
 }
 
 func (r *RedisCluster) Pfcount(keys ...string) (int64, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Pfcount(keys...)
+	}
+	return ToInt64Reply(command.runBatch(len(keys), keys...))
 }
 
 //</editor-fold>
 
 //<editor-fold desc="scriptcommands">
 func (r *RedisCluster) Eval(script string, keyCount int, params ...string) (interface{}, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Eval(script, keyCount, params...)
+	}
+	return command.runBatch(keyCount, params...)
 }
 
 func (r *RedisCluster) Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error) {
-	panic("implement me")
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Evalsha(sha1, keyCount, params...)
+	}
+	return command.runBatch(keyCount, params...)
 }
 
-func (r *RedisCluster) ScriptExists(sha1 ...string) ([]bool, error) {
-	panic("implement me")
+func (r *RedisCluster) ScriptExists(key string, sha1 ...string) ([]bool, error) {
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.ScriptExists(sha1...)
+	}
+	return ToBoolArrayReply(command.run(key))
 }
 
-func (r *RedisCluster) ScriptLoad(script string) (string, error) {
-	panic("implement me")
+func (r *RedisCluster) ScriptLoad(key, script string) (string, error) {
+	command := NewRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
+	command.execute = func(redis *Redis) (interface{}, error) {
+		return redis.ScriptLoad(script)
+	}
+	return ToStringReply(command.run(key))
 }
 
 //</editor-fold>

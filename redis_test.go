@@ -168,12 +168,21 @@ func Test_PubSub3(t *testing.T) {
 
 func Test_Cluster(t *testing.T) {
 	gtest.Case(t, func() {
-		cluster := godis.NewRedisCluster([]string{"192.168.6.149:8001", "192.168.6.149:8002", "192.168.6.149:8003", "192.168.6.149:8004", "192.168.6.149:8005", "192.168.6.149:8006"},
+		//cluster := godis.NewRedisCluster([]string{"192.168.6.149:8001", "192.168.6.149:8002", "192.168.6.149:8003", "192.168.6.149:8004", "192.168.6.149:8005", "192.168.6.149:8006"},
+		//	0, 0, 1, "", godis.PoolConfig{})
+
+		cluster := godis.NewRedisCluster([]string{"192.168.1.6:8001", "192.168.1.6:8002", "192.168.1.6:8003", "192.168.1.6:8004", "192.168.1.6:8005", "192.168.1.6:8006"},
 			0, 0, 1, "", godis.PoolConfig{})
 		_, err := cluster.Set("cluster", "godis cluster")
 		gtest.Assert(err, nil)
 		reply, err := cluster.Get("cluster")
 		gtest.Assert(err, nil)
 		gtest.Assert(reply, "godis cluster")
+
+		int64Reply, err := cluster.Exists("cluster", "cluster1")
+		gtest.AssertNE(err, nil)
+		int64Reply, err = cluster.Exists("cluster", "cluster")
+		gtest.AssertEQ(err, nil)
+		gtest.Assert(int64Reply, 2)
 	})
 }

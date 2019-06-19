@@ -109,11 +109,10 @@ func (c *Connection) getStatusCodeReply() (string, error) {
 
 func (c *Connection) getBulkReply() (string, error) {
 	result, err := c.getBinaryBulkReply()
-	if nil != err {
-		return string(result), nil
-	} else {
+	if err != nil {
 		return "", err
 	}
+	return string(result), nil
 }
 
 func (c *Connection) getBinaryBulkReply() ([]byte, error) {
@@ -124,12 +123,13 @@ func (c *Connection) getBinaryBulkReply() ([]byte, error) {
 	if reply == nil {
 		return []byte{}, nil
 	}
-	resp := reply.([]interface{})
-	respArr := make([]byte, 0)
-	for _, r := range resp {
-		respArr = append(respArr, r.(byte))
-	}
-	return respArr, nil
+	resp := reply.([]byte)
+	return resp, nil
+	//respArr := make([]byte, 0)
+	//for _, r := range resp {
+	//	respArr = append(respArr, r.(byte))
+	//}
+	//return respArr, nil
 }
 
 func (c *Connection) getIntegerReply() (int64, error) {

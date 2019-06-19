@@ -29,9 +29,13 @@ func Float64ToByteArray(a float64) []byte {
 	return buf[:]
 }
 
-func ByteToFloat64(bytes []byte) float64 {
+func ByteArrayToFloat64(bytes []byte) float64 {
 	bits := binary.LittleEndian.Uint64(bytes)
 	return math.Float64frombits(bits)
+}
+
+func ByteArrayToInt(bytes []byte) uint64 {
+	return binary.LittleEndian.Uint64(bytes)
 }
 
 func StringStringArrayToByteArray(str string, arr []string) [][]byte {
@@ -43,8 +47,17 @@ func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	return params
 }
 
+func StringStringArrayToStringArray(str string, arr []string) []string {
+	params := make([]string, 0)
+	params = append(params, str)
+	for _, v := range arr {
+		params = append(params, v)
+	}
+	return params
+}
+
 func StringArrayToByteArray(arr []string) [][]byte {
-	newArr := make([][]byte, len(arr))
+	newArr := make([][]byte, 0)
 	for _, a := range arr {
 		newArr = append(newArr, []byte(a))
 	}
@@ -125,8 +138,8 @@ func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordi
 		} else {
 			rArr := r.([][]byte)
 			arr = append(arr, &GeoCoordinate{
-				longitude: ByteToFloat64(rArr[0]),
-				latitude:  ByteToFloat64(rArr[1]),
+				longitude: ByteArrayToFloat64(rArr[0]),
+				latitude:  ByteArrayToFloat64(rArr[1]),
 			})
 		}
 	}
@@ -163,6 +176,34 @@ func ToStringReply(reply interface{}, err error) (string, error) {
 		return "", err
 	}
 	return reply.(string), nil
+}
+
+func ToInt64Reply(reply interface{}, err error) (int64, error) {
+	if err != nil {
+		return 0, err
+	}
+	return reply.(int64), nil
+}
+
+func ToBoolReply(reply interface{}, err error) (bool, error) {
+	if err != nil {
+		return false, err
+	}
+	return reply.(bool), nil
+}
+
+func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]bool), nil
+}
+
+func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*ScanResult), nil
 }
 
 //</editor-fold>

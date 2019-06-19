@@ -84,7 +84,7 @@ func (r *Redis) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ByteToStringReply(r.Client.getBinaryBulkReply())
+	return r.Client.getBulkReply()
 }
 
 /**
@@ -101,7 +101,7 @@ func (r *Redis) Type(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ByteToStringReply(r.Client.getBinaryBulkReply())
+	return r.Client.getBulkReply()
 }
 
 /**

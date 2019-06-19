@@ -194,6 +194,10 @@ type ScanParams struct {
 	params map[keyword][]byte
 }
 
+func NewScanParams() *ScanParams {
+	return &ScanParams{params: make(map[keyword][]byte)}
+}
+
 func (s ScanParams) getParams() [][]byte {
 	arr := make([][]byte, 0)
 	for k, v := range s.params {
@@ -201,6 +205,22 @@ func (s ScanParams) getParams() [][]byte {
 		arr = append(arr, []byte(v))
 	}
 	return arr
+}
+
+func (s ScanParams) match() string {
+	if v, ok := s.params[KEYWORD_MATCH]; !ok {
+		return ""
+	} else {
+		return string(v)
+	}
+}
+
+func (s ScanParams) count() int {
+	if v, ok := s.params[KEYWORD_COUNT]; !ok {
+		return 0
+	} else {
+		return int(ByteArrayToInt(v))
+	}
 }
 
 type ListOption struct {
@@ -704,4 +724,11 @@ type SentinelCommands interface {
 	SentinelMonitor(masterName, ip string, port, quorum int) (string, error)
 	SentinelRemove(masterName string) (string, error)
 	SentinelSet(masterName string, parameterMap map[string]string) (string, error)
+}
+
+type ClusterScriptingCommands interface {
+	Eval(script string, keyCount int, params ...string) (interface{}, error)
+	Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error)
+	ScriptExists(key string, sha1 ...string) ([]bool, error)
+	ScriptLoad(key, script string) (string, error)
 }
