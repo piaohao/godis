@@ -614,7 +614,7 @@ var (
 	BitOP_NOT = newBitOP("NOT")
 )
 
-type AdvancedJedisCommands interface {
+type AdvancedRedisCommands interface {
 	ConfigGet(pattern string) ([]string, error)
 	ConfigSet(parameter string, value string) (string, error)
 	SlowlogReset() (string, error)

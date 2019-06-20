@@ -185,11 +185,25 @@ func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	return reply.(int64), nil
 }
 
+func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]int64), nil
+}
+
 func ToBoolReply(reply interface{}, err error) (bool, error) {
 	if err != nil {
 		return false, err
 	}
 	return reply.(bool), nil
+}
+
+func ToFloat64Reply(reply interface{}, err error) (float64, error) {
+	if err != nil {
+		return 0, err
+	}
+	return reply.(float64), nil
 }
 
 func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
@@ -199,11 +213,39 @@ func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
 	return reply.([]bool), nil
 }
 
+func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]string), nil
+}
+
 func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
 	if err != nil {
 		return nil, err
 	}
 	return reply.(*ScanResult), nil
+}
+
+func ToMapReply(reply interface{}, err error) (map[string]string, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.(map[string]string), nil
+}
+
+func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]Tuple), nil
+}
+
+func ToGeoArrayReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]*GeoCoordinate), nil
 }
 
 //</editor-fold>

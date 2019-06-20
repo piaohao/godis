@@ -1,6 +1,8 @@
 // godis
 package godis
 
+import "errors"
+
 type ShardInfo struct {
 	Host              string
 	Port              int
@@ -15,7 +17,9 @@ type ShardInfo struct {
 
 // Redis redis tool
 type Redis struct {
-	Client *Client
+	Client      *Client
+	pipeline    *Pipeline
+	transaction *Transaction
 }
 
 func NewRedis(shardInfo ShardInfo) *Redis {
@@ -30,6 +34,16 @@ func (r *Redis) Connect() error {
 func (r *Redis) Close() error {
 	if r != nil && r.Client != nil {
 		return r.Client.Close()
+	}
+	return nil
+}
+
+func (r *Redis) checkIsInMultiOrPipeline() error {
+	if r.Client.IsInMulti {
+		return errors.New("cannot use Redis when in Multi. Please use Transaction or reset redis state")
+	}
+	if r.pipeline != nil && len(r.pipeline.pipelinedResponses) > 0 {
+		return errors.New("cannot use Redis when in Pipeline. Please use Pipeline or reset redis state")
 	}
 	return nil
 }
@@ -2576,7 +2590,7 @@ func (r *Redis) Ping() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ByteToStringReply(r.Client.getBinaryBulkReply())
+	return r.Client.getStatusCodeReply()
 }
 
 func (r *Redis) Select(index int) (string, error) {
@@ -3061,6 +3075,18 @@ func (r *Redis) Asking() (string, error) {
 		return "", err
 	}
 	return r.Client.getStatusCodeReply()
+}
+
+func (r *Redis) Multi() (*Transaction, error) {
+	err := r.Client.Multi()
+	if err != nil {
+		return nil, err
+	}
+	return NewTransaction(r.Client), nil
+}
+
+func (r *Redis) Pipelined() *Pipeline {
+	return NewPipeline(r.Client)
 }
 
 //</editor-fold>

@@ -8,10 +8,10 @@ type Client struct {
 	//Port              int
 	//ConnectionTimeout int
 	//SoTimeout         int
-	Password string
-	Db       int
-	//IsInMulti         bool
-	//IsInWatch         bool
+	Password  string
+	Db        int
+	IsInMulti bool
+	IsInWatch bool
 	//Ssl               bool
 }
 
@@ -25,10 +25,10 @@ func NewClient(shardInfo ShardInfo) *Client {
 		//Port:              options.Port,
 		//ConnectionTimeout: options.ConnectionTimeout,
 		//SoTimeout:         options.SoTimeout,
-		Password: shardInfo.Password,
-		Db:       db,
-		//IsInMulti:         options.IsInMulti,
-		//IsInWatch:         options.IsInWatch,
+		Password:  shardInfo.Password,
+		Db:        db,
+		IsInMulti: false,
+		IsInWatch: false,
 		//Ssl:               options.Ssl,
 	}
 	client.Connection = NewConnection(shardInfo.Host, shardInfo.Port, shardInfo.ConnectionTimeout, shardInfo.SoTimeout, shardInfo.Ssl)
@@ -1118,4 +1118,33 @@ func (c *Client) SentinelSet(masterName string, parameterMap map[string]string) 
 
 func (c *Client) PubsubChannels(pattern string) error {
 	return c.SendCommand(CMD_PUBSUB, []byte(PUBSUB_CHANNELS), []byte(pattern))
+}
+
+func (c *Client) Multi() error {
+	err := c.SendCommand(CMD_MULTI)
+	if err != nil {
+		return err
+	}
+	c.IsInMulti = true
+	return nil
+}
+
+func (c *Client) Discard() error {
+	err := c.SendCommand(CMD_DISCARD)
+	if err != nil {
+		return err
+	}
+	c.IsInMulti = false
+	c.IsInWatch = false
+	return nil
+}
+
+func (c *Client) Exec() error {
+	err := c.SendCommand(CMD_EXEC)
+	if err != nil {
+		return err
+	}
+	c.IsInMulti = false
+	c.IsInWatch = false
+	return nil
 }

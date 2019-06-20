@@ -74,6 +74,7 @@ func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
 	if err := c.Protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
 		return err
 	}
+	c.pipelinedCommands++
 	return nil
 }
 
@@ -207,7 +208,29 @@ func (c *Connection) getOne() (interface{}, error) {
 	if err := c.flush(); err != nil {
 		return "", err
 	}
+	c.pipelinedCommands--
 	return c.readProtocolWithCheckingBroken()
+}
+
+func (c *Connection) getAll(expect ...int) (interface{}, error) {
+	num := 0
+	if len(expect) > 0 {
+		num = expect[0]
+	}
+	if err := c.flush(); err != nil {
+		return nil, err
+	}
+	all := make([]interface{}, 0)
+	for c.pipelinedCommands > num {
+		obj, err := c.readProtocolWithCheckingBroken()
+		if err != nil {
+			all = append(all, err)
+		} else {
+			all = append(all, obj)
+		}
+		c.pipelinedCommands--
+	}
+	return all, nil
 }
 
 func (c *Connection) flush() error {
@@ -237,7 +260,20 @@ func (c *Connection) Connect() error {
 }
 
 func (c *Connection) IsConnected() bool {
-	return c.Socket != nil
+	if c.Socket == nil {
+		return false
+	}
+	//buf := make([]byte, 1024)
+	//n, err := c.Socket.Read(buf)
+	//if err != nil {
+	//	if io.EOF == err {
+	//		return false
+	//	}
+	//}
+	//if n > 0 {
+	//	fmt.Printf("unexpected data: %s\n", buf[:n])
+	//}
+	return true
 }
 
 func (c *Connection) Close() error {
