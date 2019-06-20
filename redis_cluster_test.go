@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestCluster_Basic(t *testing.T) {
+func _TestCluster_Basic(t *testing.T) {
 	gtest.Case(t, func() {
 		//cluster := godis.NewRedisCluster([]string{"192.168.6.149:8001", "192.168.6.149:8002", "192.168.6.149:8003", "192.168.6.149:8004", "192.168.6.149:8005", "192.168.6.149:8006"},
 		//	0, 0, 1, "", godis.PoolConfig{})
@@ -29,7 +29,7 @@ func TestCluster_Basic(t *testing.T) {
 	})
 }
 
-func TestCluster_PubSub(t *testing.T) {
+func _TestCluster_PubSub(t *testing.T) {
 	gtest.Case(t, func() {
 		cluster := godis.NewRedisCluster([]string{"192.168.6.149:8001", "192.168.6.149:8002", "192.168.6.149:8003", "192.168.6.149:8004", "192.168.6.149:8005", "192.168.6.149:8006"},
 			0, 0, 1, "", godis.PoolConfig{})

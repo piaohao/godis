@@ -9,10 +9,9 @@ import (
 func TestPipeline_Basic(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Db:       0,
-			Password: "123456",
+			Host: "localhost",
+			Port: 6379,
+			Db:   0,
 		})
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()
@@ -38,10 +37,9 @@ func TestPipeline_Basic(t *testing.T) {
 func TestTransaction_Basic(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Db:       0,
-			Password: "123456",
+			Host: "localhost",
+			Port: 6379,
+			Db:   0,
 		})
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()

@@ -10,7 +10,7 @@ import (
 func Test_GetSet(t *testing.T) {
 	gtest.Case(t, func() {
 		redis := godis.NewRedis(godis.ShardInfo{
-			Host: "172.17.0.2",
+			Host: "localhost",
 			Port: 6379,
 			Db:   0,
 		})
@@ -46,7 +46,7 @@ func Test_GetSet(t *testing.T) {
 func Test_Pool(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host: "172.17.0.2",
+			Host: "localhost",
 			Port: 6379,
 			Db:   0,
 		})
@@ -67,10 +67,9 @@ func Test_Pool(t *testing.T) {
 func Test_PubSub(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Db:       0,
-			Password: "123456",
+			Host: "localhost",
+			Port: 6379,
+			Db:   0,
 		})
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		{
@@ -126,10 +125,9 @@ func Test_PubSub(t *testing.T) {
 func Test_PubSub2(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Db:       0,
-			Password: "123456",
+			Host: "localhost",
+			Port: 6379,
+			Db:   0,
 		})
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()
@@ -141,10 +139,9 @@ func Test_PubSub2(t *testing.T) {
 func Test_PubSub3(t *testing.T) {
 	gtest.Case(t, func() {
 		factory := godis.NewFactory(godis.ShardInfo{
-			Host:     "10.1.1.63",
-			Port:     6379,
-			Db:       0,
-			Password: "123456",
+			Host: "localhost",
+			Port: 6379,
+			Db:   0,
 		})
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()
