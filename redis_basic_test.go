@@ -74,7 +74,7 @@ func Test_PubSub(t *testing.T) {
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		{
 			redis, _ := pool.GetResource()
-			reply, err := redis.Exists("gf")
+			reply, err := redis.Exists("godis")
 			gtest.Assert(err, nil)
 			gtest.Assert(reply, 0)
 			redis.Close()
@@ -82,14 +82,14 @@ func Test_PubSub(t *testing.T) {
 
 		{
 			redis, err := pool.GetResource()
-			_, err = redis.Publish("gf", "godis pubsub")
+			_, err = redis.Publish("godis", "godis pubsub")
 			gtest.Assert(err, nil)
 			redis.Close()
 		}
 		{
 			redis, err := pool.GetResource()
 			gtest.Assert(err, nil)
-			reply, err := redis.Exists("gf")
+			reply, err := redis.Exists("godis")
 			gtest.Assert(reply, 0)
 			redis.Close()
 		}
@@ -108,13 +108,13 @@ func Test_PubSub(t *testing.T) {
 					t.Log("recieve pong")
 				},
 			}
-			newErr := redis.Subscribe(pubsub, "gf")
+			newErr := redis.Subscribe(pubsub, "godis")
 			gtest.Assert(newErr, nil)
 		}()
 		time.Sleep(1 * time.Second)
 		{
 			redis, err := pool.GetResource()
-			_, err = redis.Publish("gf", "godis pubsub")
+			_, err = redis.Publish("godis", "godis pubsub")
 			gtest.Assert(err, nil)
 			redis.Close()
 		}
@@ -132,6 +132,6 @@ func Test_PubSub2(t *testing.T) {
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()
 		defer redis.Close()
-		t.Log(redis.PubsubChannels("gf"))
+		t.Log(redis.PubsubChannels("godis"))
 	})
 }
