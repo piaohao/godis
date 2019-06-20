@@ -135,30 +135,3 @@ func Test_PubSub2(t *testing.T) {
 		t.Log(redis.PubsubChannels("gf"))
 	})
 }
-
-func Test_PubSub3(t *testing.T) {
-	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.ShardInfo{
-			Host: "localhost",
-			Port: 6379,
-			Db:   0,
-		})
-		pool := godis.NewPool(godis.PoolConfig{}, factory)
-		redis, _ := pool.GetResource()
-		defer redis.Close()
-		pubsub := &godis.RedisPubSub{
-			Redis: redis,
-			OnMessage: func(channel, message string) {
-				t.Log(channel, message)
-			},
-			OnSubscribe: func(channel string, subscribedChannels int) {
-				t.Log(channel, subscribedChannels)
-			},
-			OnPong: func(channel string) {
-				t.Log("recieve pong")
-			},
-		}
-		newErr := redis.Subscribe(pubsub, "gf1")
-		gtest.Assert(newErr, nil)
-	})
-}
