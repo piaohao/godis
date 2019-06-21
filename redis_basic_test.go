@@ -7,13 +7,17 @@ import (
 	"time"
 )
 
+var option = godis.Option{
+	Host:     "10.1.1.63",
+	Password: "123456",
+	//Host: "localhost",
+	Port: 6379,
+	Db:   0,
+}
+
 func Test_GetSet(t *testing.T) {
 	gtest.Case(t, func() {
-		redis := godis.NewRedis(godis.Option{
-			Host: "localhost",
-			Port: 6379,
-			Db:   0,
-		})
+		redis := godis.NewRedis(option)
 		err := redis.Connect()
 		defer redis.Close()
 		gtest.Assert(err, nil)
@@ -45,11 +49,7 @@ func Test_GetSet(t *testing.T) {
 
 func Test_Pool(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.Option{
-			Host: "localhost",
-			Port: 6379,
-			Db:   0,
-		})
+		factory := godis.NewFactory(option)
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, err := pool.GetResource()
 		defer redis.Close()
@@ -66,11 +66,7 @@ func Test_Pool(t *testing.T) {
 
 func Test_PubSub(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.Option{
-			Host: "localhost",
-			Port: 6379,
-			Db:   0,
-		})
+		factory := godis.NewFactory(option)
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		{
 			redis, _ := pool.GetResource()
@@ -82,6 +78,7 @@ func Test_PubSub(t *testing.T) {
 
 		{
 			redis, err := pool.GetResource()
+			gtest.Assert(err, nil)
 			_, err = redis.Publish("godis", "godis pubsub")
 			gtest.Assert(err, nil)
 			redis.Close()
@@ -90,6 +87,7 @@ func Test_PubSub(t *testing.T) {
 			redis, err := pool.GetResource()
 			gtest.Assert(err, nil)
 			reply, err := redis.Exists("godis")
+			gtest.Assert(err, nil)
 			gtest.Assert(reply, 0)
 			redis.Close()
 		}
@@ -105,7 +103,7 @@ func Test_PubSub(t *testing.T) {
 					t.Log(channel, subscribedChannels)
 				},
 				OnPong: func(channel string) {
-					t.Log("recieve pong")
+					t.Log("receive pong")
 				},
 			}
 			newErr := redis.Subscribe(pubsub, "godis")
@@ -114,6 +112,7 @@ func Test_PubSub(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		{
 			redis, err := pool.GetResource()
+			gtest.Assert(err, nil)
 			_, err = redis.Publish("godis", "godis pubsub")
 			gtest.Assert(err, nil)
 			redis.Close()
@@ -124,11 +123,7 @@ func Test_PubSub(t *testing.T) {
 
 func Test_PubSub2(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.Option{
-			Host: "localhost",
-			Port: 6379,
-			Db:   0,
-		})
+		factory := godis.NewFactory(option)
 		pool := godis.NewPool(godis.PoolConfig{}, factory)
 		redis, _ := pool.GetResource()
 		defer redis.Close()

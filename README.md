@@ -10,6 +10,8 @@
 </div>
 
 redis client implement by golang, refer to jedis.
+
+# Features
 * cluster
 * pipeline
 * transaction

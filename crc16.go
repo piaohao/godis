@@ -1,6 +1,6 @@
 package godis
 
-var LOOKUP_TABLE = []uint16{0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5,
+var LookupTable = []uint16{0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5,
 	0x60C6, 0x70E7, 0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF, 0x1231,
 	0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6, 0x9339, 0x8318, 0xB37B, 0xA35A,
 	0xD3BD, 0xC39C, 0xF3FF, 0xE3DE, 0x2462, 0x3443, 0x0420, 0x1401, 0x64E6, 0x74C7, 0x44A4,
@@ -30,22 +30,22 @@ var LOOKUP_TABLE = []uint16{0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5,
  * href="http://redis.io/topics/cluster-spec">Appendix A. CRC16 reference implementation in ANSI
  * C</a>
  */
-type CRC16 struct {
+type crc16 struct {
 	tagUtil *redisClusterHashTagUtil
 }
 
-func NewCRC16() *CRC16 {
-	return &CRC16{tagUtil: newRedisClusterHashTagUtil()}
+func newCRC16() *crc16 {
+	return &crc16{tagUtil: newRedisClusterHashTagUtil()}
 }
 
-func (c *CRC16) getStringSlot(key string) uint16 {
+func (c *crc16) getStringSlot(key string) uint16 {
 	key = c.tagUtil.getHashTag(key)
 	// optimization with modulo operator with power of 2
 	// equivalent to getCRC16(key) % 16384
 	return c.getStringCRC16(key) & (16384 - 1)
 }
 
-func (c *CRC16) getByteSlot(key []byte) uint16 {
+func (c *crc16) getByteSlot(key []byte) uint16 {
 	s := -1
 	e := -1
 	sFound := false
@@ -65,19 +65,19 @@ func (c *CRC16) getByteSlot(key []byte) uint16 {
 	return c.getBytesCRC16(key) & (16384 - 1)
 }
 
-func (c *CRC16) getCRC16(bytes []byte, s, e int) uint16 {
+func (c *crc16) getCRC16(bytes []byte, s, e int) uint16 {
 	var crc uint16 = 0x0000
 	for i := s; i < e; i++ {
-		crc = (crc << uint16(8)) ^ LOOKUP_TABLE[((crc>>uint16(8))^uint16(bytes[i]))&0x00FF]
+		crc = (crc << uint16(8)) ^ LookupTable[((crc>>uint16(8))^uint16(bytes[i]))&0x00FF]
 	}
 	return crc
 }
 
-func (c *CRC16) getBytesCRC16(bytes []byte) uint16 {
+func (c *crc16) getBytesCRC16(bytes []byte) uint16 {
 	return c.getCRC16(bytes, 0, len(bytes))
 }
 
-func (c *CRC16) getStringCRC16(key string) uint16 {
+func (c *crc16) getStringCRC16(key string) uint16 {
 	bytesKey := []byte(key)
 	return c.getCRC16(bytesKey, 0, len(bytesKey))
 }

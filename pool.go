@@ -21,7 +21,7 @@ type PoolConfig struct {
 	TestOnBorrow         bool
 }
 
-//NewPool
+//NewPool create new pool
 func NewPool(config PoolConfig, factory *Factory) *Pool {
 	poolConfig := pool.NewDefaultPoolConfig()
 	if config.MaxTotal != 0 {
@@ -46,7 +46,7 @@ func NewPool(config PoolConfig, factory *Factory) *Pool {
 	}
 }
 
-//GetResource
+//GetResource get redis instance from pool
 func (p *Pool) GetResource() (*Redis, error) {
 	obj, err := p.internalPool.BorrowObject(p.ctx)
 	if err != nil {
@@ -55,22 +55,22 @@ func (p *Pool) GetResource() (*Redis, error) {
 	return obj.(*Redis), nil
 }
 
-//Destroy
+//Destroy destroy pool
 func (p *Pool) Destroy() {
 	p.internalPool.Close(p.ctx)
 }
 
-//Factory
+//Factory redis pool factory
 type Factory struct {
 	option Option
 }
 
-//NewFactory
+//NewFactory create new redis pool factory
 func NewFactory(option Option) *Factory {
 	return &Factory{option: option}
 }
 
-//MakeObject
+//MakeObject make new object from pool
 func (f Factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	redis := NewRedis(f.option)
 	err := redis.Connect()
@@ -80,7 +80,7 @@ func (f Factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	return pool.NewPooledObject(redis), nil
 }
 
-//DestroyObject
+//DestroyObject destroy object of pool
 func (f Factory) DestroyObject(ctx context.Context, object *pool.PooledObject) error {
 	redis := object.Object.(*Redis)
 	_, err := redis.Quit()
@@ -90,7 +90,7 @@ func (f Factory) DestroyObject(ctx context.Context, object *pool.PooledObject) e
 	return nil
 }
 
-//ValidateObject
+//ValidateObject validate object is available
 func (f Factory) ValidateObject(ctx context.Context, object *pool.PooledObject) bool {
 	redis := object.Object.(*Redis)
 	if redis.client.host() != f.option.Host {
@@ -106,7 +106,7 @@ func (f Factory) ValidateObject(ctx context.Context, object *pool.PooledObject) 
 	return reply == "PONG"
 }
 
-//ActivateObject
+//ActivateObject active object
 func (f Factory) ActivateObject(ctx context.Context, object *pool.PooledObject) error {
 	redis := object.Object.(*Redis)
 	if redis.client.Db == f.option.Db {
@@ -119,7 +119,7 @@ func (f Factory) ActivateObject(ctx context.Context, object *pool.PooledObject) 
 	return nil
 }
 
-//PassivateObject
+//PassivateObject ...
 func (f Factory) PassivateObject(ctx context.Context, object *pool.PooledObject) error {
 	// TODO maybe should select db 0? Not sure right now.
 	return nil

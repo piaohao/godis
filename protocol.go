@@ -9,68 +9,66 @@ import (
 )
 
 const (
-	ASK_PREFIX         = "ASK "
-	MOVED_PREFIX       = "MOVED "
-	CLUSTERDOWN_PREFIX = "CLUSTERDOWN "
-	BUSY_PREFIX        = "BUSY "
-	NOSCRIPT_PREFIX    = "NOSCRIPT "
+	AskPrefix         = "ASK "
+	MovedPrefix       = "MOVED "
+	ClusterdownPrefix = "CLUSTERDOWN "
+	BusyPrefix        = "BUSY "
+	NoscriptPrefix    = "NOSCRIPT "
 
-	DEFAULT_HOST          = "localhost"
-	DEFAULT_PORT          = 6379
-	DEFAULT_SENTINEL_PORT = 26379
-	DEFAULT_TIMEOUT       = 2000
-	DEFAULT_DATABASE      = 0
+	DefaultHost         = "localhost"
+	DefaultPort         = 6379
+	DefaultSentinelPort = 26379
+	DefaultTimeout      = 2000
+	DefaultDatabase     = 0
 
-	CHARSET = "UTF-8"
+	DollarByte   = '$'
+	AsteriskByte = '*'
+	PlusByte     = '+'
+	MinusByte    = '-'
+	ColonByte    = ':'
 
-	DOLLAR_BYTE   = '$'
-	ASTERISK_BYTE = '*'
-	PLUS_BYTE     = '+'
-	MINUS_BYTE    = '-'
-	COLON_BYTE    = ':'
+	SentinelMasters             = "masters"
+	SentinelGetMasterAddrByName = "get-master-addr-by-name"
+	SentinelReset               = "reset"
+	SentinelSlaves              = "slaves"
+	SentinelFailover            = "failover"
+	SentinelMonitor             = "monitor"
+	SentinelRemove              = "remove"
+	SentinelSet                 = "set"
 
-	SENTINEL_MASTERS                 = "masters"
-	SENTINEL_GET_MASTER_ADDR_BY_NAME = "get-master-addr-by-name"
-	SENTINEL_RESET                   = "reset"
-	SENTINEL_SLAVES                  = "slaves"
-	SENTINEL_FAILOVER                = "failover"
-	SENTINEL_MONITOR                 = "monitor"
-	SENTINEL_REMOVE                  = "remove"
-	SENTINEL_SET                     = "set"
-
-	CLUSTER_NODES             = "nodes"
-	CLUSTER_MEET              = "meet"
-	CLUSTER_RESET             = "reset"
-	CLUSTER_ADDSLOTS          = "addslots"
-	CLUSTER_DELSLOTS          = "delslots"
-	CLUSTER_INFO              = "info"
-	CLUSTER_GETKEYSINSLOT     = "getkeysinslot"
-	CLUSTER_SETSLOT           = "setslot"
-	CLUSTER_SETSLOT_NODE      = "node"
-	CLUSTER_SETSLOT_MIGRATING = "migrating"
-	CLUSTER_SETSLOT_IMPORTING = "importing"
-	CLUSTER_SETSLOT_STABLE    = "stable"
-	CLUSTER_FORGET            = "forget"
-	CLUSTER_FLUSHSLOT         = "flushslots"
-	CLUSTER_KEYSLOT           = "keyslot"
-	CLUSTER_COUNTKEYINSLOT    = "countkeysinslot"
-	CLUSTER_SAVECONFIG        = "saveconfig"
-	CLUSTER_REPLICATE         = "replicate"
-	CLUSTER_SLAVES            = "slaves"
-	CLUSTER_FAILOVER          = "failover"
-	CLUSTER_SLOTS             = "slots"
-	PUBSUB_CHANNELS           = "channels"
-	PUBSUB_NUMSUB             = "numsub"
-	PUBSUB_NUM_PAT            = "numpat"
+	ClusterNodes            = "nodes"
+	ClusterMeet             = "meet"
+	ClusterReset            = "reset"
+	ClusterAddslots         = "addslots"
+	ClusterDelslots         = "delslots"
+	ClusterInfo             = "info"
+	ClusterGetkeysinslot    = "getkeysinslot"
+	ClusterSetslot          = "setslot"
+	ClusterSetslotNode      = "node"
+	ClusterSetslotMigrating = "migrating"
+	ClusterSetslotImporting = "importing"
+	ClusterSetslotStable    = "stable"
+	ClusterForget           = "forget"
+	ClusterFlushslot        = "flushslots"
+	ClusterKeyslot          = "keyslot"
+	ClusterCountkeyinslot   = "countkeysinslot"
+	ClusterSaveconfig       = "saveconfig"
+	ClusterReplicate        = "replicate"
+	ClusterSlaves           = "slaves"
+	ClusterFailover         = "failover"
+	ClusterSlots            = "slots"
+	PubsubChannels          = "channels"
+	PubsubNumsub            = "numsub"
+	PubsubNumPat            = "numpat"
 )
 
 var (
-	BYTES_TRUE  = []byte{1}
-	BYTES_FALSE = []byte{0}
-	BYTES_TILDE = []byte("~")
+	BytesTrue  = []byte{1}
+	BytesFalse = []byte{0}
+	BytesTilde = []byte("~")
 
-	POSITIVE_INFINITY_BYTES = []byte("+inf")
-	NEGATIVE_INFINITY_BYTES = []byte("-inf")
+	PositiveInfinityBytes = []byte("+inf")
+	NegativeInfinityBytes = []byte("-inf")
 )
 
 type redisOutputStream struct {
@@ -125,13 +123,13 @@ func newProtocol(os *redisOutputStream, is *redisInputStream) *protocol {
 }
 
 func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
-	if err := p.os.WriteByte(ASTERISK_BYTE); err != nil {
+	if err := p.os.WriteByte(AsteriskByte); err != nil {
 		return err
 	}
 	if _, err := p.os.writeIntCrLf(len(args) + 1); err != nil {
 		return err
 	}
-	if err := p.os.WriteByte(DOLLAR_BYTE); err != nil {
+	if err := p.os.WriteByte(DollarByte); err != nil {
 		return err
 	}
 	if _, err := p.os.writeIntCrLf(len(command)); err != nil {
@@ -144,7 +142,7 @@ func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
 		return err
 	}
 	for _, arg := range args {
-		if err := p.os.WriteByte(DOLLAR_BYTE); err != nil {
+		if err := p.os.WriteByte(DollarByte); err != nil {
 			return err
 		}
 		if _, err := p.os.writeIntCrLf(len(arg)); err != nil {
@@ -173,53 +171,65 @@ func (p *protocol) process() (interface{}, error) {
 		return nil, errors.New("short response line")
 	}
 	switch line[0] {
-	case PLUS_BYTE:
-		switch {
-		case len(line) == 3 && line[1] == 'O' && line[2] == 'K':
-			// Avoid allocation for frequent "+OK" response.
-			return KEYWORD_OK, nil
-		case len(line) == 5 && line[1] == 'P' && line[2] == 'O' && line[3] == 'N' && line[4] == 'G':
-			// Avoid allocation in PING command benchmarks :)
-			return KEYWORD_PONG, nil
-		default:
-			return string(line[1:]), nil
-		}
-	case DOLLAR_BYTE:
-		n, err := p.parseLen(line[1:])
-		if n < 0 || err != nil {
-			return nil, err
-		}
-		arr := make([]byte, n)
-		_, err = io.ReadFull(p.is, arr)
-		if err != nil {
-			return nil, err
-		}
-		if newLine, err := p.readLine(); err != nil {
-			return nil, err
-		} else if len(newLine) != 0 {
-			return nil, errors.New("bad bulk string format")
-		}
-		return arr, nil
-	case ASTERISK_BYTE:
-		n, err := p.parseLen(line[1:])
-		if n < 0 || err != nil {
-			return nil, err
-		}
-		r := make([]interface{}, n)
-		for i := range r {
-			r[i], err = p.process()
-			if err != nil {
-				return nil, err
-			}
-		}
-		return r, nil
-	case COLON_BYTE:
+	case PlusByte:
+		return p.processPlus(line)
+	case DollarByte:
+		return p.processDollar(line)
+	case AsteriskByte:
+		return p.processAsterisk(line)
+	case ColonByte:
 		return p.parseInt(line[1:])
-	case MINUS_BYTE:
+	case MinusByte:
 		return nil, errors.New(string(line[1:]))
 	default:
 		return nil, errors.New(fmt.Sprint("Unknown reply: ", line[0]))
 	}
+}
+
+func (p *protocol) processPlus(line []byte) (string, error) {
+	switch {
+	case len(line) == 3 && line[1] == 'O' && line[2] == 'K':
+		// Avoid allocation for frequent "+OK" response.
+		return KeywordOk.Name, nil
+	case len(line) == 5 && line[1] == 'P' && line[2] == 'O' && line[3] == 'N' && line[4] == 'G':
+		// Avoid allocation in PING command benchmarks :)
+		return KeywordPong.Name, nil
+	default:
+		return string(line[1:]), nil
+	}
+}
+
+func (p *protocol) processDollar(line []byte) ([]byte, error) {
+	n, err := p.parseLen(line[1:])
+	if n < 0 || err != nil {
+		return nil, err
+	}
+	arr := make([]byte, n)
+	_, err = io.ReadFull(p.is, arr)
+	if err != nil {
+		return nil, err
+	}
+	if newLine, err := p.readLine(); err != nil {
+		return nil, err
+	} else if len(newLine) != 0 {
+		return nil, errors.New("bad bulk string format")
+	}
+	return arr, nil
+}
+
+func (p *protocol) processAsterisk(line []byte) ([]interface{}, error) {
+	n, err := p.parseLen(line[1:])
+	if n < 0 || err != nil {
+		return nil, err
+	}
+	r := make([]interface{}, n)
+	for i := range r {
+		r[i], err = p.process()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
 }
 
 func (p *protocol) readLine() ([]byte, error) {
@@ -299,14 +309,12 @@ func (p *protocol) parseInt(b []byte) (interface{}, error) {
 	return n, nil
 }
 
-type ProtocolCommand interface {
-	GetRaw() []byte
-}
-
 type protocolCommand struct {
+	// name of command
 	Name string
 }
 
+// GetRaw get name byte array
 func (p protocolCommand) GetRaw() []byte {
 	return []byte(p.Name)
 }
@@ -316,196 +324,198 @@ func newProtocolCommand(name string) protocolCommand {
 }
 
 var (
-	CMD_PING                 = newProtocolCommand("PING")
-	CMD_SET                  = newProtocolCommand("SET")
-	CMD_GET                  = newProtocolCommand("GET")
-	CMD_QUIT                 = newProtocolCommand("QUIT")
-	CMD_EXISTS               = newProtocolCommand("EXISTS")
-	CMD_DEL                  = newProtocolCommand("DEL")
-	CMD_UNLINK               = newProtocolCommand("UNLINK")
-	CMD_TYPE                 = newProtocolCommand("TYPE")
-	CMD_FLUSHDB              = newProtocolCommand("FLUSHDB")
-	CMD_KEYS                 = newProtocolCommand("KEYS")
-	CMD_RANDOMKEY            = newProtocolCommand("RANDOMKEY")
-	CMD_RENAME               = newProtocolCommand("RENAME")
-	CMD_RENAMENX             = newProtocolCommand("RENAMENX")
-	CMD_RENAMEX              = newProtocolCommand("RENAMEX")
-	CMD_DBSIZE               = newProtocolCommand("DBSIZE")
-	CMD_EXPIRE               = newProtocolCommand("EXPIRE")
-	CMD_EXPIREAT             = newProtocolCommand("EXPIREAT")
-	CMD_TTL                  = newProtocolCommand("TTL")
-	CMD_SELECT               = newProtocolCommand("SELECT")
-	CMD_MOVE                 = newProtocolCommand("MOVE")
-	CMD_FLUSHALL             = newProtocolCommand("FLUSHALL")
-	CMD_GETSET               = newProtocolCommand("GETSET")
-	CMD_MGET                 = newProtocolCommand("MGET")
-	CMD_SETNX                = newProtocolCommand("SETNX")
-	CMD_SETEX                = newProtocolCommand("SETEX")
-	CMD_MSET                 = newProtocolCommand("MSET")
-	CMD_MSETNX               = newProtocolCommand("MSETNX")
-	CMD_DECRBY               = newProtocolCommand("DECRBY")
-	CMD_DECR                 = newProtocolCommand("DECR")
-	CMD_INCRBY               = newProtocolCommand("INCRBY")
-	CMD_INCR                 = newProtocolCommand("INCR")
-	CMD_APPEND               = newProtocolCommand("APPEND")
-	CMD_SUBSTR               = newProtocolCommand("SUBSTR")
-	CMD_HSET                 = newProtocolCommand("HSET")
-	CMD_HGET                 = newProtocolCommand("HGET")
-	CMD_HSETNX               = newProtocolCommand("HSETNX")
-	CMD_HMSET                = newProtocolCommand("HMSET")
-	CMD_HMGET                = newProtocolCommand("HMGET")
-	CMD_HINCRBY              = newProtocolCommand("HINCRBY")
-	CMD_HEXISTS              = newProtocolCommand("HEXISTS")
-	CMD_HDEL                 = newProtocolCommand("HDEL")
-	CMD_HLEN                 = newProtocolCommand("HLEN")
-	CMD_HKEYS                = newProtocolCommand("HKEYS")
-	CMD_HVALS                = newProtocolCommand("HVALS")
-	CMD_HGETALL              = newProtocolCommand("HGETALL")
-	CMD_RPUSH                = newProtocolCommand("RPUSH")
-	CMD_LPUSH                = newProtocolCommand("LPUSH")
-	CMD_LLEN                 = newProtocolCommand("LLEN")
-	CMD_LRANGE               = newProtocolCommand("LRANGE")
-	CMD_LTRIM                = newProtocolCommand("LTRIM")
-	CMD_LINDEX               = newProtocolCommand("LINDEX")
-	CMD_LSET                 = newProtocolCommand("LSET")
-	CMD_LREM                 = newProtocolCommand("LREM")
-	CMD_LPOP                 = newProtocolCommand("LPOP")
-	CMD_RPOP                 = newProtocolCommand("RPOP")
-	CMD_RPOPLPUSH            = newProtocolCommand("RPOPLPUSH")
-	CMD_SADD                 = newProtocolCommand("SADD")
-	CMD_SMEMBERS             = newProtocolCommand("SMEMBERS")
-	CMD_SREM                 = newProtocolCommand("SREM")
-	CMD_SPOP                 = newProtocolCommand("SPOP")
-	CMD_SMOVE                = newProtocolCommand("SMOVE")
-	CMD_SCARD                = newProtocolCommand("SCARD")
-	CMD_SISMEMBER            = newProtocolCommand("SISMEMBER")
-	CMD_SINTER               = newProtocolCommand("SINTER")
-	CMD_SINTERSTORE          = newProtocolCommand("SINTERSTORE")
-	CMD_SUNION               = newProtocolCommand("SUNION")
-	CMD_SUNIONSTORE          = newProtocolCommand("SUNIONSTORE")
-	CMD_SDIFF                = newProtocolCommand("SDIFF")
-	CMD_SDIFFSTORE           = newProtocolCommand("SDIFFSTORE")
-	CMD_SRANDMEMBER          = newProtocolCommand("SRANDMEMBER")
-	CMD_ZADD                 = newProtocolCommand("ZADD")
-	CMD_ZRANGE               = newProtocolCommand("ZRANGE")
-	CMD_ZREM                 = newProtocolCommand("ZREM")
-	CMD_ZINCRBY              = newProtocolCommand("ZINCRBY")
-	CMD_ZRANK                = newProtocolCommand("ZRANK")
-	CMD_ZREVRANK             = newProtocolCommand("ZREVRANK")
-	CMD_ZREVRANGE            = newProtocolCommand("ZREVRANGE")
-	CMD_ZCARD                = newProtocolCommand("ZCARD")
-	CMD_ZSCORE               = newProtocolCommand("ZSCORE")
-	CMD_MULTI                = newProtocolCommand("MULTI")
-	CMD_DISCARD              = newProtocolCommand("DISCARD")
-	CMD_EXEC                 = newProtocolCommand("EXEC")
-	CMD_WATCH                = newProtocolCommand("WATCH")
-	CMD_UNWATCH              = newProtocolCommand("UNWATCH")
-	CMD_SORT                 = newProtocolCommand("SORT")
-	CMD_BLPOP                = newProtocolCommand("BLPOP")
-	CMD_BRPOP                = newProtocolCommand("BRPOP")
-	CMD_AUTH                 = newProtocolCommand("AUTH")
-	CMD_SUBSCRIBE            = newProtocolCommand("SUBSCRIBE")
-	CMD_PUBLISH              = newProtocolCommand("PUBLISH")
-	CMD_UNSUBSCRIBE          = newProtocolCommand("UNSUBSCRIBE")
-	CMD_PSUBSCRIBE           = newProtocolCommand("PSUBSCRIBE")
-	CMD_PUNSUBSCRIBE         = newProtocolCommand("PUNSUBSCRIBE")
-	CMD_PUBSUB               = newProtocolCommand("PUBSUB")
-	CMD_ZCOUNT               = newProtocolCommand("ZCOUNT")
-	CMD_ZRANGEBYSCORE        = newProtocolCommand("ZRANGEBYSCORE")
-	CMD_ZREVRANGEBYSCORE     = newProtocolCommand("ZREVRANGEBYSCORE")
-	CMD_ZREMRANGEBYRANK      = newProtocolCommand("ZREMRANGEBYRANK")
-	CMD_ZREMRANGEBYSCORE     = newProtocolCommand("ZREMRANGEBYSCORE")
-	CMD_ZUNIONSTORE          = newProtocolCommand("ZUNIONSTORE")
-	CMD_ZINTERSTORE          = newProtocolCommand("ZINTERSTORE")
-	CMD_ZLEXCOUNT            = newProtocolCommand("ZLEXCOUNT")
-	CMD_ZRANGEBYLEX          = newProtocolCommand("ZRANGEBYLEX")
-	CMD_ZREVRANGEBYLEX       = newProtocolCommand("ZREVRANGEBYLEX")
-	CMD_ZREMRANGEBYLEX       = newProtocolCommand("ZREMRANGEBYLEX")
-	CMD_SAVE                 = newProtocolCommand("SAVE")
-	CMD_BGSAVE               = newProtocolCommand("BGSAVE")
-	CMD_BGREWRITEAOF         = newProtocolCommand("BGREWRITEAOF")
-	CMD_LASTSAVE             = newProtocolCommand("LASTSAVE")
-	CMD_SHUTDOWN             = newProtocolCommand("SHUTDOWN")
-	CMD_INFO                 = newProtocolCommand("INFO")
-	CMD_MONITOR              = newProtocolCommand("MONITOR")
-	CMD_SLAVEOF              = newProtocolCommand("SLAVEOF")
-	CMD_CONFIG               = newProtocolCommand("CONFIG")
-	CMD_STRLEN               = newProtocolCommand("STRLEN")
-	CMD_SYNC                 = newProtocolCommand("SYNC")
-	CMD_LPUSHX               = newProtocolCommand("LPUSHX")
-	CMD_PERSIST              = newProtocolCommand("PERSIST")
-	CMD_RPUSHX               = newProtocolCommand("RPUSHX")
-	CMD_ECHO                 = newProtocolCommand("ECHO")
-	CMD_LINSERT              = newProtocolCommand("LINSERT")
-	CMD_DEBUG                = newProtocolCommand("DEBUG")
-	CMD_BRPOPLPUSH           = newProtocolCommand("BRPOPLPUSH")
-	CMD_SETBIT               = newProtocolCommand("SETBIT")
-	CMD_GETBIT               = newProtocolCommand("GETBIT")
-	CMD_BITPOS               = newProtocolCommand("BITPOS")
-	CMD_SETRANGE             = newProtocolCommand("SETRANGE")
-	CMD_GETRANGE             = newProtocolCommand("GETRANGE")
-	CMD_EVAL                 = newProtocolCommand("EVAL")
-	CMD_EVALSHA              = newProtocolCommand("EVALSHA")
-	CMD_SCRIPT               = newProtocolCommand("SCRIPT")
-	CMD_SLOWLOG              = newProtocolCommand("SLOWLOG")
-	CMD_OBJECT               = newProtocolCommand("OBJECT")
-	CMD_BITCOUNT             = newProtocolCommand("BITCOUNT")
-	CMD_BITOP                = newProtocolCommand("BITOP")
-	CMD_SENTINEL             = newProtocolCommand("SENTINEL")
-	CMD_DUMP                 = newProtocolCommand("DUMP")
-	CMD_RESTORE              = newProtocolCommand("RESTORE")
-	CMD_PEXPIRE              = newProtocolCommand("PEXPIRE")
-	CMD_PEXPIREAT            = newProtocolCommand("PEXPIREAT")
-	CMD_PTTL                 = newProtocolCommand("PTTL")
-	CMD_INCRBYFLOAT          = newProtocolCommand("INCRBYFLOAT")
-	CMD_PSETEX               = newProtocolCommand("PSETEX")
-	CMD_CLIENT               = newProtocolCommand("CLIENT")
-	CMD_TIME                 = newProtocolCommand("TIME")
-	CMD_MIGRATE              = newProtocolCommand("MIGRATE")
-	CMD_HINCRBYFLOAT         = newProtocolCommand("HINCRBYFLOAT")
-	CMD_SCAN                 = newProtocolCommand("SCAN")
-	CMD_HSCAN                = newProtocolCommand("HSCAN")
-	CMD_SSCAN                = newProtocolCommand("SSCAN")
-	CMD_ZSCAN                = newProtocolCommand("ZSCAN")
-	CMD_WAIT                 = newProtocolCommand("WAIT")
-	CMD_CLUSTER              = newProtocolCommand("CLUSTER")
-	CMD_ASKING               = newProtocolCommand("ASKING")
-	CMD_PFADD                = newProtocolCommand("PFADD")
-	CMD_PFCOUNT              = newProtocolCommand("PFCOUNT")
-	CMD_PFMERGE              = newProtocolCommand("PFMERGE")
-	CMD_READONLY             = newProtocolCommand("READONLY")
-	CMD_GEOADD               = newProtocolCommand("GEOADD")
-	CMD_GEODIST              = newProtocolCommand("GEODIST")
-	CMD_GEOHASH              = newProtocolCommand("GEOHASH")
-	CMD_GEOPOS               = newProtocolCommand("GEOPOS")
-	CMD_GEORADIUS            = newProtocolCommand("GEORADIUS")
-	CMD_GEORADIUS_RO         = newProtocolCommand("GEORADIUS_RO")
-	CMD_GEORADIUSBYMEMBER    = newProtocolCommand("GEORADIUSBYMEMBER")
-	CMD_GEORADIUSBYMEMBER_RO = newProtocolCommand("GEORADIUSBYMEMBER_RO")
-	CMD_MODULE               = newProtocolCommand("MODULE")
-	CMD_BITFIELD             = newProtocolCommand("BITFIELD")
-	CMD_HSTRLEN              = newProtocolCommand("HSTRLEN")
-	CMD_TOUCH                = newProtocolCommand("TOUCH")
-	CMD_SWAPDB               = newProtocolCommand("SWAPDB")
-	CMD_MEMORY               = newProtocolCommand("MEMORY")
-	CMD_XADD                 = newProtocolCommand("XADD")
-	CMD_XLEN                 = newProtocolCommand("XLEN")
-	CMD_XDEL                 = newProtocolCommand("XDEL")
-	CMD_XTRIM                = newProtocolCommand("XTRIM")
-	CMD_XRANGE               = newProtocolCommand("XRANGE")
-	CMD_XREVRANGE            = newProtocolCommand("XREVRANGE")
-	CMD_XREAD                = newProtocolCommand("XREAD")
-	CMD_XACK                 = newProtocolCommand("XACK")
-	CMD_XGROUP               = newProtocolCommand("XGROUP")
-	CMD_XREADGROUP           = newProtocolCommand("XREADGROUP")
-	CMD_XPENDING             = newProtocolCommand("XPENDING")
-	CMD_XCLAIM               = newProtocolCommand("XCLAIM")
+	CmdPing                = newProtocolCommand("PING")
+	CmdSet                 = newProtocolCommand("SET")
+	CmdGet                 = newProtocolCommand("GET")
+	CmdQuit                = newProtocolCommand("QUIT")
+	CmdExists              = newProtocolCommand("EXISTS")
+	CmdDel                 = newProtocolCommand("DEL")
+	CmdUnlink              = newProtocolCommand("UNLINK")
+	CmdType                = newProtocolCommand("TYPE")
+	CmdFlushdb             = newProtocolCommand("FLUSHDB")
+	CmdKeys                = newProtocolCommand("KEYS")
+	CmdRandomkey           = newProtocolCommand("RANDOMKEY")
+	CmdRename              = newProtocolCommand("RENAME")
+	CmdRenamenx            = newProtocolCommand("RENAMENX")
+	CmdRenamex             = newProtocolCommand("RENAMEX")
+	CmdDbsize              = newProtocolCommand("DBSIZE")
+	CmdExpire              = newProtocolCommand("EXPIRE")
+	CmdExpireat            = newProtocolCommand("EXPIREAT")
+	CmdTtl                 = newProtocolCommand("TTL")
+	CmdSelect              = newProtocolCommand("SELECT")
+	CmdMove                = newProtocolCommand("MOVE")
+	CmdFlushall            = newProtocolCommand("FLUSHALL")
+	CmdGetset              = newProtocolCommand("GETSET")
+	CmdMget                = newProtocolCommand("MGET")
+	CmdSetnx               = newProtocolCommand("SETNX")
+	CmdSetex               = newProtocolCommand("SETEX")
+	CmdMset                = newProtocolCommand("MSET")
+	CmdMsetnx              = newProtocolCommand("MSETNX")
+	CmdDecrby              = newProtocolCommand("DECRBY")
+	CmdDecr                = newProtocolCommand("DECR")
+	CmdIncrby              = newProtocolCommand("INCRBY")
+	CmdIncr                = newProtocolCommand("INCR")
+	CmdAppend              = newProtocolCommand("APPEND")
+	CmdSubstr              = newProtocolCommand("SUBSTR")
+	CmdHset                = newProtocolCommand("HSET")
+	CmdHget                = newProtocolCommand("HGET")
+	CmdHsetnx              = newProtocolCommand("HSETNX")
+	CmdHmset               = newProtocolCommand("HMSET")
+	CmdHmget               = newProtocolCommand("HMGET")
+	CmdHincrby             = newProtocolCommand("HINCRBY")
+	CmdHexists             = newProtocolCommand("HEXISTS")
+	CmdHdel                = newProtocolCommand("HDEL")
+	CmdHlen                = newProtocolCommand("HLEN")
+	CmdHkeys               = newProtocolCommand("HKEYS")
+	CmdHvals               = newProtocolCommand("HVALS")
+	CmdHgetall             = newProtocolCommand("HGETALL")
+	CmdRpush               = newProtocolCommand("RPUSH")
+	CmdLpush               = newProtocolCommand("LPUSH")
+	CmdLlen                = newProtocolCommand("LLEN")
+	CmdLrange              = newProtocolCommand("LRANGE")
+	CmdLtrim               = newProtocolCommand("LTRIM")
+	CmdLindex              = newProtocolCommand("LINDEX")
+	CmdLset                = newProtocolCommand("LSET")
+	CmdLrem                = newProtocolCommand("LREM")
+	CmdLpop                = newProtocolCommand("LPOP")
+	CmdRpop                = newProtocolCommand("RPOP")
+	CmdRpoplpush           = newProtocolCommand("RPOPLPUSH")
+	CmdSadd                = newProtocolCommand("SADD")
+	CmdSmembers            = newProtocolCommand("SMEMBERS")
+	CmdSrem                = newProtocolCommand("SREM")
+	CmdSpop                = newProtocolCommand("SPOP")
+	CmdSmove               = newProtocolCommand("SMOVE")
+	CmdScard               = newProtocolCommand("SCARD")
+	CmdSismember           = newProtocolCommand("SISMEMBER")
+	CmdSinter              = newProtocolCommand("SINTER")
+	CmdSinterstore         = newProtocolCommand("SINTERSTORE")
+	CmdSunion              = newProtocolCommand("SUNION")
+	CmdSunionstore         = newProtocolCommand("SUNIONSTORE")
+	CmdSdiff               = newProtocolCommand("SDIFF")
+	CmdSdiffstore          = newProtocolCommand("SDIFFSTORE")
+	CmdSrandmember         = newProtocolCommand("SRANDMEMBER")
+	CmdZadd                = newProtocolCommand("ZADD")
+	CmdZrange              = newProtocolCommand("ZRANGE")
+	CmdZrem                = newProtocolCommand("ZREM")
+	CmdZincrby             = newProtocolCommand("ZINCRBY")
+	CmdZrank               = newProtocolCommand("ZRANK")
+	CmdZrevrank            = newProtocolCommand("ZREVRANK")
+	CmdZrevrange           = newProtocolCommand("ZREVRANGE")
+	CmdZcard               = newProtocolCommand("ZCARD")
+	CmdZscore              = newProtocolCommand("ZSCORE")
+	CmdMulti               = newProtocolCommand("MULTI")
+	CmdDiscard             = newProtocolCommand("DISCARD")
+	CmdExec                = newProtocolCommand("EXEC")
+	CmdWatch               = newProtocolCommand("WATCH")
+	CmdUnwatch             = newProtocolCommand("UNWATCH")
+	CmdSort                = newProtocolCommand("SORT")
+	CmdBlpop               = newProtocolCommand("BLPOP")
+	CmdBrpop               = newProtocolCommand("BRPOP")
+	CmdAuth                = newProtocolCommand("AUTH")
+	CmdSubscribe           = newProtocolCommand("SUBSCRIBE")
+	CmdPublish             = newProtocolCommand("PUBLISH")
+	CmdUnsubscribe         = newProtocolCommand("UNSUBSCRIBE")
+	CmdPsubscribe          = newProtocolCommand("PSUBSCRIBE")
+	CmdPunsubscribe        = newProtocolCommand("PUNSUBSCRIBE")
+	CmdPubsub              = newProtocolCommand("PUBSUB")
+	CmdZcount              = newProtocolCommand("ZCOUNT")
+	CmdZrangebyscore       = newProtocolCommand("ZRANGEBYSCORE")
+	CmdZrevrangebyscore    = newProtocolCommand("ZREVRANGEBYSCORE")
+	CmdZremrangebyrank     = newProtocolCommand("ZREMRANGEBYRANK")
+	CmdZremrangebyscore    = newProtocolCommand("ZREMRANGEBYSCORE")
+	CmdZunionstore         = newProtocolCommand("ZUNIONSTORE")
+	CmdZinterstore         = newProtocolCommand("ZINTERSTORE")
+	CmdZlexcount           = newProtocolCommand("ZLEXCOUNT")
+	CmdZrangebylex         = newProtocolCommand("ZRANGEBYLEX")
+	CmdZrevrangebylex      = newProtocolCommand("ZREVRANGEBYLEX")
+	CmdZremrangebylex      = newProtocolCommand("ZREMRANGEBYLEX")
+	CmdSave                = newProtocolCommand("SAVE")
+	CmdBgsave              = newProtocolCommand("BGSAVE")
+	CmdBgrewriteaof        = newProtocolCommand("BGREWRITEAOF")
+	CmdLastsave            = newProtocolCommand("LASTSAVE")
+	CmdShutdown            = newProtocolCommand("SHUTDOWN")
+	CmdInfo                = newProtocolCommand("INFO")
+	CmdMonitor             = newProtocolCommand("MONITOR")
+	CmdSlaveof             = newProtocolCommand("SLAVEOF")
+	CmdConfig              = newProtocolCommand("CONFIG")
+	CmdStrlen              = newProtocolCommand("STRLEN")
+	CmdSync                = newProtocolCommand("SYNC")
+	CmdLpushx              = newProtocolCommand("LPUSHX")
+	CmdPersist             = newProtocolCommand("PERSIST")
+	CmdRpushx              = newProtocolCommand("RPUSHX")
+	CmdEcho                = newProtocolCommand("ECHO")
+	CmdLinsert             = newProtocolCommand("LINSERT")
+	CmdDebug               = newProtocolCommand("DEBUG")
+	CmdBrpoplpush          = newProtocolCommand("BRPOPLPUSH")
+	CmdSetbit              = newProtocolCommand("SETBIT")
+	CmdGetbit              = newProtocolCommand("GETBIT")
+	CmdBitpos              = newProtocolCommand("BITPOS")
+	CmdSetrange            = newProtocolCommand("SETRANGE")
+	CmdGetrange            = newProtocolCommand("GETRANGE")
+	CmdEval                = newProtocolCommand("EVAL")
+	CmdEvalsha             = newProtocolCommand("EVALSHA")
+	CmdScript              = newProtocolCommand("SCRIPT")
+	CmdSlowlog             = newProtocolCommand("SLOWLOG")
+	CmdObject              = newProtocolCommand("OBJECT")
+	CmdBitcount            = newProtocolCommand("BITCOUNT")
+	CmdBitop               = newProtocolCommand("BITOP")
+	CmdSentinel            = newProtocolCommand("SENTINEL")
+	CmdDump                = newProtocolCommand("DUMP")
+	CmdRestore             = newProtocolCommand("RESTORE")
+	CmdPexpire             = newProtocolCommand("PEXPIRE")
+	CmdPexpireat           = newProtocolCommand("PEXPIREAT")
+	CmdPttl                = newProtocolCommand("PTTL")
+	CmdIncrbyfloat         = newProtocolCommand("INCRBYFLOAT")
+	CmdPsetex              = newProtocolCommand("PSETEX")
+	CmdClient              = newProtocolCommand("CLIENT")
+	CmdTime                = newProtocolCommand("TIME")
+	CmdMigrate             = newProtocolCommand("MIGRATE")
+	CmdHincrbyfloat        = newProtocolCommand("HINCRBYFLOAT")
+	CmdScan                = newProtocolCommand("SCAN")
+	CmdHscan               = newProtocolCommand("HSCAN")
+	CmdSscan               = newProtocolCommand("SSCAN")
+	CmdZscan               = newProtocolCommand("ZSCAN")
+	CmdWait                = newProtocolCommand("WAIT")
+	CmdCluster             = newProtocolCommand("CLUSTER")
+	CmdAsking              = newProtocolCommand("ASKING")
+	CmdPfadd               = newProtocolCommand("PFADD")
+	CmdPfcount             = newProtocolCommand("PFCOUNT")
+	CmdPfmerge             = newProtocolCommand("PFMERGE")
+	CmdReadonly            = newProtocolCommand("READONLY")
+	CmdGeoadd              = newProtocolCommand("GEOADD")
+	CmdGeodist             = newProtocolCommand("GEODIST")
+	CmdGeohash             = newProtocolCommand("GEOHASH")
+	CmdGeopos              = newProtocolCommand("GEOPOS")
+	CmdGeoradius           = newProtocolCommand("GEORADIUS")
+	CmdGeoradiusRo         = newProtocolCommand("GEORADIUS_RO")
+	CmdGeoradiusbymember   = newProtocolCommand("GEORADIUSBYMEMBER")
+	CmdGeoradiusbymemberRo = newProtocolCommand("GEORADIUSBYMEMBER_RO")
+	CmdModule              = newProtocolCommand("MODULE")
+	CmdBitfield            = newProtocolCommand("BITFIELD")
+	CmdHstrlen             = newProtocolCommand("HSTRLEN")
+	CmdTouch               = newProtocolCommand("TOUCH")
+	CmdSwapdb              = newProtocolCommand("SWAPDB")
+	CmdMemory              = newProtocolCommand("MEMORY")
+	CmdXadd                = newProtocolCommand("XADD")
+	CmdXlen                = newProtocolCommand("XLEN")
+	CmdXdel                = newProtocolCommand("XDEL")
+	CmdXtrim               = newProtocolCommand("XTRIM")
+	CmdXrange              = newProtocolCommand("XRANGE")
+	CmdXrevrange           = newProtocolCommand("XREVRANGE")
+	CmdXread               = newProtocolCommand("XREAD")
+	CmdXack                = newProtocolCommand("XACK")
+	CmdXgroup              = newProtocolCommand("XGROUP")
+	CmdXreadgroup          = newProtocolCommand("XREADGROUP")
+	CmdXpending            = newProtocolCommand("XPENDING")
+	CmdXclaim              = newProtocolCommand("XCLAIM")
 )
 
 type keyword struct {
+	// name of keyword
 	Name string
 }
 
+// GetRaw byte array of name
 func (k keyword) GetRaw() []byte {
 	return []byte(k.Name)
 }
@@ -515,64 +525,64 @@ func newKeyword(name string) keyword {
 }
 
 var (
-	KEYWORD_AGGREGATE    = newKeyword("AGGREGATE")
-	KEYWORD_ALPHA        = newKeyword("ALPHA")
-	KEYWORD_ASC          = newKeyword("ASC")
-	KEYWORD_BY           = newKeyword("BY")
-	KEYWORD_DESC         = newKeyword("DESC")
-	KEYWORD_GET          = newKeyword("GET")
-	KEYWORD_LIMIT        = newKeyword("LIMIT")
-	KEYWORD_MESSAGE      = newKeyword("MESSAGE")
-	KEYWORD_NO           = newKeyword("NO")
-	KEYWORD_NOSORT       = newKeyword("NOSORT")
-	KEYWORD_PMESSAGE     = newKeyword("PMESSAGE")
-	KEYWORD_PSUBSCRIBE   = newKeyword("PSUBSCRIBE")
-	KEYWORD_PUNSUBSCRIBE = newKeyword("PUNSUBSCRIBE")
-	KEYWORD_OK           = newKeyword("OK")
-	KEYWORD_ONE          = newKeyword("ONE")
-	KEYWORD_QUEUED       = newKeyword("QUEUED")
-	KEYWORD_SET          = newKeyword("SET")
-	KEYWORD_STORE        = newKeyword("STORE")
-	KEYWORD_SUBSCRIBE    = newKeyword("SUBSCRIBE")
-	KEYWORD_UNSUBSCRIBE  = newKeyword("UNSUBSCRIBE")
-	KEYWORD_WEIGHTS      = newKeyword("WEIGHTS")
-	KEYWORD_WITHSCORES   = newKeyword("WITHSCORES")
-	KEYWORD_RESETSTAT    = newKeyword("RESETSTAT")
-	KEYWORD_REWRITE      = newKeyword("REWRITE")
-	KEYWORD_RESET        = newKeyword("RESET")
-	KEYWORD_FLUSH        = newKeyword("FLUSH")
-	KEYWORD_EXISTS       = newKeyword("EXISTS")
-	KEYWORD_LOAD         = newKeyword("LOAD")
-	KEYWORD_KILL         = newKeyword("KILL")
-	KEYWORD_LEN          = newKeyword("LEN")
-	KEYWORD_REFCOUNT     = newKeyword("REFCOUNT")
-	KEYWORD_ENCODING     = newKeyword("ENCODING")
-	KEYWORD_IDLETIME     = newKeyword("IDLETIME")
-	KEYWORD_GETNAME      = newKeyword("GETNAME")
-	KEYWORD_SETNAME      = newKeyword("SETNAME")
-	KEYWORD_LIST         = newKeyword("LIST")
-	KEYWORD_MATCH        = newKeyword("MATCH")
-	KEYWORD_COUNT        = newKeyword("COUNT")
-	KEYWORD_PING         = newKeyword("PING")
-	KEYWORD_PONG         = newKeyword("PONG")
-	KEYWORD_UNLOAD       = newKeyword("UNLOAD")
-	KEYWORD_REPLACE      = newKeyword("REPLACE")
-	KEYWORD_KEYS         = newKeyword("KEYS")
-	KEYWORD_PAUSE        = newKeyword("PAUSE")
-	KEYWORD_DOCTOR       = newKeyword("DOCTOR")
-	KEYWORD_BLOCK        = newKeyword("BLOCK")
-	KEYWORD_NOACK        = newKeyword("NOACK")
-	KEYWORD_STREAMS      = newKeyword("STREAMS")
-	KEYWORD_KEY          = newKeyword("KEY")
-	KEYWORD_CREATE       = newKeyword("CREATE")
-	KEYWORD_MKSTREAM     = newKeyword("MKSTREAM")
-	KEYWORD_SETID        = newKeyword("SETID")
-	KEYWORD_DESTROY      = newKeyword("DESTROY")
-	KEYWORD_DELCONSUMER  = newKeyword("DELCONSUMER")
-	KEYWORD_MAXLEN       = newKeyword("MAXLEN")
-	KEYWORD_GROUP        = newKeyword("GROUP")
-	KEYWORD_IDLE         = newKeyword("IDLE")
-	KEYWORD_TIME         = newKeyword("TIME")
-	KEYWORD_RETRYCOUNT   = newKeyword("RETRYCOUNT")
-	KEYWORD_FORCE        = newKeyword("FORCE")
+	KeywordAggregate    = newKeyword("AGGREGATE")
+	KeywordAlpha        = newKeyword("ALPHA")
+	KeywordAsc          = newKeyword("ASC")
+	KeywordBy           = newKeyword("BY")
+	KeywordDesc         = newKeyword("DESC")
+	KeywordGet          = newKeyword("GET")
+	KeywordLimit        = newKeyword("LIMIT")
+	KeywordMessage      = newKeyword("MESSAGE")
+	KeywordNo           = newKeyword("NO")
+	KeywordNosort       = newKeyword("NOSORT")
+	KeywordPmessage     = newKeyword("PMESSAGE")
+	KeywordPsubscribe   = newKeyword("PSUBSCRIBE")
+	KeywordPunsubscribe = newKeyword("PUNSUBSCRIBE")
+	KeywordOk           = newKeyword("OK")
+	KeywordOne          = newKeyword("ONE")
+	KeywordQueued       = newKeyword("QUEUED")
+	KeywordSet          = newKeyword("SET")
+	KeywordStore        = newKeyword("STORE")
+	KeywordSubscribe    = newKeyword("SUBSCRIBE")
+	KeywordUnsubscribe  = newKeyword("UNSUBSCRIBE")
+	KeywordWeights      = newKeyword("WEIGHTS")
+	KeywordWithscores   = newKeyword("WITHSCORES")
+	KeywordResetstat    = newKeyword("RESETSTAT")
+	KeywordRewrite      = newKeyword("REWRITE")
+	KeywordReset        = newKeyword("RESET")
+	KeywordFlush        = newKeyword("FLUSH")
+	KeywordExists       = newKeyword("EXISTS")
+	KeywordLoad         = newKeyword("LOAD")
+	KeywordKill         = newKeyword("KILL")
+	KeywordLen          = newKeyword("LEN")
+	KeywordRefcount     = newKeyword("REFCOUNT")
+	KeywordEncoding     = newKeyword("ENCODING")
+	KeywordIdletime     = newKeyword("IDLETIME")
+	KeywordGetname      = newKeyword("GETNAME")
+	KeywordSetname      = newKeyword("SETNAME")
+	KeywordList         = newKeyword("LIST")
+	KeywordMatch        = newKeyword("MATCH")
+	KeywordCount        = newKeyword("COUNT")
+	KeywordPing         = newKeyword("PING")
+	KeywordPong         = newKeyword("PONG")
+	KeywordUnload       = newKeyword("UNLOAD")
+	KeywordReplace      = newKeyword("REPLACE")
+	KeywordKeys         = newKeyword("KEYS")
+	KeywordPause        = newKeyword("PAUSE")
+	KeywordDoctor       = newKeyword("DOCTOR")
+	KeywordBlock        = newKeyword("BLOCK")
+	KeywordNoack        = newKeyword("NOACK")
+	KeywordStreams      = newKeyword("STREAMS")
+	KeywordKey          = newKeyword("KEY")
+	KeywordCreate       = newKeyword("CREATE")
+	KeywordMkstream     = newKeyword("MKSTREAM")
+	KeywordSetid        = newKeyword("SETID")
+	KeywordDestroy      = newKeyword("DESTROY")
+	KeywordDelconsumer  = newKeyword("DELCONSUMER")
+	KeywordMaxlen       = newKeyword("MAXLEN")
+	KeywordGroup        = newKeyword("GROUP")
+	KeywordIdle         = newKeyword("IDLE")
+	KeywordTime         = newKeyword("TIME")
+	KeywordRetrycount   = newKeyword("RETRYCOUNT")
+	KeywordForce        = newKeyword("FORCE")
 )

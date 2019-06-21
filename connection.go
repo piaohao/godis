@@ -11,51 +11,50 @@ import (
 type connection struct {
 	Host              string
 	Port              int
-	Socket            net.Conn
-	Protocol          *protocol
 	ConnectionTimeout int
 	SoTimeout         int
-	Broken            bool
-	Ssl               bool
 
+	socket            net.Conn
+	protocol          *protocol
+	broken            bool
 	pipelinedCommands int
 }
 
 func newConnection(host string, port, connectionTimeout, soTimeout int) *connection {
 	if host == "" {
-		host = DEFAULT_HOST
+		host = DefaultHost
 	}
 	if port == 0 {
-		port = DEFAULT_PORT
+		port = DefaultPort
 	}
 	if connectionTimeout == 0 {
-		connectionTimeout = DEFAULT_TIMEOUT
+		connectionTimeout = DefaultTimeout
 	}
 	if soTimeout == 0 {
-		soTimeout = DEFAULT_TIMEOUT
+		soTimeout = DefaultTimeout
 	}
 	return &connection{
 		Host:              host,
 		Port:              port,
 		ConnectionTimeout: connectionTimeout,
 		SoTimeout:         soTimeout,
-		Broken:            false,
+		broken:            false,
 	}
 }
 
 func (c *connection) setTimeoutInfinite() error {
-	err := c.Socket.SetDeadline(time.Time{})
+	err := c.socket.SetDeadline(time.Time{})
 	if err != nil {
-		c.Broken = true
+		c.broken = true
 		return err
 	}
 	return nil
 }
 
 func (c *connection) rollbackTimeout() error {
-	err := c.Socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
+	err := c.socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
 	if err != nil {
-		c.Broken = true
+		c.broken = true
 		return err
 	}
 	return nil
@@ -65,12 +64,24 @@ func (c *connection) resetPipelinedCount() {
 	c.pipelinedCommands = 0
 }
 
-func (c *connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
+func (c *connection) sendCommand(cmd protocolCommand, args ...[]byte) error {
 	err := c.connect()
 	if err != nil {
 		return err
 	}
-	if err := c.Protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
+	if err := c.protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
+		return err
+	}
+	c.pipelinedCommands++
+	return nil
+}
+
+func (c *connection) sendCommandByStr(cmd string, args ...[]byte) error {
+	err := c.connect()
+	if err != nil {
+		return err
+	}
+	if err := c.protocol.sendCommand([]byte(cmd), args...); err != nil {
 		return err
 	}
 	c.pipelinedCommands++
@@ -78,13 +89,13 @@ func (c *connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
 }
 
 func (c *connection) readProtocolWithCheckingBroken() (interface{}, error) {
-	if c.Broken {
+	if c.broken {
 		return nil, errors.New("attempting to read from a broken connection")
 	}
-	read, err := c.Protocol.read()
+	read, err := c.protocol.read()
 	//todo	need distinguish error, when error is redis connection exception ,then set broken with true
 	if err != nil {
-		c.Broken = true
+		c.broken = true
 	}
 	return read, err
 }
@@ -98,8 +109,6 @@ func (c *connection) getStatusCodeReply() (string, error) {
 		return "", nil
 	}
 	switch t := reply.(type) {
-	case keyword:
-		return string(t.GetRaw()), nil
 	case string:
 		return t, nil
 	default:
@@ -228,9 +237,9 @@ func (c *connection) getAll(expect ...int) (interface{}, error) {
 }
 
 func (c *connection) flush() error {
-	err := c.Protocol.os.Flush()
+	err := c.protocol.os.Flush()
 	if err != nil {
-		c.Broken = true
+		c.broken = true
 		return err
 	}
 	return nil
@@ -248,21 +257,21 @@ func (c *connection) connect() error {
 	if err != nil {
 		return err
 	}
-	c.Socket = conn
-	c.Protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.Socket)), newRedisInputStream(bufio.NewReader(c.Socket)))
+	c.socket = conn
+	c.protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.socket)), newRedisInputStream(bufio.NewReader(c.socket)))
 	return nil
 }
 
 func (c *connection) isConnected() bool {
-	if c.Socket == nil {
+	if c.socket == nil {
 		return false
 	}
 	return true
 }
 
 func (c *connection) close() error {
-	if c.Socket == nil {
+	if c.socket == nil {
 		return nil
 	}
-	return c.Socket.Close()
+	return c.socket.Close()
 }

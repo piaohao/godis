@@ -22,6 +22,7 @@ func _TestCluster_Basic(t *testing.T) {
 		gtest.Assert(reply, "godis cluster")
 
 		int64Reply, err := cluster.Exists("cluster", "cluster1")
+		gtest.Assert(int64Reply, 1)
 		gtest.AssertNE(err, nil)
 		int64Reply, err = cluster.Exists("cluster", "cluster")
 		gtest.AssertEQ(err, nil)
