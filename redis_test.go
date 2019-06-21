@@ -15,7 +15,7 @@ var option = Option{
 
 func TestNewRedis(t *testing.T) {
 	type args struct {
-		shardInfo Option
+		option Option
 	}
 	tests := []struct {
 		name string
@@ -37,7 +37,7 @@ func TestNewRedis(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewRedis(tt.args.shardInfo); !reflect.DeepEqual(got, tt.want) {
+			if got := NewRedis(tt.args.option); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewRedis() = %v, want %v", got, tt.want)
 			}
 		})
@@ -166,7 +166,7 @@ func TestRedis_Auth(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{
+		/*{
 			name: "auth1",
 			fields: fields{
 				client: newClient(option),
@@ -174,7 +174,7 @@ func TestRedis_Auth(t *testing.T) {
 			args:    args{password: "123456"},
 			want:    "OK",
 			wantErr: false,
-		},
+		},*/
 		{
 			name: "auth2",
 			fields: fields{
