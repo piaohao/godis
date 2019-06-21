@@ -27,8 +27,8 @@ type Redis struct {
 }
 
 // constructor for creating new redis
-func NewRedis(shardInfo Option) *Redis {
-	client := newClient(shardInfo)
+func NewRedis(option Option) *Redis {
+	client := newClient(option)
 	return &Redis{client: client}
 }
 

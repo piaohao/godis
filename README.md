@@ -41,7 +41,7 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        redis := godis.NewRedis(godis.ShardInfo{
+        redis := godis.NewRedis(godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
@@ -62,7 +62,7 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(godis.ShardInfo{
+        factory := godis.NewFactory(godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,

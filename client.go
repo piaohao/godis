@@ -12,18 +12,18 @@ type client struct {
 }
 
 //NewClient
-func newClient(shardInfo Option) *client {
+func newClient(option Option) *client {
 	db := 0
-	if shardInfo.Db != 0 {
-		db = shardInfo.Db
+	if option.Db != 0 {
+		db = option.Db
 	}
 	client := &client{
-		Password:  shardInfo.Password,
+		Password:  option.Password,
 		Db:        db,
 		isInMulti: false,
 		isInWatch: false,
 	}
-	client.connection = newConnection(shardInfo.Host, shardInfo.Port, shardInfo.ConnectionTimeout, shardInfo.SoTimeout)
+	client.connection = newConnection(option.Host, option.Port, option.ConnectionTimeout, option.SoTimeout)
 	return client
 }
 
