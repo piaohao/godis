@@ -2,13 +2,14 @@ package godis
 
 import (
 	"context"
-	pool "github.com/jolestar/go-commons-pool"
+	"github.com/jolestar/go-commons-pool"
 	"time"
 )
 
 //Pool
 type Pool struct {
 	internalPool *pool.ObjectPool
+	ctx          context.Context
 }
 
 //PoolConfig
@@ -23,19 +24,31 @@ type PoolConfig struct {
 //NewPool
 func NewPool(config PoolConfig, factory *Factory) *Pool {
 	poolConfig := pool.NewDefaultPoolConfig()
-	poolConfig.MaxTotal = config.MaxTotal
-	poolConfig.MaxIdle = config.MaxIdle
-	poolConfig.MinIdle = config.MinIdle
-	poolConfig.MinEvictableIdleTime = config.MinEvictableIdleTime
-	poolConfig.TestOnBorrow = config.TestOnBorrow
+	if config.MaxTotal != 0 {
+		poolConfig.MaxTotal = config.MaxTotal
+	}
+	if config.MaxIdle != 0 {
+		poolConfig.MaxIdle = config.MaxIdle
+	}
+	if config.MaxIdle != 0 {
+		poolConfig.MinIdle = config.MinIdle
+	}
+	if config.MinEvictableIdleTime != 0 {
+		poolConfig.MinEvictableIdleTime = config.MinEvictableIdleTime
+	}
+	if config.TestOnBorrow != false {
+		poolConfig.TestOnBorrow = config.TestOnBorrow
+	}
+	ctx := context.Background()
 	return &Pool{
-		internalPool: pool.NewObjectPool(nil, factory, poolConfig),
+		ctx:          ctx,
+		internalPool: pool.NewObjectPool(ctx, factory, poolConfig),
 	}
 }
 
 //GetResource
 func (p *Pool) GetResource() (*Redis, error) {
-	obj, err := p.internalPool.BorrowObject(nil)
+	obj, err := p.internalPool.BorrowObject(p.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +57,7 @@ func (p *Pool) GetResource() (*Redis, error) {
 
 //Destroy
 func (p *Pool) Destroy() {
-	p.internalPool.Close(nil)
+	p.internalPool.Close(p.ctx)
 }
 
 //Factory
@@ -53,8 +66,8 @@ type Factory struct {
 }
 
 //NewFactory
-func NewFactory(shardInfo Option) *Factory {
-	return &Factory{option: shardInfo}
+func NewFactory(option Option) *Factory {
+	return &Factory{option: option}
 }
 
 //MakeObject
