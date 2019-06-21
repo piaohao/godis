@@ -4,8 +4,9 @@
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/piaohao/godis)
 [![Build Status](https://travis-ci.com/piaohao/godis.svg?branch=dev.master)](https://travis-ci.com/piaohao/godis) 
 [![Go Report](https://goreportcard.com/badge/github.com/piaohao/godis?123)](https://goreportcard.com/report/github.com/piaohao/godis) 
-[![Code Coverage](https://codecov.io/gh/piaohao/godis/branch/dev.master/graph/badge.svg)](https://codecov.io/gh/piaohao/godis/branch/dev.master)
+[![codecov](https://codecov.io/gh/piaohao/godis/branch/master/graph/badge.svg)](https://codecov.io/gh/piaohao/godis)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/piaohao/godis)
+
 
 </div>
 
