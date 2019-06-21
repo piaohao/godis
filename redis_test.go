@@ -17,23 +17,20 @@ func TestNewRedis(t *testing.T) {
 	type args struct {
 		option Option
 	}
+	redis := new(Redis)
+	redis.client = newClient(option)
 	tests := []struct {
 		name string
 		args args
 		want *Redis
 	}{
-		/*{
-			name: "append",
-			fields: fields{
-				client: newClient(option),
-			},
+		{
+			name: "new",
 			args: args{
-				key:   "a",
-				value: "b",
+				option: option,
 			},
-			want:    1,
-			wantErr: false,
-		},*/
+			want: redis,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -166,15 +163,15 @@ func TestRedis_Auth(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		/*{
+		{
 			name: "auth1",
 			fields: fields{
 				client: newClient(option),
 			},
-			args:    args{password: "123456"},
-			want:    "OK",
-			wantErr: false,
-		},*/
+			args:    args{password: ""},
+			want:    "",
+			wantErr: true,
+		},
 		{
 			name: "auth2",
 			fields: fields{

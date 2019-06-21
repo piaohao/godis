@@ -93,8 +93,8 @@ func (c *connection) readProtocolWithCheckingBroken() (interface{}, error) {
 		return nil, errors.New("attempting to read from a broken connection")
 	}
 	read, err := c.protocol.read()
-	//todo	need distinguish error, when error is redis connection exception ,then set broken with true
-	if err != nil {
+	switch err.(type) {
+	case *ConnectError:
 		c.broken = true
 	}
 	return read, err

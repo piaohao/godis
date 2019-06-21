@@ -6,6 +6,96 @@ import (
 	"strings"
 )
 
+type MovedDataError struct {
+	Message string
+	Host    string
+	Port    int
+	Slot    int
+}
+
+func NewMovedDataError(message string, host string, port int, slot int) *MovedDataError {
+	return &MovedDataError{Message: message, Host: host, Port: port, Slot: slot}
+}
+
+func (e *MovedDataError) Error() string {
+	return e.Message
+}
+
+type AskDataError struct {
+	Message string
+	Host    string
+	Port    int
+	Slot    int
+}
+
+func NewAskDataError(message string, host string, port int, slot int) *AskDataError {
+	return &AskDataError{Message: message, Host: host, Port: port, Slot: slot}
+}
+
+func (e *AskDataError) Error() string {
+	return e.Message
+}
+
+type ClusterError struct {
+	Message string
+}
+
+func NewClusterError(message string) *ClusterError {
+	return &ClusterError{Message: message}
+}
+
+func (e *ClusterError) Error() string {
+	return e.Message
+}
+
+type BusyError struct {
+	Message string
+}
+
+func NewBusyError(message string) *BusyError {
+	return &BusyError{Message: message}
+}
+
+func (e *BusyError) Error() string {
+	return e.Message
+}
+
+type NoScriptError struct {
+	Message string
+}
+
+func NewNoScriptError(message string) *NoScriptError {
+	return &NoScriptError{Message: message}
+}
+
+func (e *NoScriptError) Error() string {
+	return e.Message
+}
+
+type DataError struct {
+	Message string
+}
+
+func NewDataError(message string) *DataError {
+	return &DataError{Message: message}
+}
+
+func (e *DataError) Error() string {
+	return e.Message
+}
+
+type ConnectError struct {
+	Message string
+}
+
+func NewConnectError(message string) *ConnectError {
+	return &ConnectError{Message: message}
+}
+
+func (e *ConnectError) Error() string {
+	return e.Message
+}
+
 //ZAddParams ...
 type ZAddParams struct {
 	XX     bool
@@ -104,8 +194,8 @@ func NewListOption(name string) ListOption {
 }
 
 var (
-	ListOption_BEFORE = NewListOption("BEFORE")
-	ListOption_AFTER  = NewListOption("AFTER")
+	ListoptionBefore = NewListOption("BEFORE")
+	ListoptionAfter  = NewListOption("AFTER")
 )
 
 //GeoUnit

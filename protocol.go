@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -180,9 +181,9 @@ func (p *protocol) process() (interface{}, error) {
 	case ColonByte:
 		return p.parseInt(line[1:])
 	case MinusByte:
-		return nil, errors.New(string(line[1:]))
+		return p.processMinus(line)
 	default:
-		return nil, errors.New(fmt.Sprint("Unknown reply: ", line[0]))
+		return nil, NewConnectError(fmt.Sprint("Unknown reply: ", line[0]))
 	}
 }
 
@@ -230,6 +231,45 @@ func (p *protocol) processAsterisk(line []byte) ([]interface{}, error) {
 		}
 	}
 	return r, nil
+}
+
+func (p *protocol) processMinus(line []byte) (interface{}, error) {
+	msg := string(line)
+	if strings.HasPrefix(msg, MovedPrefix) {
+		host, port, slot := p.parseTargetHostAndSlot(msg)
+		return nil, NewMovedDataError(msg, host, port, slot)
+	} else if strings.HasPrefix(msg, AskPrefix) {
+		host, port, slot := p.parseTargetHostAndSlot(msg)
+		return nil, NewAskDataError(msg, host, port, slot)
+	} else if strings.HasPrefix(msg, ClusterdownPrefix) {
+		return nil, NewClusterError(msg)
+	} else if strings.HasPrefix(msg, BusyPrefix) {
+		return nil, NewBusyError(msg)
+	} else if strings.HasPrefix(msg, NoscriptPrefix) {
+		return nil, NewNoScriptError(msg)
+	}
+	return nil, NewDataError(msg)
+}
+
+func (p *protocol) parseTargetHostAndSlot(clusterRedirectResponse string) (string, int, int) {
+	arr := strings.Split(clusterRedirectResponse, " ")
+	host, port := p.extractParts(arr[2])
+	slot, _ := strconv.Atoi(arr[1])
+	po, _ := strconv.Atoi(port)
+	return host, po, slot
+}
+
+func (p *protocol) extractParts(from string) (string, string) {
+	idx := strings.LastIndex(from, ":")
+	host := from
+	if idx != -1 {
+		host = from[0:idx]
+	}
+	port := ""
+	if idx != -1 {
+		port = from[idx+1:]
+	}
+	return host, port
 }
 
 func (p *protocol) readLine() ([]byte, error) {
