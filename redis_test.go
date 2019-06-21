@@ -6,9 +6,9 @@ import (
 )
 
 var option = Option{
-	Host:     "10.1.1.63",
-	Password: "123456",
-	//Host: "localhost",
+	//Host:     "10.1.1.63",
+	//Password: "123456",
+	Host: "localhost",
 	Port: 6379,
 	Db:   0,
 }
