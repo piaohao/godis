@@ -73,20 +73,20 @@ var (
 	NEGATIVE_INFINITY_BYTES = []byte("-inf")
 )
 
-type RedisOutputStream struct {
+type redisOutputStream struct {
 	*bufio.Writer
 	buf   []byte
 	count int
 }
 
-func NewRedisOutputStream(bw *bufio.Writer) *RedisOutputStream {
-	return &RedisOutputStream{
+func newRedisOutputStream(bw *bufio.Writer) *redisOutputStream {
+	return &redisOutputStream{
 		Writer: bw,
 		buf:    make([]byte, 0),
 	}
 }
 
-func (r *RedisOutputStream) writeIntCrLf(b int) (int, error) {
+func (r *redisOutputStream) writeIntCrLf(b int) (int, error) {
 	_, err := r.Write(strconv.AppendInt(r.buf, int64(b), 10))
 	if err != nil {
 		return 0, err
@@ -94,37 +94,37 @@ func (r *RedisOutputStream) writeIntCrLf(b int) (int, error) {
 	return r.writeCrLf()
 }
 
-func (r *RedisOutputStream) writeCrLf() (int, error) {
+func (r *redisOutputStream) writeCrLf() (int, error) {
 	return r.WriteString("\r\n")
 }
 
-type RedisInputStream struct {
+type redisInputStream struct {
 	*bufio.Reader
 	buf   []byte
 	count int
 	limit int
 }
 
-func NewRedisInputStream(br *bufio.Reader) *RedisInputStream {
-	return &RedisInputStream{
+func newRedisInputStream(br *bufio.Reader) *redisInputStream {
+	return &redisInputStream{
 		Reader: br,
 		buf:    make([]byte, 8192),
 	}
 }
 
-type Protocol struct {
-	os *RedisOutputStream
-	is *RedisInputStream
+type protocol struct {
+	os *redisOutputStream
+	is *redisInputStream
 }
 
-func NewProtocol(os *RedisOutputStream, is *RedisInputStream) *Protocol {
-	return &Protocol{
+func newProtocol(os *redisOutputStream, is *redisInputStream) *protocol {
+	return &protocol{
 		os: os,
 		is: is,
 	}
 }
 
-func (p *Protocol) sendCommand(command []byte, args ...[]byte) error {
+func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
 	if err := p.os.WriteByte(ASTERISK_BYTE); err != nil {
 		return err
 	}
@@ -160,11 +160,11 @@ func (p *Protocol) sendCommand(command []byte, args ...[]byte) error {
 	return nil
 }
 
-func (p *Protocol) read() (interface{}, error) {
+func (p *protocol) read() (interface{}, error) {
 	return p.process()
 }
 
-func (p *Protocol) process() (interface{}, error) {
+func (p *protocol) process() (interface{}, error) {
 	line, err := p.readLine()
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (p *Protocol) process() (interface{}, error) {
 	}
 }
 
-func (p *Protocol) readLine() ([]byte, error) {
+func (p *protocol) readLine() ([]byte, error) {
 	// To avoid allocations, attempt to read the line using ReadSlice. This
 	// call typically succeeds. The known case where the call fails is when
 	// reading the output from the MONITOR command.
@@ -247,7 +247,7 @@ func (p *Protocol) readLine() ([]byte, error) {
 	return line[:i], nil
 }
 
-func (p *Protocol) parseLen(b []byte) (int, error) {
+func (p *protocol) parseLen(b []byte) (int, error) {
 	if len(b) == 0 {
 		return -1, errors.New("malformed length")
 	}
@@ -270,7 +270,7 @@ func (p *Protocol) parseLen(b []byte) (int, error) {
 }
 
 // parseInt parses an integer reply.
-func (p *Protocol) parseInt(b []byte) (interface{}, error) {
+func (p *protocol) parseInt(b []byte) (interface{}, error) {
 	if len(b) == 0 {
 		return 0, errors.New("malformed integer")
 	}

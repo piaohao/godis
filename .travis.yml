@@ -6,7 +6,6 @@ go:
 branches:
   only:
   - master
-  - dev.master
 
 env:
 - GO111MODULE=on

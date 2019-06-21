@@ -2,49 +2,47 @@ package godis
 
 import "strconv"
 
+//Client send command to redis, and receive data from redis
 type Client struct {
-	*Connection
-	//Host              string
-	//Port              int
-	//ConnectionTimeout int
-	//SoTimeout         int
+	*connection
 	Password  string
 	Db        int
-	IsInMulti bool
-	IsInWatch bool
-	//Ssl               bool
+	isInMulti bool
+	isInWatch bool
 }
 
-func NewClient(shardInfo ShardInfo) *Client {
+//NewClient
+func NewClient(shardInfo Option) *Client {
 	db := 0
 	if shardInfo.Db != 0 {
 		db = shardInfo.Db
 	}
 	client := &Client{
-		//Host:              options.Host,
-		//Port:              options.Port,
-		//ConnectionTimeout: options.ConnectionTimeout,
-		//SoTimeout:         options.SoTimeout,
 		Password:  shardInfo.Password,
 		Db:        db,
-		IsInMulti: false,
-		IsInWatch: false,
-		//Ssl:               options.Ssl,
+		isInMulti: false,
+		isInWatch: false,
 	}
-	client.Connection = NewConnection(shardInfo.Host, shardInfo.Port, shardInfo.ConnectionTimeout, shardInfo.SoTimeout, shardInfo.Ssl)
+	client.connection = newConnection(shardInfo.Host, shardInfo.Port, shardInfo.ConnectionTimeout, shardInfo.SoTimeout)
 	return client
 }
 
-func (c *Client) Host() string {
-	return c.Connection.Host
+func (c *Client) host() string {
+	return c.connection.Host
 }
 
-func (c *Client) Port() int {
-	return c.Connection.Port
+func (c *Client) port() int {
+	return c.connection.Port
 }
 
+//Receive
+func (c *Client) Receive() (interface{}, error) {
+	return c.connection.getOne()
+}
+
+//Connect
 func (c *Client) Connect() error {
-	err := c.Connection.Connect()
+	err := c.connection.connect()
 	if err != nil {
 		return err
 	}
@@ -71,27 +69,33 @@ func (c *Client) Connect() error {
 	return nil
 }
 
+//Close
 func (c *Client) Close() error {
-	return c.Connection.Close()
+	return c.connection.close()
 }
 
+//Ping
 func (c *Client) Ping() error {
 	return c.SendCommand(CMD_PING)
 }
 
+//Quit
 func (c *Client) Quit() error {
 	return c.SendCommand(CMD_QUIT)
 }
 
+//Info
 func (c *Client) Info(section ...string) error {
 	return c.SendCommand(CMD_INFO, StringArrayToByteArray(section)...)
 }
 
+//Auth
 func (c *Client) Auth(password string) error {
 	c.Password = password
 	return c.SendCommand(CMD_AUTH, []byte(password))
 }
 
+//Select
 func (c *Client) Select(index int) error {
 	return c.SendCommand(CMD_SELECT, IntToByteArray(index))
 }
@@ -384,7 +388,7 @@ func (c *Client) ZaddByMap(key string, scoreMembers map[string]float64, params .
 		newArr = append(newArr, []byte(k))
 		newArr = append(newArr, Float64ToByteArray(v))
 	}
-	return c.SendCommand(CMD_ZADD, params[0].getByteParams([]byte(key), newArr...)...)
+	return c.SendCommand(CMD_ZADD, params[0].GetByteParams([]byte(key), newArr...)...)
 }
 
 func (c *Client) Zrange(key string, start, end int64) error {
@@ -835,7 +839,7 @@ func (c *Client) Scan(cursor string, params ...ScanParams) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
-		arr = append(arr, p.getParams()...)
+		arr = append(arr, p.GetParams()...)
 	}
 	return c.SendCommand(CMD_SCAN, arr...)
 }
@@ -845,7 +849,7 @@ func (c *Client) Hscan(key, cursor string, params ...ScanParams) error {
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
-		arr = append(arr, p.getParams()...)
+		arr = append(arr, p.GetParams()...)
 	}
 	return c.SendCommand(CMD_HSCAN, arr...)
 }
@@ -855,7 +859,7 @@ func (c *Client) Sscan(key, cursor string, params ...ScanParams) error {
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
-		arr = append(arr, p.getParams()...)
+		arr = append(arr, p.GetParams()...)
 	}
 	return c.SendCommand(CMD_HSCAN, arr...)
 }
@@ -865,7 +869,7 @@ func (c *Client) Zscan(key, cursor string, params ...ScanParams) error {
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
-		arr = append(arr, p.getParams()...)
+		arr = append(arr, p.GetParams()...)
 	}
 	return c.SendCommand(CMD_HSCAN, arr...)
 }
@@ -904,7 +908,7 @@ func (c *Client) Georadius(key string, longitude, latitude, radius float64, unit
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
 	for _, p := range param {
-		arr = append(arr, p.getParams([][]byte{})...)
+		arr = append(arr, p.GetParams([][]byte{})...)
 	}
 	return c.SendCommand(CMD_GEORADIUS, arr...)
 }
@@ -916,7 +920,7 @@ func (c *Client) GeoradiusByMember(key, member string, radius float64, unit GeoU
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
 	for _, p := range param {
-		arr = append(arr, p.getParams([][]byte{})...)
+		arr = append(arr, p.GetParams([][]byte{})...)
 	}
 	return c.SendCommand(CMD_GEORADIUSBYMEMBER, arr...)
 }
@@ -1125,7 +1129,7 @@ func (c *Client) Multi() error {
 	if err != nil {
 		return err
 	}
-	c.IsInMulti = true
+	c.isInMulti = true
 	return nil
 }
 
@@ -1134,8 +1138,8 @@ func (c *Client) Discard() error {
 	if err != nil {
 		return err
 	}
-	c.IsInMulti = false
-	c.IsInWatch = false
+	c.isInMulti = false
+	c.isInWatch = false
 	return nil
 }
 
@@ -1144,7 +1148,7 @@ func (c *Client) Exec() error {
 	if err != nil {
 		return err
 	}
-	c.IsInMulti = false
-	c.IsInWatch = false
+	c.isInMulti = false
+	c.isInWatch = false
 	return nil
 }

@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-type Connection struct {
+type connection struct {
 	Host              string
 	Port              int
 	Socket            net.Conn
-	Protocol          *Protocol
+	Protocol          *protocol
 	ConnectionTimeout int
 	SoTimeout         int
 	Broken            bool
@@ -21,7 +21,7 @@ type Connection struct {
 	pipelinedCommands int
 }
 
-func NewConnection(host string, port, connectionTimeout, soTimeout int, ssl bool) *Connection {
+func newConnection(host string, port, connectionTimeout, soTimeout int) *connection {
 	if host == "" {
 		host = DEFAULT_HOST
 	}
@@ -34,17 +34,16 @@ func NewConnection(host string, port, connectionTimeout, soTimeout int, ssl bool
 	if soTimeout == 0 {
 		soTimeout = DEFAULT_TIMEOUT
 	}
-	return &Connection{
+	return &connection{
 		Host:              host,
 		Port:              port,
 		ConnectionTimeout: connectionTimeout,
 		SoTimeout:         soTimeout,
 		Broken:            false,
-		Ssl:               ssl,
 	}
 }
 
-func (c *Connection) setTimeoutInfinite() error {
+func (c *connection) setTimeoutInfinite() error {
 	err := c.Socket.SetDeadline(time.Time{})
 	if err != nil {
 		c.Broken = true
@@ -53,7 +52,7 @@ func (c *Connection) setTimeoutInfinite() error {
 	return nil
 }
 
-func (c *Connection) rollbackTimeout() error {
+func (c *connection) rollbackTimeout() error {
 	err := c.Socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
 	if err != nil {
 		c.Broken = true
@@ -62,12 +61,12 @@ func (c *Connection) rollbackTimeout() error {
 	return nil
 }
 
-func (c *Connection) resetPipelinedCount() {
+func (c *connection) resetPipelinedCount() {
 	c.pipelinedCommands = 0
 }
 
-func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
-	err := c.Connect()
+func (c *connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
+	err := c.connect()
 	if err != nil {
 		return err
 	}
@@ -78,7 +77,7 @@ func (c *Connection) SendCommand(cmd protocolCommand, args ...[]byte) error {
 	return nil
 }
 
-func (c *Connection) readProtocolWithCheckingBroken() (interface{}, error) {
+func (c *connection) readProtocolWithCheckingBroken() (interface{}, error) {
 	if c.Broken {
 		return nil, errors.New("attempting to read from a broken connection")
 	}
@@ -90,7 +89,7 @@ func (c *Connection) readProtocolWithCheckingBroken() (interface{}, error) {
 	return read, err
 }
 
-func (c *Connection) getStatusCodeReply() (string, error) {
+func (c *connection) getStatusCodeReply() (string, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return "", err
@@ -108,7 +107,7 @@ func (c *Connection) getStatusCodeReply() (string, error) {
 	}
 }
 
-func (c *Connection) getBulkReply() (string, error) {
+func (c *connection) getBulkReply() (string, error) {
 	result, err := c.getBinaryBulkReply()
 	if err != nil {
 		return "", err
@@ -116,7 +115,7 @@ func (c *Connection) getBulkReply() (string, error) {
 	return string(result), nil
 }
 
-func (c *Connection) getBinaryBulkReply() ([]byte, error) {
+func (c *connection) getBinaryBulkReply() ([]byte, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
@@ -126,14 +125,9 @@ func (c *Connection) getBinaryBulkReply() ([]byte, error) {
 	}
 	resp := reply.([]byte)
 	return resp, nil
-	//respArr := make([]byte, 0)
-	//for _, r := range resp {
-	//	respArr = append(respArr, r.(byte))
-	//}
-	//return respArr, nil
 }
 
-func (c *Connection) getIntegerReply() (int64, error) {
+func (c *connection) getIntegerReply() (int64, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return 0, err
@@ -145,7 +139,7 @@ func (c *Connection) getIntegerReply() (int64, error) {
 	return resp, nil
 }
 
-func (c *Connection) getMultiBulkReply() ([]string, error) {
+func (c *connection) getMultiBulkReply() ([]string, error) {
 	reply, err := c.getBinaryMultiBulkReply()
 	if err != nil {
 		return nil, err
@@ -157,7 +151,7 @@ func (c *Connection) getMultiBulkReply() ([]string, error) {
 	return resp, nil
 }
 
-func (c *Connection) getBinaryMultiBulkReply() ([][]byte, error) {
+func (c *connection) getBinaryMultiBulkReply() ([][]byte, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
@@ -173,7 +167,7 @@ func (c *Connection) getBinaryMultiBulkReply() ([][]byte, error) {
 	return arr, nil
 }
 
-func (c *Connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
+func (c *connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
@@ -184,16 +178,16 @@ func (c *Connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 	return reply.([]interface{}), nil
 }
 
-func (c *Connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
+func (c *connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
 	reply, err := c.readProtocolWithCheckingBroken()
 	return reply.([]interface{}), err
 }
 
-func (c *Connection) getObjectMultiBulkReply() ([]interface{}, error) {
+func (c *connection) getObjectMultiBulkReply() ([]interface{}, error) {
 	return c.getUnflushedObjectMultiBulkReply()
 }
 
-func (c *Connection) getIntegerMultiBulkReply() ([]int64, error) {
+func (c *connection) getIntegerMultiBulkReply() ([]int64, error) {
 	reply, err := c.getOne()
 	if err != nil {
 		return nil, err
@@ -204,7 +198,7 @@ func (c *Connection) getIntegerMultiBulkReply() ([]int64, error) {
 	return reply.([]int64), nil
 }
 
-func (c *Connection) getOne() (interface{}, error) {
+func (c *connection) getOne() (interface{}, error) {
 	if err := c.flush(); err != nil {
 		return "", err
 	}
@@ -212,7 +206,7 @@ func (c *Connection) getOne() (interface{}, error) {
 	return c.readProtocolWithCheckingBroken()
 }
 
-func (c *Connection) getAll(expect ...int) (interface{}, error) {
+func (c *connection) getAll(expect ...int) (interface{}, error) {
 	num := 0
 	if len(expect) > 0 {
 		num = expect[0]
@@ -233,7 +227,7 @@ func (c *Connection) getAll(expect ...int) (interface{}, error) {
 	return all, nil
 }
 
-func (c *Connection) flush() error {
+func (c *connection) flush() error {
 	err := c.Protocol.os.Flush()
 	if err != nil {
 		c.Broken = true
@@ -242,8 +236,8 @@ func (c *Connection) flush() error {
 	return nil
 }
 
-func (c *Connection) Connect() error {
-	if c.IsConnected() {
+func (c *connection) connect() error {
+	if c.isConnected() {
 		return nil
 	}
 	conn, err := net.Dial("tcp", fmt.Sprint(c.Host, ":", c.Port))
@@ -255,27 +249,20 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.Socket = conn
-	c.Protocol = NewProtocol(NewRedisOutputStream(bufio.NewWriter(c.Socket)), NewRedisInputStream(bufio.NewReader(c.Socket)))
+	c.Protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.Socket)), newRedisInputStream(bufio.NewReader(c.Socket)))
 	return nil
 }
 
-func (c *Connection) IsConnected() bool {
+func (c *connection) isConnected() bool {
 	if c.Socket == nil {
 		return false
 	}
-	//buf := make([]byte, 1024)
-	//n, err := c.Socket.Read(buf)
-	//if err != nil {
-	//	if io.EOF == err {
-	//		return false
-	//	}
-	//}
-	//if n > 0 {
-	//	fmt.Printf("unexpected data: %s\n", buf[:n])
-	//}
 	return true
 }
 
-func (c *Connection) Close() error {
+func (c *connection) close() error {
+	if c.Socket == nil {
+		return nil
+	}
 	return c.Socket.Close()
 }

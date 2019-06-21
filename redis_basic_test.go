@@ -9,7 +9,7 @@ import (
 
 func Test_GetSet(t *testing.T) {
 	gtest.Case(t, func() {
-		redis := godis.NewRedis(godis.ShardInfo{
+		redis := godis.NewRedis(godis.Option{
 			Host: "localhost",
 			Port: 6379,
 			Db:   0,
@@ -45,7 +45,7 @@ func Test_GetSet(t *testing.T) {
 
 func Test_Pool(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.ShardInfo{
+		factory := godis.NewFactory(godis.Option{
 			Host: "localhost",
 			Port: 6379,
 			Db:   0,
@@ -66,7 +66,7 @@ func Test_Pool(t *testing.T) {
 
 func Test_PubSub(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.ShardInfo{
+		factory := godis.NewFactory(godis.Option{
 			Host: "localhost",
 			Port: 6379,
 			Db:   0,
@@ -124,7 +124,7 @@ func Test_PubSub(t *testing.T) {
 
 func Test_PubSub2(t *testing.T) {
 	gtest.Case(t, func() {
-		factory := godis.NewFactory(godis.ShardInfo{
+		factory := godis.NewFactory(godis.Option{
 			Host: "localhost",
 			Port: 6379,
 			Db:   0,

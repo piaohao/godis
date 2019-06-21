@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+//RedisCommands
 type RedisCommands interface {
 	Set(key, value string) (string, error)
 	SetWithParamsAndTime(key, value, nxxx, expx string, time int64) (string, error)
@@ -152,6 +153,7 @@ type RedisCommands interface {
 	Bitfield(key string, arguments ...string) ([]int64, error)
 }
 
+//ZAddParams
 type ZAddParams struct {
 	XX     bool
 	NX     bool
@@ -159,16 +161,17 @@ type ZAddParams struct {
 	params map[string]string
 }
 
-func (p ZAddParams) getByteParams(key []byte, args ...[]byte) [][]byte {
+//GetByteParams
+func (p ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
 	arr := make([][]byte, 0)
 	arr = append(arr, key)
-	if p.contains("XX") {
+	if p.Contains("XX") {
 		arr = append(arr, []byte("XX"))
 	}
-	if p.contains("NX") {
+	if p.Contains("NX") {
 		arr = append(arr, []byte("NX"))
 	}
-	if p.contains("CH") {
+	if p.Contains("CH") {
 		arr = append(arr, []byte("CH"))
 	}
 	for _, a := range args {
@@ -177,28 +180,34 @@ func (p ZAddParams) getByteParams(key []byte, args ...[]byte) [][]byte {
 	return arr
 }
 
-func (p ZAddParams) contains(key string) bool {
+//Contains
+func (p ZAddParams) Contains(key string) bool {
 	_, ok := p.params[key]
 	return ok
 }
 
+//BitPosParams
 type BitPosParams struct {
 	params [][]byte
 }
 
+//SortingParams
 type SortingParams struct {
 	params [][]byte
 }
 
+//ScanParams
 type ScanParams struct {
 	params map[keyword][]byte
 }
 
+//NewScanParams
 func NewScanParams() *ScanParams {
 	return &ScanParams{params: make(map[keyword][]byte)}
 }
 
-func (s ScanParams) getParams() [][]byte {
+//GetParams
+func (s ScanParams) GetParams() [][]byte {
 	arr := make([][]byte, 0)
 	for k, v := range s.params {
 		arr = append(arr, k.GetRaw())
@@ -207,7 +216,8 @@ func (s ScanParams) getParams() [][]byte {
 	return arr
 }
 
-func (s ScanParams) match() string {
+//Match
+func (s ScanParams) Match() string {
 	if v, ok := s.params[KEYWORD_MATCH]; !ok {
 		return ""
 	} else {
@@ -215,102 +225,116 @@ func (s ScanParams) match() string {
 	}
 }
 
-func (s ScanParams) count() int {
+//Count
+func (s ScanParams) Count() int {
 	if v, ok := s.params[KEYWORD_COUNT]; !ok {
 		return 0
 	} else {
-		return int(ByteArrayToInt(v))
+		return int(ByteArrayToInt64(v))
 	}
 }
 
+//ListOption
 type ListOption struct {
 	Name string
 }
 
+//GetRaw
 func (l ListOption) GetRaw() []byte {
 	return []byte(l.Name)
 }
 
-func newListOption(name string) ListOption {
+//NewListOption
+func NewListOption(name string) ListOption {
 	return ListOption{name}
 }
 
 var (
-	ListOption_BEFORE = newListOption("BEFORE")
-	ListOption_AFTER  = newListOption("AFTER")
+	ListOption_BEFORE = NewListOption("BEFORE")
+	ListOption_AFTER  = NewListOption("AFTER")
 )
 
+//GeoUnit
 type GeoUnit struct {
 	Name string
 }
 
+//GetRaw
 func (g GeoUnit) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-func newGeoUnit(name string) GeoUnit {
+//NewGeoUnit
+func NewGeoUnit(name string) GeoUnit {
 	return GeoUnit{name}
 }
 
 var (
-	GEOUNIT_MI = newGeoUnit("MI")
-	GEOUNIT_M  = newGeoUnit("M")
-	GEOUNIT_KM = newGeoUnit("KM")
-	GEOUNIT_FT = newGeoUnit("FT")
+	GEOUNIT_MI = NewGeoUnit("MI")
+	GEOUNIT_M  = NewGeoUnit("M")
+	GEOUNIT_KM = NewGeoUnit("KM")
+	GEOUNIT_FT = NewGeoUnit("FT")
 )
 
+//GeoRadiusParam
 type GeoRadiusParam struct {
 	params map[string]interface{}
 }
 
-func (g GeoRadiusParam) getParams(args [][]byte) [][]byte {
+//GetParams
+func (g GeoRadiusParam) GetParams(args [][]byte) [][]byte {
 	arr := make([][]byte, 0)
 	for _, a := range args {
 		arr = append(arr, a)
 	}
 
-	if g.contains("WITHCOORD") {
+	if g.Contains("WITHCOORD") {
 		arr = append(arr, []byte("WITHCOORD"))
 	}
-	if g.contains("WITHDIST") {
+	if g.Contains("WITHDIST") {
 		arr = append(arr, []byte("WITHDIST"))
 	}
 
-	if g.contains("COUNT") {
+	if g.Contains("COUNT") {
 		arr = append(arr, []byte("COUNT"))
 		arr = append(arr, IntToByteArray(g.params["COUNT"].(int)))
 	}
 
-	if g.contains("ASC") {
+	if g.Contains("ASC") {
 		arr = append(arr, []byte("ASC"))
-	} else if g.contains("DESC") {
+	} else if g.Contains("DESC") {
 		arr = append(arr, []byte("DESC"))
 	}
 
 	return arr
 }
 
-func (g GeoRadiusParam) contains(key string) bool {
+//Contains
+func (g GeoRadiusParam) Contains(key string) bool {
 	_, ok := g.params[key]
 	return ok
 }
 
+//Tuple
 type Tuple struct {
 	element []byte
 	score   float64
 }
 
+//GeoRadiusResponse
 type GeoRadiusResponse struct {
 	member     []byte
 	distance   float64
 	coordinate GeoCoordinate
 }
 
+//GeoCoordinate
 type GeoCoordinate struct {
 	longitude float64
 	latitude  float64
 }
 
+//MultiKeyCommands
 type MultiKeyCommands interface {
 	Del(keys ...string) (int64, error)
 	Exists(keys ...string) (int64, error)
@@ -353,44 +377,40 @@ type MultiKeyCommands interface {
 	Pfcount(keys ...string) (int64, error)
 }
 
+//ScanResult
 type ScanResult struct {
 	Cursor  string
 	Results []string
 }
 
+//ZParams
 type ZParams struct {
 	Name   string
 	params [][]byte
 }
 
+//GetRaw
 func (g ZParams) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
+//GetParams
 func (g ZParams) GetParams() [][]byte {
 	return g.params
 }
 
-func newZParams(name string) ZParams {
+//NewZParams
+func NewZParams(name string) ZParams {
 	return ZParams{Name: name}
 }
 
 var (
-	ZParams_SUM = newZParams("SUM")
-	ZParams_MIN = newZParams("MIN")
-	ZParams_MAX = newZParams("MAX")
+	ZParams_SUM = NewZParams("SUM")
+	ZParams_MIN = NewZParams("MIN")
+	ZParams_MAX = NewZParams("MAX")
 )
 
-//type redisPubSub interface {
-//	onMessage(channel, message string)
-//	onPMessage(pattern string, channel, message string)
-//	onSubscribe(channel string, subscribedChannels int)
-//	onUnsubscribe(channel string, subscribedChannels int)
-//	onPUnsubscribe(pattern string, subscribedChannels int)
-//	onPSubscribe(pattern string, subscribedChannels int)
-//	onPong(channel string)
-//}
-
+//RedisPubSub
 type RedisPubSub struct {
 	subscribedChannels int
 	Redis              *Redis
@@ -403,60 +423,64 @@ type RedisPubSub struct {
 	OnPong             func(channel string)
 }
 
+//Subscribe
 func (r *RedisPubSub) Subscribe(channels ...string) error {
-	if r.Redis.Client == nil {
+	if r.Redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.Client.Subscribe(channels...)
+	err := r.Redis.client.Subscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+//Unsubscribe
 func (r *RedisPubSub) Unsubscribe(channels ...string) error {
-	if r.Redis.Client == nil {
+	if r.Redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.Client.Unsubscribe(channels...)
+	err := r.Redis.client.Unsubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+//Psubscribe
 func (r *RedisPubSub) Psubscribe(channels ...string) error {
-	if r.Redis.Client == nil {
+	if r.Redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.Client.Psubscribe(channels...)
+	err := r.Redis.client.Psubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+//Punsubscribe
 func (r *RedisPubSub) Punsubscribe(channels ...string) error {
-	if r.Redis.Client == nil {
+	if r.Redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.Client.Punsubscribe(channels...)
+	err := r.Redis.client.Punsubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -465,11 +489,11 @@ func (r *RedisPubSub) Punsubscribe(channels ...string) error {
 
 func (r *RedisPubSub) proceed(redis *Redis, channels ...string) error {
 	r.Redis = redis
-	err := r.Redis.Client.Subscribe(channels...)
+	err := r.Redis.client.Subscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -482,11 +506,11 @@ func (r *RedisPubSub) isSubscribed() bool {
 
 func (r *RedisPubSub) proceedWithPatterns(redis *Redis, patterns ...string) error {
 	r.Redis = redis
-	err := r.Redis.Client.Psubscribe(patterns...)
+	err := r.Redis.client.Psubscribe(patterns...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.Client.flush()
+	err = r.Redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -495,7 +519,7 @@ func (r *RedisPubSub) proceedWithPatterns(redis *Redis, patterns ...string) erro
 
 func (r *RedisPubSub) process(redis *Redis) error {
 	for {
-		reply, err := redis.Client.Connection.getRawObjectMultiBulkReply()
+		reply, err := redis.client.connection.getRawObjectMultiBulkReply()
 		if err != nil {
 			return err
 		}
@@ -589,31 +613,35 @@ func (r *RedisPubSub) process(redis *Redis) error {
 	 * Reset pipeline count because subscribe() calls would have increased it but nothing
 	 * decremented it.
 	 */
-	redis.Client.resetPipelinedCount()
+	redis.client.resetPipelinedCount()
 	/* Invalidate instance since this thread is no longer listening */
-	r.Redis.Client = nil
+	r.Redis.client = nil
 	return nil
 }
 
+//BitOP
 type BitOP struct {
 	Name string
 }
 
+//GetRaw
 func (g BitOP) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-func newBitOP(name string) BitOP {
+//NewBitOP
+func NewBitOP(name string) BitOP {
 	return BitOP{name}
 }
 
 var (
-	BitOP_AND = newBitOP("AND")
-	BitOP_OR  = newBitOP("OR")
-	BitOP_XOR = newBitOP("XOR")
-	BitOP_NOT = newBitOP("NOT")
+	BitOP_AND = NewBitOP("AND")
+	BitOP_OR  = NewBitOP("OR")
+	BitOP_XOR = NewBitOP("XOR")
+	BitOP_NOT = NewBitOP("NOT")
 )
 
+//AdvancedRedisCommands
 type AdvancedRedisCommands interface {
 	ConfigGet(pattern string) ([]string, error)
 	ConfigSet(parameter string, value string) (string, error)
@@ -626,6 +654,7 @@ type AdvancedRedisCommands interface {
 	ObjectIdletime(str string) (int64, error)
 }
 
+//Slowlog
 type Slowlog struct {
 	id            int64
 	timeStamp     int64
@@ -633,20 +662,15 @@ type Slowlog struct {
 	args          []string
 }
 
-const COMMA = ","
-
+//ScriptingCommands
 type ScriptingCommands interface {
 	Eval(script string, keyCount int, params ...string) (interface{}, error)
-	//Eval(script string, keys, args []string) (interface{}, error)
-	//Eval(script string) (interface{}, error)
-	//Evalsha(script string) (interface{}, error)
-	//Evalsha(sha1 string, keys, args []string) (interface{}, error)
 	Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error)
-	//ScriptExists(sha1 string) (bool, error)
 	ScriptExists(sha1 ...string) ([]bool, error)
 	ScriptLoad(script string) (string, error)
 }
 
+//BasicCommands
 type BasicCommands interface {
 	Ping() (string, error)
 	Quit() (string, error)
@@ -670,10 +694,12 @@ type BasicCommands interface {
 	WaitReplicas(replicas int, timeout int64) (int64, error)
 }
 
+//DebugParams
 type DebugParams struct {
 	command []string
 }
 
+//ClusterCommands
 type ClusterCommands interface {
 	ClusterNodes() (string, error)
 	ClusterMeet(ip string, port int) (string, error)
@@ -698,23 +724,27 @@ type ClusterCommands interface {
 	Readonly() (string, error)
 }
 
+//Reset
 type Reset struct {
 	Name string
 }
 
+//GetRaw
 func (g Reset) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-func newReset(name string) Reset {
+//NewReset
+func NewReset(name string) Reset {
 	return Reset{name}
 }
 
 var (
-	Reset_SOFT = newReset("SOFT")
-	Reset_HARD = newReset("HARD")
+	Reset_SOFT = NewReset("SOFT")
+	Reset_HARD = NewReset("HARD")
 )
 
+//SentinelCommands
 type SentinelCommands interface {
 	SentinelMasters() ([]map[string]string, error)
 	SentinelGetMasterAddrByName(masterName string) ([]string, error)
@@ -726,6 +756,7 @@ type SentinelCommands interface {
 	SentinelSet(masterName string, parameterMap map[string]string) (string, error)
 }
 
+//ClusterScriptingCommands
 type ClusterScriptingCommands interface {
 	Eval(script string, keyCount int, params ...string) (interface{}, error)
 	Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error)

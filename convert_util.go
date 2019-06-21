@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+//BoolToByteArray
 func BoolToByteArray(a bool) []byte {
 	if a {
 		return BYTES_TRUE
@@ -13,31 +14,37 @@ func BoolToByteArray(a bool) []byte {
 	return BYTES_FALSE
 }
 
+//IntToByteArray
 func IntToByteArray(a int) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, int64(a), 10)
 }
 
+//Int64ToByteArray
 func Int64ToByteArray(a int64) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, a, 10)
 }
 
+//Float64ToByteArray
 func Float64ToByteArray(a float64) []byte {
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], math.Float64bits(a))
 	return buf[:]
 }
 
+//ByteArrayToFloat64
 func ByteArrayToFloat64(bytes []byte) float64 {
 	bits := binary.LittleEndian.Uint64(bytes)
 	return math.Float64frombits(bits)
 }
 
-func ByteArrayToInt(bytes []byte) uint64 {
+//ByteArrayToInt64
+func ByteArrayToInt64(bytes []byte) uint64 {
 	return binary.LittleEndian.Uint64(bytes)
 }
 
+//StringStringArrayToByteArray
 func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	params := make([][]byte, 0)
 	params = append(params, []byte(str))
@@ -47,6 +54,7 @@ func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	return params
 }
 
+//StringStringArrayToStringArray
 func StringStringArrayToStringArray(str string, arr []string) []string {
 	params := make([]string, 0)
 	params = append(params, str)
@@ -56,6 +64,7 @@ func StringStringArrayToStringArray(str string, arr []string) []string {
 	return params
 }
 
+//StringArrayToByteArray
 func StringArrayToByteArray(arr []string) [][]byte {
 	newArr := make([][]byte, 0)
 	for _, a := range arr {
@@ -64,6 +73,7 @@ func StringArrayToByteArray(arr []string) [][]byte {
 	return newArr
 }
 
+//StringToFloat64Reply
 func StringToFloat64Reply(reply string, err error) (float64, error) {
 	if err != nil {
 		return 0, err
@@ -75,6 +85,7 @@ func StringToFloat64Reply(reply string, err error) (float64, error) {
 	return f, nil
 }
 
+//StringArrayToMapReply
 func StringArrayToMapReply(reply []string, err error) (map[string]string, error) {
 	if err != nil {
 		return nil, err
@@ -86,6 +97,7 @@ func StringArrayToMapReply(reply []string, err error) (map[string]string, error)
 	return newMap, nil
 }
 
+//Int64ToBoolReply
 func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	if err != nil {
 		return false, err
@@ -93,6 +105,7 @@ func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	return reply == 1, nil
 }
 
+//ByteToStringReply
 func ByteToStringReply(reply []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
@@ -100,6 +113,7 @@ func ByteToStringReply(reply []byte, err error) (string, error) {
 	return string(reply), nil
 }
 
+//StringArrToTupleReply
 func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 	if len(reply) == 0 {
 		return []Tuple{}, nil
@@ -115,6 +129,7 @@ func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 	return newArr, err
 }
 
+//ObjectArrToScanResultReply
 func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -127,6 +142,7 @@ func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, er
 	return &ScanResult{Cursor: nexCursor, Results: result}, err
 }
 
+//ObjectArrToGeoCoordinateReply
 func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -146,6 +162,7 @@ func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordi
 	return arr, err
 }
 
+//ObjectArrToMapArrayReply
 func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]string, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -162,6 +179,7 @@ func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]stri
 	return masters, nil
 }
 
+//ObjectToEvalResult
 func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 	if err != nil {
 		return nil, err
@@ -171,6 +189,8 @@ func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 }
 
 //<editor-fold desc="cluster reply convert">
+
+//ToStringReply
 func ToStringReply(reply interface{}, err error) (string, error) {
 	if err != nil {
 		return "", err
@@ -178,6 +198,7 @@ func ToStringReply(reply interface{}, err error) (string, error) {
 	return reply.(string), nil
 }
 
+//ToInt64Reply
 func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	if err != nil {
 		return 0, err
@@ -185,6 +206,7 @@ func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	return reply.(int64), nil
 }
 
+//ToInt64ArrayReply
 func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
 	if err != nil {
 		return nil, err
@@ -192,6 +214,7 @@ func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
 	return reply.([]int64), nil
 }
 
+//ToBoolReply
 func ToBoolReply(reply interface{}, err error) (bool, error) {
 	if err != nil {
 		return false, err
@@ -199,6 +222,7 @@ func ToBoolReply(reply interface{}, err error) (bool, error) {
 	return reply.(bool), nil
 }
 
+//ToFloat64Reply
 func ToFloat64Reply(reply interface{}, err error) (float64, error) {
 	if err != nil {
 		return 0, err
@@ -206,6 +230,7 @@ func ToFloat64Reply(reply interface{}, err error) (float64, error) {
 	return reply.(float64), nil
 }
 
+//ToBoolArrayReply
 func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
 	if err != nil {
 		return nil, err
@@ -213,6 +238,7 @@ func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
 	return reply.([]bool), nil
 }
 
+//ToStringArrayReply
 func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
 	if err != nil {
 		return nil, err
@@ -220,6 +246,7 @@ func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
 	return reply.([]string), nil
 }
 
+//ToScanResultReply
 func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
 	if err != nil {
 		return nil, err
@@ -227,6 +254,7 @@ func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
 	return reply.(*ScanResult), nil
 }
 
+//ToMapReply
 func ToMapReply(reply interface{}, err error) (map[string]string, error) {
 	if err != nil {
 		return nil, err
@@ -234,6 +262,7 @@ func ToMapReply(reply interface{}, err error) (map[string]string, error) {
 	return reply.(map[string]string), nil
 }
 
+//ToTupleArrayReply
 func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
 	if err != nil {
 		return nil, err
@@ -241,6 +270,7 @@ func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
 	return reply.([]Tuple), nil
 }
 
+//ToGeoArrayReply
 func ToGeoArrayReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil {
 		return nil, err
@@ -249,3 +279,64 @@ func ToGeoArrayReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
 }
 
 //</editor-fold>
+
+//Builder convert pipeline|transaction response data
+type Builder interface {
+	build(data interface{}) interface{}
+}
+
+var (
+	STRING_BUILDER       = newStringBuilder()
+	INT64_BUILDER        = newInt64Builder()
+	STRING_ARRAY_BUILDER = newStringArrayBuilder()
+)
+
+type stringBuilder struct {
+}
+
+func newStringBuilder() *stringBuilder {
+	return &stringBuilder{}
+}
+
+func (b *stringBuilder) build(data interface{}) interface{} {
+	if data == nil {
+		return ""
+	}
+	return string(data.([]byte))
+}
+
+type int64Builder struct {
+}
+
+func newInt64Builder() *int64Builder {
+	return &int64Builder{}
+}
+
+func (b *int64Builder) build(data interface{}) interface{} {
+	if data == nil {
+		return ""
+	}
+	return ByteArrayToInt64(data.([]byte))
+}
+
+type stringArrayBuilder struct {
+}
+
+func newStringArrayBuilder() *stringArrayBuilder {
+	return &stringArrayBuilder{}
+}
+
+func (b *stringArrayBuilder) build(data interface{}) interface{} {
+	if data == nil {
+		return []string{}
+	}
+	arr := make([]string, 0)
+	for _, b := range data.([]interface{}) {
+		if b == nil {
+			arr = append(arr, "")
+		} else {
+			arr = append(arr, string(b.([]byte)))
+		}
+	}
+	return arr
+}
