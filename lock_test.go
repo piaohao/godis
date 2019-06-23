@@ -19,9 +19,9 @@ func TestRedisCluster_Lock(t *testing.T) {
 			locker := newClusterLocker(cluster, &LockOption{
 				Timeout: 5 * time.Second,
 			})
-			start := time.Now()
+			//start := time.Now()
 			ok, err := locker.TryLock("lock")
-			t.Logf("cost time:%s", time.Now().Sub(start))
+			//t.Logf("cost time:%s", time.Now().Sub(start))
 			if err == nil && ok {
 				count++
 			}
@@ -35,7 +35,8 @@ func TestRedisCluster_Lock(t *testing.T) {
 	t.Log(count)
 }
 
-func TestRedis_NoLock(t *testing.T) {
+//ignore this case,cause race data
+func _TestRedis_NoLock(t *testing.T) {
 	count := 0
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
