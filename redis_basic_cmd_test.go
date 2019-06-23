@@ -638,7 +638,7 @@ func TestRedis_Debug(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
+		/*{
 			name: "debug",
 			args: args{
 				params: *NewDebugParamsReload(),
@@ -651,7 +651,7 @@ func TestRedis_Debug(t *testing.T) {
 				params: *NewDebugParamsSegfault(),
 			},
 			wantErr: true,
-		},
+		},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -668,9 +668,6 @@ func TestRedis_Debug(t *testing.T) {
 }
 
 func TestRedis_ConfigResetStat(t *testing.T) {
-	//sleep 2 second,cause pre test case crash redis
-	time.Sleep(2 * time.Second)
-
 	tests := []struct {
 		name string
 
