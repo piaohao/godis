@@ -52,7 +52,23 @@ func (p *Pool) GetResource() (*Redis, error) {
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*Redis), nil
+	redis := obj.(*Redis)
+	redis.setDataSource(p)
+	return redis, nil
+}
+
+func (p *Pool) returnBrokenResourceObject(resource *Redis) error {
+	if resource != nil {
+		return p.internalPool.InvalidateObject(p.ctx, resource)
+	}
+	return nil
+}
+
+func (p *Pool) returnResourceObject(resource *Redis) error {
+	if resource == nil {
+		return nil
+	}
+	return p.internalPool.ReturnObject(p.ctx, resource)
 }
 
 //Destroy destroy pool
@@ -77,6 +93,14 @@ func (f Factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	if err != nil {
 		return nil, err
 	}
+	if f.option.Password != "" {
+		_, err := redis.Auth(f.option.Password)
+		if err != nil {
+			redis.Close()
+			return nil, err
+		}
+	}
+
 	return pool.NewPooledObject(redis), nil
 }
 

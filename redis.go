@@ -24,6 +24,7 @@ type Redis struct {
 	client      *client
 	pipeline    *pipeline
 	transaction *transaction
+	dataSource  *Pool
 }
 
 // constructor for creating new redis
@@ -39,10 +40,21 @@ func (r *Redis) Connect() error {
 
 //Close close redis connection
 func (r *Redis) Close() error {
+	if r.dataSource != nil {
+		if r.client.broken {
+			return r.dataSource.returnBrokenResourceObject(r)
+		} else {
+			return r.dataSource.returnResourceObject(r)
+		}
+	}
 	if r != nil && r.client != nil {
 		return r.client.close()
 	}
 	return nil
+}
+
+func (r *Redis) setDataSource(pool *Pool) {
+	r.dataSource = pool
 }
 
 // Send send command to redis

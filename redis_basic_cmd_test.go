@@ -409,14 +409,12 @@ func TestRedis_Bgrewriteaof(t *testing.T) {
 	redis.Close()
 
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "Bgrewriteaof",
-
+			name:    "Bgrewriteaof",
 			wantErr: false,
 		},
 	}
@@ -435,16 +433,13 @@ func TestRedis_Bgrewriteaof(t *testing.T) {
 }
 
 func TestRedis_Lastsave(t *testing.T) {
-
 	tests := []struct {
-		name string
-
+		name    string
 		want    int64
 		wantErr bool
 	}{
 		{
-			name: "lastsave",
-
+			name:    "lastsave",
 			wantErr: false,
 		},
 	}
@@ -462,17 +457,15 @@ func TestRedis_Lastsave(t *testing.T) {
 	}
 }
 
-func TestRedis_Shutdown(t *testing.T) {
-
+// ignore this case,cause it will shutdown redis
+func _TestRedis_Shutdown(t *testing.T) {
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "shutdown",
-
+			name:    "shutdown",
 			want:    "",
 			wantErr: true,
 		},
@@ -507,13 +500,11 @@ func TestRedis_Info(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "info",
-
+			name:    "info",
 			wantErr: false,
 		},
 		{
 			name: "info",
-
 			args: args{
 				section: []string{"stats"},
 			},
@@ -521,7 +512,6 @@ func TestRedis_Info(t *testing.T) {
 		},
 		{
 			name: "info",
-
 			args: args{
 				section: []string{"clients", "memory"},
 			},
@@ -580,7 +570,6 @@ func TestRedis_Slaveof(t *testing.T) {
 }
 
 func TestRedis_SlaveofNoOne(t *testing.T) {
-
 	tests := []struct {
 		name string
 
@@ -588,8 +577,7 @@ func TestRedis_SlaveofNoOne(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "SlaveofNoOne",
-
+			name:    "SlaveofNoOne",
 			want:    "",
 			wantErr: false,
 		},
@@ -638,15 +626,13 @@ func TestRedis_Debug(t *testing.T) {
 		params DebugParams
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "debug",
-
 			args: args{
 				params: *NewDebugParamsObject("godis"),
 			},
@@ -654,7 +640,6 @@ func TestRedis_Debug(t *testing.T) {
 		},
 		{
 			name: "debug",
-
 			args: args{
 				params: *NewDebugParamsReload(),
 			},
@@ -662,7 +647,6 @@ func TestRedis_Debug(t *testing.T) {
 		},
 		{
 			name: "debug",
-
 			args: args{
 				params: *NewDebugParamsSegfault(),
 			},

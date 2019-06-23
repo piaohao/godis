@@ -4607,6 +4607,7 @@ func TestRedisCluster_Strlen(t *testing.T) {
 }
 
 func TestRedisCluster_Subscribe(t *testing.T) {
+	cluster.Del("godis")
 	type args struct {
 		redisPubSub *RedisPubSub
 		channels    []string
@@ -4665,10 +4666,6 @@ func TestRedisCluster_Subscribe(t *testing.T) {
 			cluster.Publish("godis", "publish a message to godis channel")
 			//sleep mills, ensure message can publish to subscribers
 			time.Sleep(500 * time.Millisecond)
-			select {
-			case <-time.After(2 * time.Second):
-				break
-			}
 		})
 	}
 }
