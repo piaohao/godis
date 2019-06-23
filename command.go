@@ -6,6 +6,19 @@ import (
 	"strings"
 )
 
+// RedisError basic redis error
+type RedisError struct {
+	Message string
+}
+
+func NewRedisError(message string) *RedisError {
+	return &RedisError{Message: message}
+}
+
+func (e *RedisError) Error() string {
+	return e.Message
+}
+
 type MovedDataError struct {
 	Message string
 	Host    string

@@ -43,10 +43,16 @@ func newConnection(host string, port, connectionTimeout, soTimeout int) *connect
 }
 
 func (c *connection) setTimeoutInfinite() error {
+	if !c.isConnected() {
+		err := c.connect()
+		if err != nil {
+			return err
+		}
+	}
 	err := c.socket.SetDeadline(time.Time{})
 	if err != nil {
 		c.broken = true
-		return err
+		return NewConnectError(err.Error())
 	}
 	return nil
 }
@@ -55,7 +61,7 @@ func (c *connection) rollbackTimeout() error {
 	err := c.socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
 	if err != nil {
 		c.broken = true
-		return err
+		return NewConnectError(err.Error())
 	}
 	return nil
 }
@@ -251,11 +257,11 @@ func (c *connection) connect() error {
 	}
 	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.Host, ":", c.Port), time.Duration(c.ConnectionTimeout*1e6))
 	if err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	err = conn.SetDeadline(time.Now().Add(time.Duration(c.SoTimeout * 1e6)))
 	if err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	c.socket = conn
 	c.protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.socket)), newRedisInputStream(bufio.NewReader(c.socket)))
