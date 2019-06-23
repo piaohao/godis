@@ -47,7 +47,6 @@ require github.com/piaohao/godis latest
             Port: 6379,
             Db:   0,
         })
-        redis.Connect()
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")

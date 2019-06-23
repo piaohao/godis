@@ -118,7 +118,7 @@ func (r *Redis) Get(key string) (string, error) {
 //        contains a Set value "zset" if the key contains a Sorted Set value "hash" if the key
 //        contains a Hash value
 func (r *Redis) Type(key string) (string, error) {
-	err := r.client.get(key)
+	err := r.client.typeKey(key)
 	if err != nil {
 		return "", err
 	}
@@ -2433,12 +2433,12 @@ func (r *Redis) Publish(channel, message string) (int64, error) {
 //Subscribe ...
 func (r *Redis) Subscribe(redisPubSub *RedisPubSub, channels ...string) error {
 	err := r.client.connection.setTimeoutInfinite()
+	defer r.client.connection.rollbackTimeout()
 	if err != nil {
 		return err
 	}
 	err = redisPubSub.proceed(r, channels...)
 	if err != nil {
-		_ = r.client.connection.rollbackTimeout()
 		return err
 	}
 	return nil
@@ -2447,12 +2447,12 @@ func (r *Redis) Subscribe(redisPubSub *RedisPubSub, channels ...string) error {
 //Psubscribe ...
 func (r *Redis) Psubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
 	err := r.client.connection.setTimeoutInfinite()
+	defer r.client.connection.rollbackTimeout()
 	if err != nil {
 		return err
 	}
 	err = redisPubSub.proceed(r, patterns...)
 	if err != nil {
-		_ = r.client.connection.rollbackTimeout()
 		return err
 	}
 	return nil
@@ -2598,21 +2598,40 @@ func (r *Redis) ObjectIdletime(str string) (int64, error) {
 
 //<editor-fold desc="scriptcommands">
 
-//Eval ...
+//Eval evaluate scripts using the Lua interpreter built into Redis
 func (r *Redis) Eval(script string, keyCount int, params ...string) (interface{}, error) {
 	err := r.client.connection.setTimeoutInfinite()
+	defer r.client.connection.rollbackTimeout()
 	if err != nil {
 		return nil, err
 	}
 	err = r.client.eval(script, keyCount, params...)
 	if err != nil {
-		_ = r.client.connection.rollbackTimeout()
 		return nil, err
 	}
 	return ObjectToEvalResult(r.client.getOne())
 }
 
-//Evalsha ...
+//EvalByKeyArgs evaluate scripts using the Lua interpreter built into Redis
+func (r *Redis) EvalByKeyArgs(script string, keys []string, args []string) (interface{}, error) {
+	err := r.client.connection.setTimeoutInfinite()
+	defer r.client.connection.rollbackTimeout()
+	if err != nil {
+		return nil, err
+	}
+	params := make([]string, 0)
+	params = append(params, keys...)
+	params = append(params, args...)
+	err = r.client.eval(script, len(keys), params...)
+	if err != nil {
+		return nil, err
+	}
+	return ObjectToEvalResult(r.client.getOne())
+}
+
+//Evalsha Evaluates a script cached on the server side by its SHA1 digest.
+// Scripts are cached on the server side using the SCRIPT LOAD command.
+// The command is otherwise identical to EVAL.
 func (r *Redis) Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error) {
 	err := r.client.evalsha(sha1, keyCount, params...)
 	if err != nil {
@@ -2651,7 +2670,11 @@ func (r *Redis) ScriptLoad(script string) (string, error) {
 
 //<editor-fold desc="basiccommands">
 
-//Quit ...
+//Quit Ask the server to close the connection.
+// The connection is closed as soon as all pending replies have been written to the client.
+//
+//Return value
+//Simple string reply: always OK.
 func (r *Redis) Quit() (string, error) {
 	err := r.client.quit()
 	if err != nil {
@@ -2671,7 +2694,7 @@ func (r *Redis) Ping() (string, error) {
 
 //Select ...
 func (r *Redis) Select(index int) (string, error) {
-	err := r.client.select_(index)
+	err := r.client.selectDb(index)
 	if err != nil {
 		return "", err
 	}

@@ -316,7 +316,7 @@ var (
 //RedisPubSub ...
 type RedisPubSub struct {
 	subscribedChannels int
-	Redis              *Redis
+	redis              *Redis
 	OnMessage          func(channel, message string)
 	OnPMessage         func(pattern string, channel, message string)
 	OnSubscribe        func(channel string, subscribedChannels int)
@@ -328,14 +328,14 @@ type RedisPubSub struct {
 
 //Subscribe ...
 func (r *RedisPubSub) Subscribe(channels ...string) error {
-	if r.Redis.client == nil {
+	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.client.subscribe(channels...)
+	err := r.redis.client.subscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -344,14 +344,14 @@ func (r *RedisPubSub) Subscribe(channels ...string) error {
 
 //Unsubscribe ...
 func (r *RedisPubSub) Unsubscribe(channels ...string) error {
-	if r.Redis.client == nil {
+	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.client.unsubscribe(channels...)
+	err := r.redis.client.unsubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -360,14 +360,14 @@ func (r *RedisPubSub) Unsubscribe(channels ...string) error {
 
 //Psubscribe ...
 func (r *RedisPubSub) Psubscribe(channels ...string) error {
-	if r.Redis.client == nil {
+	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.client.psubscribe(channels...)
+	err := r.redis.client.psubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -376,14 +376,14 @@ func (r *RedisPubSub) Psubscribe(channels ...string) error {
 
 //Punsubscribe ...
 func (r *RedisPubSub) Punsubscribe(channels ...string) error {
-	if r.Redis.client == nil {
+	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
-	err := r.Redis.client.punsubscribe(channels...)
+	err := r.redis.client.punsubscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -391,12 +391,12 @@ func (r *RedisPubSub) Punsubscribe(channels ...string) error {
 }
 
 func (r *RedisPubSub) proceed(redis *Redis, channels ...string) error {
-	r.Redis = redis
-	err := r.Redis.client.subscribe(channels...)
+	r.redis = redis
+	err := r.redis.client.subscribe(channels...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -408,12 +408,12 @@ func (r *RedisPubSub) isSubscribed() bool {
 }
 
 func (r *RedisPubSub) proceedWithPatterns(redis *Redis, patterns ...string) error {
-	r.Redis = redis
-	err := r.Redis.client.psubscribe(patterns...)
+	r.redis = redis
+	err := r.redis.client.psubscribe(patterns...)
 	if err != nil {
 		return err
 	}
-	err = r.Redis.client.flush()
+	err = r.redis.client.flush()
 	if err != nil {
 		return err
 	}
@@ -452,7 +452,7 @@ func (r *RedisPubSub) process(redis *Redis) error {
 	// Reset pipeline count because subscribe() calls would have increased it but nothing decremented it.
 	redis.client.resetPipelinedCount()
 	// Invalidate instance since this thread is no longer listening
-	r.Redis.client = nil
+	r.redis.client = nil
 	return nil
 }
 
@@ -572,6 +572,18 @@ type Slowlog struct {
 //DebugParams ...
 type DebugParams struct {
 	command []string
+}
+
+func NewDebugParamsSegfault() *DebugParams {
+	return &DebugParams{command: []string{"SEGFAULT"}}
+}
+
+func NewDebugParamsObject(key string) *DebugParams {
+	return &DebugParams{command: []string{"OBJECT", key}}
+}
+
+func NewDebugParamsReload() *DebugParams {
+	return &DebugParams{command: []string{"RELOAD"}}
 }
 
 //Reset ...

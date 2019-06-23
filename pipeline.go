@@ -361,7 +361,7 @@ func (p *multiKeyPipelineBase) Ping() (*response, error) {
 
 //Select  ...
 func (p *multiKeyPipelineBase) Select(index int) (*response, error) {
-	err := p.client.select_(index)
+	err := p.client.selectDb(index)
 	if err != nil {
 		return nil, err
 	}

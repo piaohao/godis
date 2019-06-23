@@ -57,7 +57,7 @@ func (c *client) connect() error {
 		}
 	}
 	if c.Db > 0 {
-		err = c.select_(c.Db)
+		err = c.selectDb(c.Db)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (c *client) auth(password string) error {
 }
 
 //Select
-func (c *client) select_(index int) error {
+func (c *client) selectDb(index int) error {
 	return c.sendCommand(CmdSelect, IntToByteArray(index))
 }
 
@@ -124,7 +124,7 @@ func (c *client) exists(keys ...string) error {
 	return c.sendCommand(CmdExists, StringArrayToByteArray(keys)...)
 }
 
-func (c *client) type_(key string) error {
+func (c *client) typeKey(key string) error {
 	return c.sendCommand(CmdType, []byte(key))
 }
 
@@ -1113,7 +1113,7 @@ func (c *client) sentinelSet(masterName string, parameterMap map[string]string) 
 		arr = append(arr, []byte(k))
 		arr = append(arr, []byte(v))
 	}
-	return c.sendCommand(CmdSentinel, arr...)
+	return c.sendCommandByStr(SentinelFailover, arr...)
 }
 
 func (c *client) pubsubChannels(pattern string) error {

@@ -179,12 +179,26 @@ func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]stri
 	return masters, nil
 }
 
-//ObjectToEvalResult ...
+//ObjectToEvalResult resolve response data when use script command
 func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	//todo reply解析待完成
+	switch reply.(type) {
+	case []byte:
+		return string(reply.([]byte)), nil
+	case []interface{}:
+		list := reply.([]interface{})
+		result := make([]interface{}, 0)
+		for _, l := range list {
+			evalResult, err := ObjectToEvalResult(l, nil)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, evalResult)
+		}
+		return result, nil
+	}
 	return reply, err
 }
 

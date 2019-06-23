@@ -249,11 +249,11 @@ func (c *connection) connect() error {
 	if c.isConnected() {
 		return nil
 	}
-	conn, err := net.Dial("tcp", fmt.Sprint(c.Host, ":", c.Port))
+	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.Host, ":", c.Port), time.Duration(c.ConnectionTimeout*1e6))
 	if err != nil {
 		return err
 	}
-	err = conn.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
+	err = conn.SetDeadline(time.Now().Add(time.Duration(c.SoTimeout * 1e6)))
 	if err != nil {
 		return err
 	}

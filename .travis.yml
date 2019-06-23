@@ -5,30 +5,32 @@ go:
 
 branches:
   only:
-  - master
+    - master
 
 env:
-- GO111MODULE=on
+  - GO111MODULE=on
 
 services:
-- redis-server
+  - docker
+  - redis-server
 
 addons:
   hosts:
   - local
 
 before_install:
-- pwd
+  - pwd
 
 install:
-- cat /etc/hosts
+  - cat /etc/hosts
 
 script:
-- GOARCH=386 go test -v ./...
-- GOARCH=amd64 go test -v ./... -race -coverprofile=coverage.txt -covermode=atomic
+  - docker run --rm -it -p 7000-7005:7000-7005 --net=host areyouok/redis-cluster
+  - GOARCH=386 go test -v ./...
+  - GOARCH=amd64 go test -v ./... -race -coverprofile=coverage.txt -covermode=atomic
 
 after_success:
-- bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash)
 
 
 
