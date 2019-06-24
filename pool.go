@@ -50,7 +50,7 @@ func NewPool(config *PoolConfig, factory *Factory) *Pool {
 func (p *Pool) GetResource() (*Redis, error) {
 	obj, err := p.internalPool.BorrowObject(p.ctx)
 	if err != nil {
-		return nil, err
+		return nil, NewConnectError(err.Error())
 	}
 	redis := obj.(*Redis)
 	redis.setDataSource(p)
@@ -89,6 +89,11 @@ func NewFactory(option *Option) *Factory {
 //MakeObject make new object from pool
 func (f Factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	redis := NewRedis(f.option)
+	defer func() {
+		if e := recover(); e != nil {
+			redis.Close()
+		}
+	}()
 	err := redis.Connect()
 	if err != nil {
 		return nil, err
@@ -96,7 +101,6 @@ func (f Factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	if f.option.Password != "" {
 		_, err := redis.Auth(f.option.Password)
 		if err != nil {
-			redis.Close()
 			return nil, err
 		}
 	}

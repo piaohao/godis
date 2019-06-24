@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func _TestRedisCluster_Lock(t *testing.T) {
+func TestRedisCluster_Lock(t *testing.T) {
 	count := 0
 	var group sync.WaitGroup
 	locker := NewClusterLocker(clusterOption, nil)
-	ch := make(chan bool, 4)
+	ch := make(chan bool, 2)
 	for i := 0; i < 100; i++ {
 		group.Add(1)
 		go func() {

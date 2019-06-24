@@ -95,15 +95,18 @@ func (c *connection) sendCommandByStr(cmd string, args ...[]byte) error {
 }
 
 func (c *connection) readProtocolWithCheckingBroken() (interface{}, error) {
-	if c.broken {
-		return nil, errors.New("attempting to read from a broken connection")
-	}
+	//if c.broken {
+	//	return nil, errors.New("attempting to read from a broken connection")
+	//}
 	read, err := c.protocol.read()
+	if err == nil {
+		return read, nil
+	}
 	switch err.(type) {
 	case *ConnectError:
 		c.broken = true
 	}
-	return read, err
+	return nil, err
 }
 
 func (c *connection) getStatusCodeReply() (string, error) {
@@ -117,6 +120,8 @@ func (c *connection) getStatusCodeReply() (string, error) {
 	switch t := reply.(type) {
 	case string:
 		return t, nil
+	case []byte:
+		return string(t), nil
 	default:
 		return "", errors.New("internal error")
 	}
@@ -246,7 +251,7 @@ func (c *connection) flush() error {
 	err := c.protocol.os.Flush()
 	if err != nil {
 		c.broken = true
-		return err
+		return NewConnectError(err.Error())
 	}
 	return nil
 }

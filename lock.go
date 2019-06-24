@@ -1,8 +1,10 @@
 package godis
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -108,8 +110,8 @@ type clusterLocker struct {
 	//retryCount int
 	//retryDelay time.Duration
 
-	ch   chan bool
-	lock sync.Mutex
+	ch     chan bool
+	writer int32
 
 	key          string
 	redisCluster *RedisCluster
@@ -144,33 +146,36 @@ func (l *clusterLocker) TryLock(key string) (bool, error) {
 	for {
 		status, err := l.redisCluster.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
 		//get lock success
-		if err == nil && status == KeywordOk.Name {
-			return true, nil
+		if err == nil {
+			if status == KeywordOk.Name {
+				return true, nil
+			}
+		} else {
+			println(err)
 		}
-		var ch chan bool
-		l.lock.Lock()
-		ch = l.ch
-		l.lock.Unlock()
 		elapsed := time.Until(deadline)
 		if elapsed <= 0 {
 			return false, nil
 		}
+		println(atomic.AddInt32(&l.writer, 1))
 		select {
-		case <-ch:
+		case <-l.ch:
+			atomic.AddInt32(&l.writer, -1)
 			continue
-		case <-time.After(elapsed):
+		case <-time.After(l.timeout):
 			return false, nil
 		}
 	}
 }
 
 func (l *clusterLocker) UnLock() error {
-	_, err := l.redisCluster.Del(l.key)
-	newCh := make(chan bool, 1)
-	l.lock.Lock()
-	ch := l.ch
-	l.ch = newCh
-	l.lock.Unlock()
-	close(ch)
+	c, err := l.redisCluster.Del(l.key)
+	if c == 0 {
+		return nil
+	}
+	fmt.Printf("delete success,writer:%d\n", atomic.LoadInt32(&l.writer))
+	if atomic.LoadInt32(&l.writer) > 0 {
+		l.ch <- true
+	}
 	return err
 }

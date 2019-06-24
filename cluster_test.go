@@ -16,7 +16,9 @@ var clusterOption = &ClusterOption{
 	SoTimeout:         0,
 	MaxAttempts:       0,
 	Password:          "",
-	PoolConfig:        &PoolConfig{},
+	PoolConfig: &PoolConfig{
+		MaxTotal: 10,
+	},
 }
 
 func TestRedisCluster_Append(t *testing.T) {

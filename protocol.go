@@ -167,7 +167,7 @@ func (p *protocol) read() (interface{}, error) {
 func (p *protocol) process() (interface{}, error) {
 	line, err := p.readLine()
 	if err != nil {
-		return nil, err
+		return nil, NewConnectError(err.Error())
 	}
 	if len(line) == 0 {
 		return nil, errors.New("short response line")
@@ -321,7 +321,7 @@ func (p *protocol) parseLen(b []byte) (int, error) {
 }
 
 // parseInt parses an integer reply.
-func (p *protocol) parseInt(b []byte) (interface{}, error) {
+func (p *protocol) parseInt(b []byte) (int64, error) {
 	if len(b) == 0 {
 		return 0, errors.New("malformed integer")
 	}
