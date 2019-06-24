@@ -1,14 +1,9 @@
 # godis
-<div align=center>
-
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/piaohao/godis)
 [![Build Status](https://travis-ci.com/piaohao/godis.svg?branch=dev.master)](https://travis-ci.com/piaohao/godis) 
 [![Go Report](https://goreportcard.com/badge/github.com/piaohao/godis?123)](https://goreportcard.com/report/github.com/piaohao/godis) 
 [![codecov](https://codecov.io/gh/piaohao/godis/branch/master/graph/badge.svg)](https://codecov.io/gh/piaohao/godis)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/piaohao/godis)
-
-
-</div>
 
 redis client implement by golang, refer to jedis.
 
@@ -42,7 +37,7 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        redis := godis.NewRedis(godis.Option{
+        redis := godis.NewRedis(&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
@@ -62,12 +57,12 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(godis.Option{
+        factory := godis.NewFactory(&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
         })
-        pool := godis.NewPool(godis.PoolConfig{}, factory)
+        pool := godis.NewPool(&godis.PoolConfig{}, factory)
         redis, _ := pool.GetResource()
         defer redis.Close()
         redis.Set("godis", "1")
@@ -85,12 +80,12 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(godis.Option{
+        factory := godis.NewFactory(&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
         })
-        pool := godis.NewPool(godis.PoolConfig{}, factory)
+        pool := godis.NewPool(&godis.PoolConfig{}, factory)
         go func() {
             redis, _ := pool.GetResource()
             defer redis.Close()
@@ -128,8 +123,14 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        cluster := godis.NewRedisCluster([]string{"192.168.1.6:8001", "192.168.1.6:8002", "192.168.1.6:8003", "192.168.1.6:8004", "192.168.1.6:8005", "192.168.1.6:8006"},
-        	0, 0, 1, "", godis.PoolConfig{})
+        cluster := godis.NewRedisCluster(&godis.ClusterOption{
+            Nodes:             []string{"localhost:7000", "localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005"},
+            ConnectionTimeout: 0,
+            SoTimeout:         0,
+            MaxAttempts:       0,
+            Password:          "",
+            PoolConfig:        &godis.PoolConfig{},
+        })
         cluster.Set("cluster", "godis cluster")
         reply, _ := cluster.Get("cluster")
         println(reply)
@@ -145,12 +146,12 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(godis.Option{
+        factory := godis.NewFactory(&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
         })
-        pool := godis.NewPool(godis.PoolConfig{}, factory)
+        pool := godis.NewPool(&godis.PoolConfig{}, factory)
         redis, _ := pool.GetResource()
         defer redis.Close()
         p := redis.Pipelined()
@@ -173,12 +174,12 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(godis.Option{
+        factory := godis.NewFactory(&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
         })
-        pool := godis.NewPool(godis.PoolConfig{}, factory)
+        pool := godis.NewPool(nil, factory)
         redis, _ := pool.GetResource()
         defer redis.Close()
         p, _ := redis.Multi()
@@ -191,6 +192,58 @@ require github.com/piaohao/godis latest
         println(info)
     }
     ``` 
+1. distribute lock
+    * single redis   
+         ```go
+            package main
+            
+            import (
+                "github.com/piaohao/godis"
+                "time"
+            )
+            
+            func main() {
+                locker := godis.NewLocker(&godis.Option{
+                      Host: "localhost",
+                      Port: 6379,
+                      Db:   0,
+                  }, &godis.LockOption{
+                      Timeout: 5*time.Second,
+                  })
+                ok, err := locker.TryLock("lock")
+                if err == nil && ok {
+                    //do something
+                }
+                locker.UnLock()
+            }
+        ``` 
+    * redis cluster   
+         ```go
+            package main
+            
+            import (
+                "github.com/piaohao/godis"
+                "time"
+            )
+            
+            func main() {
+                locker := godis.NewClusterLocker(&godis.ClusterOption{
+                	Nodes:             []string{"localhost:7000", "localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005"},
+                    ConnectionTimeout: 0,
+                    SoTimeout:         0,
+                    MaxAttempts:       0,
+                    Password:          "",
+                    PoolConfig:        &godis.PoolConfig{},
+                },&godis.LockOption{
+                    Timeout: 5*time.Second,
+                })
+                ok, err := locker.TryLock("lock")
+                if err == nil && ok {
+                    //do something
+                }
+                locker.UnLock()
+            }
+        ```   
 # License
 
 `godis` is licensed under the [MIT License](LICENSE), 100% free and open-source, forever.      

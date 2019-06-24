@@ -1,7 +1,10 @@
 // godis
 package godis
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // Option connect options
 type Option struct {
@@ -10,9 +13,9 @@ type Option struct {
 	// redis port
 	Port int
 	// connect timeout
-	ConnectionTimeout int
+	ConnectionTimeout time.Duration
 	// read timeout
-	SoTimeout int
+	SoTimeout time.Duration
 	// redis password,if empty,then without auth
 	Password string
 	// which db to connect
@@ -28,7 +31,7 @@ type Redis struct {
 }
 
 // constructor for creating new redis
-func NewRedis(option Option) *Redis {
+func NewRedis(option *Option) *Redis {
 	client := newClient(option)
 	return &Redis{client: client}
 }
@@ -1905,7 +1908,7 @@ func (r *Redis) BitcountRange(key string, start, end int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Bitpos ...
+//Bitpos Return the position of the first bit set to 1 or 0 in a string.
 func (r *Redis) Bitpos(key string, value bool, params ...BitPosParams) (int64, error) {
 	err := r.client.bitpos(key, value, params...)
 	if err != nil {
@@ -2013,7 +2016,8 @@ func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUn
 	return ObjectArrToGeoCoordinateReply(r.client.getObjectMultiBulkReply())
 }
 
-//Bitfield ...
+//Bitfield The command treats a Redis string as a array of bits,
+// and is capable of addressing specific integer fields of varying bit widths and arbitrary non (necessary) aligned offset.
 func (r *Redis) Bitfield(key string, arguments ...string) ([]int64, error) {
 	err := r.client.bitfield(key, arguments...)
 	if err != nil {

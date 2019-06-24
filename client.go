@@ -1,6 +1,9 @@
 package godis
 
-import "strconv"
+import (
+	"math"
+	"strconv"
+)
 
 //Client send command to redis, and receive data from redis
 type client struct {
@@ -12,7 +15,7 @@ type client struct {
 }
 
 //NewClient
-func newClient(option Option) *client {
+func newClient(option *Option) *client {
 	db := 0
 	if option.Db != 0 {
 		db = option.Db
@@ -696,7 +699,14 @@ func (c *client) migrate(host string, port int, key string, destinationDb int, t
 }
 
 func (c *client) hincrByFloat(key, field string, increment float64) error {
-	return c.sendCommand(CmdHincrbyfloat, []byte(key), []byte(field), Float64ToByteArray(increment))
+	incrBytes := make([]byte, 0)
+	if math.IsInf(increment, 1) {
+		incrBytes = []byte("+inf")
+	} else if math.IsInf(increment, -1) {
+		incrBytes = []byte("-inf")
+	}
+	incrBytes = []byte(strconv.FormatFloat(increment, 'f', -1, 64))
+	return c.sendCommand(CmdHincrbyfloat, []byte(key), []byte(field), incrBytes)
 }
 
 func (c *client) waitReplicas(replicas int, timeout int64) error {

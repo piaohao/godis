@@ -19,6 +19,18 @@ func (e *RedisError) Error() string {
 	return e.Message
 }
 
+type NoReachableClusterNodeError struct {
+	Message string
+}
+
+func NewNoReachableClusterNodeError(message string) *NoReachableClusterNodeError {
+	return &NoReachableClusterNodeError{Message: message}
+}
+
+func (e *NoReachableClusterNodeError) Error() string {
+	return e.Message
+}
+
 type MovedDataError struct {
 	Message string
 	Host    string

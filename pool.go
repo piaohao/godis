@@ -22,21 +22,21 @@ type PoolConfig struct {
 }
 
 //NewPool create new pool
-func NewPool(config PoolConfig, factory *Factory) *Pool {
+func NewPool(config *PoolConfig, factory *Factory) *Pool {
 	poolConfig := pool.NewDefaultPoolConfig()
-	if config.MaxTotal != 0 {
+	if config != nil && config.MaxTotal != 0 {
 		poolConfig.MaxTotal = config.MaxTotal
 	}
-	if config.MaxIdle != 0 {
+	if config != nil && config.MaxIdle != 0 {
 		poolConfig.MaxIdle = config.MaxIdle
 	}
-	if config.MaxIdle != 0 {
+	if config != nil && config.MaxIdle != 0 {
 		poolConfig.MinIdle = config.MinIdle
 	}
-	if config.MinEvictableIdleTime != 0 {
+	if config != nil && config.MinEvictableIdleTime != 0 {
 		poolConfig.MinEvictableIdleTime = config.MinEvictableIdleTime
 	}
-	if config.TestOnBorrow != false {
+	if config != nil && config.TestOnBorrow != false {
 		poolConfig.TestOnBorrow = config.TestOnBorrow
 	}
 	ctx := context.Background()
@@ -78,11 +78,11 @@ func (p *Pool) Destroy() {
 
 //Factory redis pool factory
 type Factory struct {
-	option Option
+	option *Option
 }
 
 //NewFactory create new redis pool factory
-func NewFactory(option Option) *Factory {
+func NewFactory(option *Option) *Factory {
 	return &Factory{option: option}
 }
 

@@ -22,14 +22,14 @@ type redisClusterInfoCache struct {
 	rLock         sync.Mutex
 	wLock         sync.Mutex
 	rediscovering bool
-	poolConfig    PoolConfig
+	poolConfig    *PoolConfig
 
-	connectionTimeout int
-	soTimeout         int
+	connectionTimeout time.Duration
+	soTimeout         time.Duration
 	password          string
 }
 
-func newRedisClusterInfoCache(connectionTimeout, soTimeout int, password string, poolConfig PoolConfig) *redisClusterInfoCache {
+func newRedisClusterInfoCache(connectionTimeout, soTimeout time.Duration, password string, poolConfig *PoolConfig) *redisClusterInfoCache {
 	return &redisClusterInfoCache{
 		poolConfig:        poolConfig,
 		connectionTimeout: connectionTimeout,
@@ -162,7 +162,7 @@ func (r *redisClusterInfoCache) setupNodeIfNotExist(lock bool, host string, port
 	if ok && existingPool != nil {
 		return existingPool
 	}
-	nodePool := NewPool(r.poolConfig, NewFactory(Option{
+	nodePool := NewPool(r.poolConfig, NewFactory(&Option{
 		Host:              host,
 		Port:              port,
 		ConnectionTimeout: r.connectionTimeout,
@@ -238,7 +238,7 @@ type redisClusterConnectionHandler struct {
 	cache *redisClusterInfoCache
 }
 
-func newRedisClusterConnectionHandler(nodes []string, connectionTimeout, soTimeout int, password string, poolConfig PoolConfig) *redisClusterConnectionHandler {
+func newRedisClusterConnectionHandler(nodes []string, connectionTimeout, soTimeout time.Duration, password string, poolConfig *PoolConfig) *redisClusterConnectionHandler {
 	cache := newRedisClusterInfoCache(connectionTimeout, soTimeout, password, poolConfig)
 	for _, node := range nodes {
 		arr := strings.Split(node, ":")
@@ -246,7 +246,7 @@ func newRedisClusterConnectionHandler(nodes []string, connectionTimeout, soTimeo
 		if err != nil {
 			continue
 		}
-		redis := NewRedis(Option{
+		redis := NewRedis(&Option{
 			Host: arr[0],
 			Port: port,
 		})
@@ -282,7 +282,7 @@ func (r *redisClusterConnectionHandler) getConnection() (*Redis, error) {
 			return redis, nil
 		}
 	}
-	return nil, errors.New("no reachable node in cluster")
+	return nil, NewNoReachableClusterNodeError("no reachable node in cluster")
 }
 
 func (r *redisClusterConnectionHandler) getConnectionFromSlot(slot int) (*Redis, error) {
@@ -409,6 +409,7 @@ func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandom
 		return nil, errors.New("too many cluster redirections")
 	}
 	connection := new(Redis)
+	defer r.releaseConnection(connection)
 	var err error
 	if asking {
 		connection = r.ctx.Value("redis").(*Redis)
@@ -430,16 +431,52 @@ func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandom
 			}
 		}
 	}
-	//todo 根据各种error，进行重试或者重新分配slot的逻辑
+	result, err := r.execute(connection)
+	if err == nil {
+		return result, nil
+	}
+	// 根据各种error，进行重试或者重新分配slot的逻辑
 	// 判断 NoReachableClusterNodeException，直接返回错误
 	// 判断 ConnectionException，重试，当attempt<=1时，重新分配slot
 	// 判断 RedirectionException，如果是MovedDataException，则重新分配slot，如果是AskDataException，则设置ctx，如果是其他错误，直接返回错误，继续重试
-	result, err := r.execute(connection)
-	if err != nil {
+	switch err.(type) {
+	case *NoReachableClusterNodeError:
 		return nil, err
+	case *ConnectError:
+		_ = r.releaseConnection(connection)
+		connection = nil
+		if attempts <= 1 {
+			r.ConnectionHandler.renewSlotCache()
+			return nil, err
+		}
+		return r.runWithRetries(key, attempts-1, tryRandomNode, asking)
+	case *MovedDataError:
+		r.ConnectionHandler.renewSlotCache(connection)
+		r.releaseConnection(connection)
+		connection = nil
+		return r.runWithRetries(key, attempts-1, false, asking)
+	case *AskDataError:
+		r.releaseConnection(connection)
+		connection = nil
+		asking = true
+		dataError := err.(*AskDataError)
+		redis, err := r.ConnectionHandler.getConnectionFromNode(dataError.Host, dataError.Port)
+		if err != nil {
+			return nil, err
+		}
+		context.WithValue(r.ctx, "redis", redis)
+		return r.runWithRetries(key, attempts-1, false, asking)
 	}
-	_ = r.releaseConnection(connection)
-	return result, nil
+	return nil, err
+}
+
+type ClusterOption struct {
+	Nodes             []string
+	ConnectionTimeout time.Duration
+	SoTimeout         time.Duration
+	MaxAttempts       int
+	Password          string
+	PoolConfig        *PoolConfig
 }
 
 //RedisCluster redis cluster tool
@@ -449,10 +486,13 @@ type RedisCluster struct {
 }
 
 //NewRedisCluster constructor
-func NewRedisCluster(nodes []string, connectionTimeout, soTimeout, maxAttempts int, password string, poolConfig PoolConfig) *RedisCluster {
+func NewRedisCluster(option *ClusterOption) *RedisCluster {
+	if option.MaxAttempts <= 0 {
+		option.MaxAttempts = 1
+	}
 	return &RedisCluster{
-		MaxAttempts:       maxAttempts,
-		ConnectionHandler: newRedisClusterConnectionHandler(nodes, connectionTimeout, soTimeout, password, poolConfig),
+		MaxAttempts:       option.MaxAttempts,
+		ConnectionHandler: newRedisClusterConnectionHandler(option.Nodes, option.ConnectionTimeout, option.SoTimeout, option.Password, option.PoolConfig),
 	}
 }
 

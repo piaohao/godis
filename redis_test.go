@@ -3,9 +3,10 @@ package godis
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
-var option = Option{
+var option = &Option{
 	//Host:     "10.1.1.63",
 	//Password: "123456",
 	Host: "localhost",
@@ -16,14 +17,20 @@ var option = Option{
 // run before every test case ,ensure the redis is empty
 func flushAll() {
 	redis := NewRedis(option)
-	redis.Connect()
 	defer redis.Close()
 	redis.FlushAll()
 }
 
+func initDb() {
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
+}
+
 func TestNewRedis(t *testing.T) {
 	type args struct {
-		option Option
+		option *Option
 	}
 	redis := new(Redis)
 	redis.client = newClient(option)
@@ -50,22 +57,19 @@ func TestNewRedis(t *testing.T) {
 }
 
 func TestRedis_Append(t *testing.T) {
-	TestRedis_Del(t)
-
+	flushAll()
 	type args struct {
 		key   string
 		value string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
 		{
 			name: "append",
-
 			args: args{
 				key:   "godis",
 				value: "very",
@@ -75,7 +79,6 @@ func TestRedis_Append(t *testing.T) {
 		},
 		{
 			name: "append",
-
 			args: args{
 				key:   "godis",
 				value: " good",
@@ -87,7 +90,6 @@ func TestRedis_Append(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRedis(option)
-			r.Connect()
 			got, err := r.Append(tt.args.key, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Append() error = %v, wantErr %v", err, tt.wantErr)
@@ -102,16 +104,13 @@ func TestRedis_Append(t *testing.T) {
 }
 
 func TestRedis_Asking(t *testing.T) {
-
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "asking",
-
+			name:    "asking",
 			want:    "",
 			wantErr: true,
 		},
@@ -119,7 +118,6 @@ func TestRedis_Asking(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRedis(option)
-			r.Connect()
 			got, err := r.Asking()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Asking() error = %v, wantErr %v", err, tt.wantErr)
@@ -134,24 +132,18 @@ func TestRedis_Asking(t *testing.T) {
 }
 
 func TestRedis_Bitcount(t *testing.T) {
-	flushAll()
-	redis := NewRedis(option)
-	redis.Set("godis", "good")
-	redis.Close()
-
+	initDb()
 	type args struct {
 		key string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
 		{
 			name: "append",
-
 			args: args{
 				key: "godis",
 			},
@@ -176,29 +168,28 @@ func TestRedis_Bitcount(t *testing.T) {
 }
 
 func TestRedis_BitcountRange(t *testing.T) {
-
+	initDb()
 	type args struct {
 		key   string
 		start int64
 		end   int64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "BitcountRange",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				start: 0,
+				end:   -1,
 			},
-			want:    1,
+			want:    20,
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,33 +202,32 @@ func TestRedis_BitcountRange(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("BitcountRange() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Bitfield(t *testing.T) {
-
+	initDb()
 	type args struct {
 		key       string
 		arguments []string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    []int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "Bitfield",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:       "godis",
+				arguments: []string{"INCRBY"},
 			},
-			want:    1,
-			wantErr: false,
-		},*/
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -250,11 +240,16 @@ func TestRedis_Bitfield(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Bitfield() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Bitpos(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "\x00\xff\xf0")
+	redis.Close()
 	type args struct {
 		key    string
 		value  bool
@@ -266,16 +261,18 @@ func TestRedis_Bitpos(t *testing.T) {
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "Bitpos",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				value: true,
+				params: []BitPosParams{
+					{params: [][]byte{IntToByteArray(0)}},
+				},
 			},
-			want:    1,
+			want:    8,
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -288,88 +285,38 @@ func TestRedis_Bitpos(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Bitpos() got = %v, want %v", got, tt.want)
 			}
-		})
-	}
-}
-
-func TestRedis_Close(t *testing.T) {
-
-	tests := []struct {
-		name string
-
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			if err := r.Close(); (err != nil) != tt.wantErr {
-				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRedis_Connect(t *testing.T) {
-
-	tests := []struct {
-		name string
-
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			if err := r.Connect(); (err != nil) != tt.wantErr {
-				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Decr(t *testing.T) {
-
+	flushAll()
 	type args struct {
 		key string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "Decr",
 			args: args{
-				key:   "a",
-				value: "b",
+				key: "godis",
 			},
-			want:    1,
+			want:    -1,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "Decr",
+			args: args{
+				key: "godis",
+			},
+			want:    -2,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -382,33 +329,41 @@ func TestRedis_Decr(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Decr() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_DecrBy(t *testing.T) {
-
+	flushAll()
 	type args struct {
 		key       string
 		decrement int64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "DecrBy",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:       "godis",
+				decrement: 10,
 			},
-			want:    1,
+			want:    -10,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "DecrBy",
+			args: args{
+				key:       "godis",
+				decrement: -10,
+			},
+			want:    0,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -421,32 +376,29 @@ func TestRedis_DecrBy(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("DecrBy() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Echo(t *testing.T) {
-
 	type args struct {
 		string string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "echo",
 			args: args{
-				key:   "a",
-				value: "b",
+				string: "godis",
 			},
-			want:    1,
+			want:    "godis",
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -459,33 +411,35 @@ func TestRedis_Echo(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Echo() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Expire(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
 	type args struct {
 		key     string
 		seconds int
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "expire",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:     "godis",
+				seconds: 1,
 			},
 			want:    1,
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -498,33 +452,43 @@ func TestRedis_Expire(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Expire() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
+	time.Sleep(2 * time.Second)
+	redis = NewRedis(option)
+	reply, _ := redis.Get("godis")
+	if reply != "" {
+		t.Errorf("want empty string ,but got %s", reply)
+	}
+	redis.Close()
 }
 
 func TestRedis_ExpireAt(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
 	type args struct {
 		key      string
 		unixtime int64
 	}
+	deadline := time.Now().Add(time.Second).Unix()
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "ExpireAt",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:      "godis",
+				unixtime: deadline,
 			},
 			want:    1,
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -537,12 +501,20 @@ func TestRedis_ExpireAt(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("ExpireAt() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
+	time.Sleep(2 * time.Second)
+	redis = NewRedis(option)
+	reply, _ := redis.Get("godis")
+	if reply != "" {
+		t.Errorf("want empty string ,but got %s", reply)
+	}
+	redis.Close()
 }
 
 func TestRedis_Geoadd(t *testing.T) {
-
+	flushAll()
 	type args struct {
 		key       string
 		longitude float64
@@ -550,15 +522,13 @@ func TestRedis_Geoadd(t *testing.T) {
 		member    string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -583,21 +553,18 @@ func TestRedis_Geoadd(t *testing.T) {
 }
 
 func TestRedis_GeoaddByMap(t *testing.T) {
-
 	type args struct {
 		key                 string
 		memberCoordinateMap map[string]GeoCoordinate
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -622,7 +589,6 @@ func TestRedis_GeoaddByMap(t *testing.T) {
 }
 
 func TestRedis_Geodist(t *testing.T) {
-
 	type args struct {
 		key     string
 		member1 string
@@ -630,15 +596,13 @@ func TestRedis_Geodist(t *testing.T) {
 		unit    []GeoUnit
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    float64
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -663,21 +627,18 @@ func TestRedis_Geodist(t *testing.T) {
 }
 
 func TestRedis_Geohash(t *testing.T) {
-
 	type args struct {
 		key     string
 		members []string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    []string
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -702,21 +663,18 @@ func TestRedis_Geohash(t *testing.T) {
 }
 
 func TestRedis_Geopos(t *testing.T) {
-
 	type args struct {
 		key     string
 		members []string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    []*GeoCoordinate
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -741,7 +699,6 @@ func TestRedis_Geopos(t *testing.T) {
 }
 
 func TestRedis_Georadius(t *testing.T) {
-
 	type args struct {
 		key       string
 		longitude float64
@@ -751,15 +708,13 @@ func TestRedis_Georadius(t *testing.T) {
 		param     []GeoRadiusParam
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    []*GeoCoordinate
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -784,7 +739,6 @@ func TestRedis_Georadius(t *testing.T) {
 }
 
 func TestRedis_GeoradiusByMember(t *testing.T) {
-
 	type args struct {
 		key    string
 		member string
@@ -793,15 +747,13 @@ func TestRedis_GeoradiusByMember(t *testing.T) {
 		param  []GeoRadiusParam
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    []*GeoCoordinate
 		wantErr bool
 	}{
 		/*{
 			name: "append",
-
 			args: args{
 				key:   "a",
 				value: "b",
@@ -826,27 +778,24 @@ func TestRedis_GeoradiusByMember(t *testing.T) {
 }
 
 func TestRedis_Get(t *testing.T) {
-
+	flushAll()
 	type args struct {
 		key string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "get",
 			args: args{
-				key:   "a",
-				value: "b",
+				key: "godis",
 			},
-			want:    1,
+			want:    "",
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -859,33 +808,41 @@ func TestRedis_Get(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Get() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_GetSet(t *testing.T) {
-
+	flushAll()
 	type args struct {
 		key   string
 		value string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "getset",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				value: "good",
 			},
-			want:    1,
+			want:    "",
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "getset",
+			args: args{
+				key:   "godis",
+				value: "good1",
+			},
+			want:    "good",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -898,33 +855,32 @@ func TestRedis_GetSet(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("GetSet() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Getbit(t *testing.T) {
-
+	initDb()
 	type args struct {
 		key    string
 		offset int64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    bool
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "getbit",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:    "godis",
+				offset: 1,
 			},
-			want:    1,
+			want:    true,
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -937,34 +893,34 @@ func TestRedis_Getbit(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Getbit() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Getrange(t *testing.T) {
-
+	initDb()
 	type args struct {
 		key         string
 		startOffset int64
 		endOffset   int64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "getrange",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:         "godis",
+				startOffset: 0,
+				endOffset:   -1,
 			},
-			want:    1,
+			want:    "good",
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -982,28 +938,38 @@ func TestRedis_Getrange(t *testing.T) {
 }
 
 func TestRedis_Hdel(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key    string
 		fields []string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "hdel",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:    "godis",
+				fields: []string{"a"},
 			},
 			want:    1,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "hdel",
+			args: args{
+				key:    "godis",
+				fields: []string{"b"},
+			},
+			want:    0,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1016,33 +982,44 @@ func TestRedis_Hdel(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Hdel() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_Hexists(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key   string
 		field string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    bool
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "hexists",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				field: "a",
 			},
-			want:    1,
+			want:    true,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "hexists",
+			args: args{
+				key:   "godis",
+				field: "b",
+			},
+			want:    false,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1060,7 +1037,10 @@ func TestRedis_Hexists(t *testing.T) {
 }
 
 func TestRedis_Hget(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key   string
 		field string
@@ -1072,16 +1052,24 @@ func TestRedis_Hget(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "hget",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				field: "a",
 			},
-			want:    1,
+			want:    "1",
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "hget",
+			args: args{
+				key:   "godis",
+				field: "b",
+			},
+			want:    "",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1094,32 +1082,33 @@ func TestRedis_Hget(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("Hget() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_HgetAll(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    map[string]string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "hgetall",
 			args: args{
-				key:   "a",
-				value: "b",
+				key: "godis",
 			},
-			want:    1,
+			want:    map[string]string{"a": "1"},
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1132,34 +1121,47 @@ func TestRedis_HgetAll(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("HgetAll() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_HincrBy(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key   string
 		field string
 		value int64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "hincrby",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				field: "a",
+				value: 1,
 			},
-			want:    1,
+			want:    2,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "hincrby",
+			args: args{
+				key:   "godis",
+				field: "b",
+				value: 5,
+			},
+			want:    5,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1172,34 +1174,47 @@ func TestRedis_HincrBy(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("HincrBy() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }
 
 func TestRedis_HincrByFloat(t *testing.T) {
-
+	flushAll()
+	redis := NewRedis(option)
+	redis.Hset("godis", "a", "1")
+	redis.Close()
 	type args struct {
 		key   string
 		field string
 		value float64
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    float64
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
+		{
+			name: "HincrByFloat",
 			args: args{
-				key:   "a",
-				value: "b",
+				key:   "godis",
+				field: "a",
+				value: 1.5,
 			},
-			want:    1,
+			want:    2.5,
 			wantErr: false,
-		},*/
+		},
+		{
+			name: "HincrByFloat",
+			args: args{
+				key:   "godis",
+				field: "b",
+				value: 5.0987,
+			},
+			want:    5.0987,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1212,6 +1227,7 @@ func TestRedis_HincrByFloat(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("HincrByFloat() got = %v, want %v", got, tt.want)
 			}
+			r.Close()
 		})
 	}
 }

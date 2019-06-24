@@ -11,8 +11,8 @@ import (
 type connection struct {
 	Host              string
 	Port              int
-	ConnectionTimeout int
-	SoTimeout         int
+	ConnectionTimeout time.Duration
+	SoTimeout         time.Duration
 
 	socket            net.Conn
 	protocol          *protocol
@@ -20,7 +20,7 @@ type connection struct {
 	pipelinedCommands int
 }
 
-func newConnection(host string, port, connectionTimeout, soTimeout int) *connection {
+func newConnection(host string, port int, connectionTimeout, soTimeout time.Duration) *connection {
 	if host == "" {
 		host = DefaultHost
 	}
@@ -58,7 +58,7 @@ func (c *connection) setTimeoutInfinite() error {
 }
 
 func (c *connection) rollbackTimeout() error {
-	err := c.socket.SetDeadline(time.Now().Add(time.Duration(c.ConnectionTimeout) * time.Second))
+	err := c.socket.SetDeadline(time.Now().Add(c.ConnectionTimeout))
 	if err != nil {
 		c.broken = true
 		return NewConnectError(err.Error())
@@ -255,11 +255,11 @@ func (c *connection) connect() error {
 	if c.isConnected() {
 		return nil
 	}
-	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.Host, ":", c.Port), time.Duration(c.ConnectionTimeout*1e6))
+	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.Host, ":", c.Port), c.ConnectionTimeout)
 	if err != nil {
 		return NewConnectError(err.Error())
 	}
-	err = conn.SetDeadline(time.Now().Add(time.Duration(c.SoTimeout * 1e6)))
+	err = conn.SetDeadline(time.Now().Add(c.SoTimeout))
 	if err != nil {
 		return NewConnectError(err.Error())
 	}

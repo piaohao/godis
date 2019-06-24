@@ -1,8 +1,8 @@
 package godis
 
 import (
-	"fmt"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -12,32 +12,37 @@ type Locker interface {
 }
 
 type locker struct {
-	redis      *Redis
-	timeout    time.Duration
-	retryCount int
-	retryDelay time.Duration
+	timeout time.Duration
+	//retryCount int
+	//retryDelay time.Duration
 
-	key string
+	ch   chan bool
+	lock sync.Mutex
+
+	key  string
+	pool *Pool
 }
 
-func newLocker(redis *Redis, option *LockOption) *locker {
-	if option == nil {
-		option = &LockOption{}
+func NewLocker(option *Option, lockOption *LockOption) *locker {
+	if lockOption == nil {
+		lockOption = &LockOption{}
 	}
-	if option.Timeout.Nanoseconds() == 0 {
-		option.Timeout = 5 * time.Second
+	if lockOption.Timeout.Nanoseconds() == 0 {
+		lockOption.Timeout = 5 * time.Second
 	}
-	if option.RetryCount <= 0 {
-		option.RetryCount = 0
+	if lockOption.RetryCount <= 0 {
+		lockOption.RetryCount = 0
 	}
-	if option.RetryDelay.Nanoseconds() == 0 {
-		option.RetryDelay = 200 * time.Millisecond
+	if lockOption.RetryDelay.Nanoseconds() == 0 {
+		lockOption.RetryDelay = 200 * time.Millisecond
 	}
+	pool := NewPool(nil, NewFactory(option))
 	return &locker{
-		redis:      redis,
-		timeout:    option.Timeout,
-		retryCount: option.RetryCount,
-		retryDelay: option.RetryDelay,
+		timeout: lockOption.Timeout,
+		//retryCount: lockOption.RetryCount,
+		//retryDelay: lockOption.RetryDelay,
+		ch:   make(chan bool, 1),
+		pool: pool,
 	}
 }
 
@@ -49,115 +54,123 @@ type LockOption struct {
 
 func (l *locker) TryLock(key string) (bool, error) {
 	l.key = key
-	value := time.Now().Add(l.timeout).UnixNano()
-	status, err := l.redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-	//get lock success
-	if err == nil && status == KeywordOk.Name {
-		return true, nil
-	}
-	if l.retryCount <= 0 {
-		ch := make(chan bool, 1)
-		go func() {
-			for {
-				time.Sleep(l.retryDelay)
-				value := time.Now().Add(l.timeout).UnixNano()
-				status, err := l.redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-				//get lock success
-				if err == nil && status == KeywordOk.Name {
-					ch <- true
-				}
-			}
-		}()
-		select {
-		case <-ch:
-			return true, nil
-		case <-time.After(l.timeout):
-			return false, NewRedisError(fmt.Sprintf("get lock failed after %s", l.timeout))
+	deadline := time.Now().Add(l.timeout)
+	value := deadline.UnixNano()
+	for {
+		redis, err := l.pool.GetResource()
+		if err != nil {
+			return false, err
 		}
-	} else {
-		ch := make(chan bool, 1)
-		go func() {
-			//get lock failed,retry
-			for i := 0; i < l.retryCount; i++ {
-				time.Sleep(l.retryDelay)
-				value := time.Now().Add(l.timeout).UnixNano()
-				status, err := l.redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-				//get lock success
-				if err == nil && status == KeywordOk.Name {
-					ch <- true
-				}
-			}
-		}()
+		status, err := redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
+		//get lock success
+		redis.Close()
+		if err == nil && status == KeywordOk.Name {
+			return true, nil
+		}
+		var ch chan bool
+		l.lock.Lock()
+		ch = l.ch
+		l.lock.Unlock()
+		elapsed := time.Until(deadline)
+		if elapsed <= 0 {
+			return false, nil
+		}
 		select {
 		case <-ch:
-			return true, nil
-		case <-time.After(l.timeout):
-			return false, NewRedisError(fmt.Sprintf("get lock failed after %s", l.timeout))
+			continue
+		case <-time.After(elapsed):
+			return false, nil
 		}
 	}
 }
 
 func (l *locker) UnLock() error {
-	_, err := l.redis.Del(l.key)
+	redis, err := l.pool.GetResource()
 	if err != nil {
 		return err
 	}
+	_, err = redis.Del(l.key)
+	redis.Close()
+	if err != nil {
+		return err
+	}
+	newCh := make(chan bool, 1)
+	l.lock.Lock()
+	ch := l.ch
+	l.ch = newCh
+	l.lock.Unlock()
+	close(ch)
 	return nil
 }
 
 type clusterLocker struct {
-	redisCluster *RedisCluster
-	timeout      time.Duration
-	retryCount   int
-	retryDelay   time.Duration
+	timeout time.Duration
+	//retryCount int
+	//retryDelay time.Duration
 
-	key string
+	ch   chan bool
+	lock sync.Mutex
+
+	key          string
+	redisCluster *RedisCluster
 }
 
-func newClusterLocker(redisCluster *RedisCluster, option *LockOption) *clusterLocker {
-	if option == nil {
-		option = &LockOption{}
+func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLocker {
+	if lockOption == nil {
+		lockOption = &LockOption{}
 	}
-	if option.Timeout.Nanoseconds() == 0 {
-		option.Timeout = 5 * time.Second
+	if lockOption.Timeout.Nanoseconds() == 0 {
+		lockOption.Timeout = 5 * time.Second
 	}
-	if option.RetryCount <= 0 {
-		option.RetryCount = 0
+	if lockOption.RetryCount <= 0 {
+		lockOption.RetryCount = 0
 	}
-	if option.RetryDelay.Nanoseconds() == 0 {
-		option.RetryDelay = 500 * time.Millisecond
+	if lockOption.RetryDelay.Nanoseconds() == 0 {
+		lockOption.RetryDelay = 500 * time.Millisecond
 	}
 	return &clusterLocker{
-		redisCluster: redisCluster,
-		timeout:      option.Timeout,
-		retryCount:   option.RetryCount,
-		retryDelay:   option.RetryDelay,
+		timeout: lockOption.Timeout,
+		//retryCount: lockOption.RetryCount,
+		//retryDelay: lockOption.RetryDelay,
+		ch:           make(chan bool, 1),
+		redisCluster: NewRedisCluster(option),
 	}
 }
 
 func (l *clusterLocker) TryLock(key string) (bool, error) {
 	l.key = key
-	command := newRedisClusterCommand(l.redisCluster.MaxAttempts, l.redisCluster.ConnectionHandler)
-	command.execute = func(redis *Redis) (interface{}, error) {
-		locker := newLocker(redis, &LockOption{
-			Timeout:    l.timeout,
-			RetryCount: l.retryCount,
-			RetryDelay: l.retryDelay,
-		})
-		return locker.TryLock(key)
+	deadline := time.Now().Add(l.timeout)
+	value := deadline.UnixNano()
+	for {
+		status, err := l.redisCluster.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
+		//get lock success
+		if err == nil && status == KeywordOk.Name {
+			return true, nil
+		}
+		var ch chan bool
+		l.lock.Lock()
+		ch = l.ch
+		l.lock.Unlock()
+		elapsed := time.Until(deadline)
+		if elapsed <= 0 {
+			return false, nil
+		}
+		select {
+		case <-ch:
+			continue
+		case <-time.After(elapsed):
+			return false, nil
+		}
 	}
-	reply, err := command.run(key)
-	if err != nil {
-		return false, err
-	}
-	return reply.(bool), nil
 }
 
 func (l *clusterLocker) UnLock() error {
-	command := newRedisClusterCommand(l.redisCluster.MaxAttempts, l.redisCluster.ConnectionHandler)
-	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.Del(l.key)
-	}
-	_, err := command.run(l.key)
+	_, err := l.redisCluster.Del(l.key)
+	newCh := make(chan bool, 1)
+	l.lock.Lock()
+	ch := l.ch
+	l.ch = newCh
+	l.lock.Unlock()
+	close(ch)
 	return err
 }

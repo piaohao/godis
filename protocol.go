@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,8 +20,8 @@ const (
 	DefaultHost         = "localhost"
 	DefaultPort         = 6379
 	DefaultSentinelPort = 26379
-	DefaultTimeout      = 2000
-	DefaultDatabase     = 0
+	DefaultTimeout      = 2 * time.Second
+	DefaultDatabase     = 2 * time.Second
 
 	DollarByte   = '$'
 	AsteriskByte = '*'
@@ -64,8 +65,8 @@ const (
 )
 
 var (
-	BytesTrue  = []byte{1}
-	BytesFalse = []byte{0}
+	BytesTrue  = IntToByteArray(1)
+	BytesFalse = IntToByteArray(0)
 	BytesTilde = []byte("~")
 
 	PositiveInfinityBytes = []byte("+inf")
