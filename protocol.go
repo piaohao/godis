@@ -196,7 +196,7 @@ func (r *redisInputStream) readLineBytes() ([]byte, error) {
 	N := pos - r.count - 2
 	line := make([]byte, N)
 	j := 0
-	for i := r.count; i < N; i++ {
+	for i := r.count; i <= N; i++ {
 		line[j] = buf[i]
 		j++
 	}
@@ -381,25 +381,31 @@ func (p *protocol) processBulkReply() ([]byte, error) {
 	if len == -1 {
 		return nil, nil
 	}
-
-	offset := 0
-	result := make([]byte, 0)
-	for offset < int(len) {
-		cap := int(len) - offset - offset
-		read := make([]byte, cap)
-		size, err := p.is.Read(read)
+	line := make([]byte, 0)
+	for {
+		err := p.is.ensureFill()
 		if err != nil {
-			return nil, NewConnectError(err.Error())
+			return nil, err
 		}
-		if size == -1 {
-			return nil, NewConnectError("It seems like server has closed the connection.")
+		b := p.is.buf[p.is.count]
+		p.is.count++
+		if b == '\r' {
+			err := p.is.ensureFill()
+			if err != nil {
+				return nil, err
+			}
+			c := p.is.buf[p.is.count]
+			p.is.count++
+			if c != '\n' {
+				return nil, NewConnectError("Unexpected character!")
+			}
+			//line = append(line, c)
+			break
+		} else {
+			line = append(line, b)
 		}
-		offset += size
-		result = append(result, read...)
 	}
-	p.is.ReadByte()
-	p.is.ReadByte()
-	return result, nil
+	return line, nil
 }
 
 func (p *protocol) processMultiBulkReply() ([]interface{}, error) {

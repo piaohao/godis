@@ -207,6 +207,10 @@ func (c *connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
 }
 
 func (c *connection) getObjectMultiBulkReply() ([]interface{}, error) {
+	if err := c.flush(); err != nil {
+		return nil, err
+	}
+	c.pipelinedCommands--
 	return c.getRawObjectMultiBulkReply()
 }
 

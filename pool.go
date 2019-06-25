@@ -125,6 +125,7 @@ func (p *Pool) Get() (*Redis, error) {
 }
 
 func (p *Pool) Put(redis *Redis) error {
+	//println(len(p.redisPool))
 	if redis == nil {
 		return errors.New("redis is nil")
 	}

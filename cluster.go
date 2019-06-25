@@ -526,7 +526,7 @@ func (r *RedisCluster) Set(key, value string) (string, error) {
 func (r *RedisCluster) SetWithParamsAndTime(key, value, nxxx, expx string, time int64) (string, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		defer redis.Close()
+		//defer redis.Close()
 		return redis.SetWithParamsAndTime(key, value, nxxx, expx, time)
 	}
 	return ToStringReply(command.run(key))
@@ -1509,7 +1509,7 @@ func (r *RedisCluster) Bitfield(key string, arguments ...string) ([]int64, error
 func (r *RedisCluster) Del(keys ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.ConnectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		defer redis.Close()
+		//defer redis.Close()
 		return redis.Del(keys...)
 	}
 	return ToInt64Reply(command.runBatch(len(keys), keys...))

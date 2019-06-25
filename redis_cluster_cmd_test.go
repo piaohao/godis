@@ -265,35 +265,27 @@ func TestRedis_ClusterGetKeysInSlot(t *testing.T) {
 }
 
 func TestRedis_ClusterInfo(t *testing.T) {
-
 	tests := []struct {
-		name string
-
-		want    string
+		name    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
+		{
+			name:    "ClusterInfo",
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
+			r := NewRedis(&Option{
+				Host: "localhost",
+				Port: 7000,
+			})
 			got, err := r.ClusterInfo()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ClusterInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("ClusterInfo() got = %v, want %v", got, tt.want)
-			}
+			t.Log(got)
 		})
 	}
 }
@@ -713,35 +705,27 @@ func TestRedis_ClusterSlaves(t *testing.T) {
 }
 
 func TestRedis_ClusterSlots(t *testing.T) {
-
 	tests := []struct {
-		name string
-
-		want    []interface{}
+		name    string
 		wantErr bool
 	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
+		{
+			name:    "ClusterSlots",
 			wantErr: false,
-		},*/
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
+			r := NewRedis(&Option{
+				Host: "localhost",
+				Port: 7000,
+			})
 			got, err := r.ClusterSlots()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ClusterSlots() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ClusterSlots() got = %v, want %v", got, tt.want)
-			}
+			t.Log(got)
 		})
 	}
 }
