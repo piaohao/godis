@@ -1,9 +1,7 @@
 package godis
 
 import (
-	"fmt"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -18,8 +16,8 @@ type locker struct {
 	//retryCount int
 	//retryDelay time.Duration
 
-	ch   chan bool
-	lock sync.Mutex
+	ch    chan bool
+	state int32
 
 	key  string
 	pool *Pool
@@ -36,9 +34,9 @@ func NewLocker(option *Option, lockOption *LockOption) *locker {
 		lockOption.RetryCount = 0
 	}
 	if lockOption.RetryDelay.Nanoseconds() == 0 {
-		lockOption.RetryDelay = 200 * time.Millisecond
+		lockOption.RetryDelay = 100 * time.Millisecond
 	}
-	pool := NewPool(nil, NewFactory(option))
+	pool := NewPool(&PoolConfig{MaxTotal: 500}, option)
 	return &locker{
 		timeout: lockOption.Timeout,
 		//retryCount: lockOption.RetryCount,
@@ -54,54 +52,70 @@ type LockOption struct {
 	RetryDelay time.Duration
 }
 
+var m int32 = 0
+var n int32 = 0
+
 func (l *locker) TryLock(key string) (bool, error) {
 	l.key = key
 	deadline := time.Now().Add(l.timeout)
 	value := deadline.UnixNano()
 	for {
-		redis, err := l.pool.GetResource()
+		redis, err := l.pool.Get()
+		//println(1)
 		if err != nil {
 			return false, err
 		}
 		status, err := redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-		//get lock success
+		//println(2)
 		redis.Close()
-		if err == nil && status == KeywordOk.Name {
-			return true, nil
+		//get lock success
+		if err == nil {
+			//println(3)
+
+			//println(4)
+			if status == KeywordOk.Name {
+				//fmt.Printf("m:%d\n", atomic.AddInt32(&m, 1))
+				return true, nil
+			}
 		}
-		var ch chan bool
-		l.lock.Lock()
-		ch = l.ch
-		l.lock.Unlock()
-		elapsed := time.Until(deadline)
-		if elapsed <= 0 {
-			return false, nil
-		}
+
+		//fmt.Printf("l.state:%d\n", atomic.AddInt32(&l.state, 1))
+		atomic.AddInt32(&l.state, 1)
 		select {
-		case <-ch:
+		case <-l.ch:
+			atomic.AddInt32(&l.state, -1)
 			continue
-		case <-time.After(elapsed):
+		case <-time.After(l.timeout):
+			//fmt.Printf("n:%d\n", atomic.AddInt32(&n, 1))
+			atomic.AddInt32(&l.state, -1)
 			return false, nil
 		}
 	}
 }
 
+var i int32 = 0
+var j int32 = 0
+
 func (l *locker) UnLock() error {
-	redis, err := l.pool.GetResource()
+	redis, err := l.pool.Get()
 	if err != nil {
 		return err
 	}
-	_, err = redis.Del(l.key)
+	//fmt.Printf("i:%d\n", atomic.AddInt32(&i, 1))
+	c, err := redis.Del(l.key)
+	//fmt.Printf("j:%d\n", atomic.AddInt32(&j, 1))
+	//fmt.Printf("state:%d\n", atomic.LoadInt32(&l.state))
 	redis.Close()
 	if err != nil {
 		return err
 	}
-	newCh := make(chan bool, 1)
-	l.lock.Lock()
-	ch := l.ch
-	l.ch = newCh
-	l.lock.Unlock()
-	close(ch)
+	if c == 0 {
+		return nil
+	}
+	if atomic.LoadInt32(&l.state) > 0 {
+		//fmt.Printf("j:%d\n", atomic.AddInt32(&j, 1))
+		l.ch <- true
+	}
 	return nil
 }
 
@@ -110,8 +124,8 @@ type clusterLocker struct {
 	//retryCount int
 	//retryDelay time.Duration
 
-	ch     chan bool
-	writer int32
+	ch    chan bool
+	state int32
 
 	key          string
 	redisCluster *RedisCluster
@@ -146,23 +160,16 @@ func (l *clusterLocker) TryLock(key string) (bool, error) {
 	for {
 		status, err := l.redisCluster.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
 		//get lock success
-		if err == nil {
-			if status == KeywordOk.Name {
-				return true, nil
-			}
-		} else {
-			println(err)
+		if err == nil && status == KeywordOk.Name {
+			return true, nil
 		}
-		elapsed := time.Until(deadline)
-		if elapsed <= 0 {
-			return false, nil
-		}
-		println(atomic.AddInt32(&l.writer, 1))
+		atomic.AddInt32(&l.state, 1)
 		select {
 		case <-l.ch:
-			atomic.AddInt32(&l.writer, -1)
+			atomic.AddInt32(&l.state, -1)
 			continue
 		case <-time.After(l.timeout):
+			atomic.AddInt32(&l.state, -1)
 			return false, nil
 		}
 	}
@@ -173,8 +180,7 @@ func (l *clusterLocker) UnLock() error {
 	if c == 0 {
 		return nil
 	}
-	fmt.Printf("delete success,writer:%d\n", atomic.LoadInt32(&l.writer))
-	if atomic.LoadInt32(&l.writer) > 0 {
+	if atomic.LoadInt32(&l.state) > 0 {
 		l.ch <- true
 	}
 	return err

@@ -20,7 +20,7 @@ const (
 	DefaultHost         = "localhost"
 	DefaultPort         = 6379
 	DefaultSentinelPort = 26379
-	DefaultTimeout      = 2 * time.Second
+	DefaultTimeout      = 5 * time.Second
 	DefaultDatabase     = 2 * time.Second
 
 	DollarByte   = '$'
@@ -112,6 +112,168 @@ func newRedisInputStream(br *bufio.Reader) *redisInputStream {
 	}
 }
 
+func (r *redisInputStream) readByte() (byte, error) {
+	err := r.ensureFill()
+	if err != nil {
+		return 0, err
+	}
+	ret := r.buf[r.count]
+	r.count++
+	return ret, nil
+}
+
+func (r *redisInputStream) ensureFill() error {
+	if r.count < r.limit {
+		return nil
+	}
+	var err error
+	r.limit, err = r.Read(r.buf)
+	if err != nil {
+		return NewConnectError(err.Error())
+	}
+	r.count = 0
+	if r.limit == -1 {
+		return NewConnectError("Unexpected end of stream")
+	}
+	return nil
+}
+
+func (r *redisInputStream) readLine() (string, error) {
+	buf := ""
+	for {
+		err := r.ensureFill()
+		if err != nil {
+			return "", err
+		}
+		b := r.buf[r.count]
+		r.count++
+		if b == 'r' {
+			err := r.ensureFill()
+			if err != nil {
+				return "", err
+			}
+			c := r.buf[r.count]
+			r.count++
+			if c == '\n' {
+				break
+			}
+			buf += string(b)
+			buf += string(c)
+		} else {
+			buf += string(b)
+		}
+	}
+	if buf == "" {
+		return "", NewConnectError("It seems like server has closed the connection.")
+	}
+	return buf, nil
+}
+
+func (r *redisInputStream) readLineBytes() ([]byte, error) {
+	err := r.ensureFill()
+	if err != nil {
+		return nil, err
+	}
+	pos := r.count
+	buf := r.buf
+	for {
+		if pos == r.limit {
+			return r.readLineBytesSlowly()
+		}
+		p := buf[pos]
+		pos++
+		if p == '\r' {
+			if pos == r.limit {
+				return r.readLineBytesSlowly()
+			}
+			p := buf[pos]
+			pos++
+			if p == '\n' {
+				break
+			}
+		}
+	}
+	N := pos - r.count - 2
+	line := make([]byte, N)
+	j := 0
+	for i := r.count; i < N; i++ {
+		line[j] = buf[i]
+		j++
+	}
+	r.count = pos
+	return line, nil
+}
+
+func (r *redisInputStream) readLineBytesSlowly() ([]byte, error) {
+	buf := make([]byte, 0)
+	for {
+		err := r.ensureFill()
+		if err != nil {
+			return nil, err
+		}
+		b := r.buf[r.count]
+		r.count++
+		if b == 'r' {
+			err := r.ensureFill()
+			if err != nil {
+				return nil, err
+			}
+			c := r.buf[r.count]
+			r.count++
+			if c == '\n' {
+				break
+			}
+			buf = append(buf, b)
+			buf = append(buf, c)
+		} else {
+			buf = append(buf, b)
+		}
+	}
+	return buf, nil
+}
+
+func (r *redisInputStream) readIntCrLf() (int64, error) {
+	err := r.ensureFill()
+	if err != nil {
+		return 0, err
+	}
+	buf := r.buf
+	isNeg := false
+	if buf[r.count] == '-' {
+		isNeg = true
+	}
+	if isNeg {
+		r.count++
+	}
+	var value int64 = 0
+	for {
+		err := r.ensureFill()
+		if err != nil {
+			return 0, err
+		}
+		b := buf[r.count]
+		r.count++
+		if b == '\r' {
+			err := r.ensureFill()
+			if err != nil {
+				return 0, err
+			}
+			c := buf[r.count]
+			r.count++
+			if c != '\n' {
+				return 0, NewConnectError("Unexpected character!")
+			}
+			break
+		} else {
+			value = value*10 + int64(b) - int64('0')
+		}
+	}
+	if isNeg {
+		return -value, nil
+	}
+	return value, nil
+}
+
 type protocol struct {
 	os *redisOutputStream
 	is *redisInputStream
@@ -165,7 +327,26 @@ func (p *protocol) read() (interface{}, error) {
 }
 
 func (p *protocol) process() (interface{}, error) {
-	line, err := p.readLine()
+	b, err := p.is.readByte()
+	if err != nil {
+		return nil, NewConnectError(err.Error())
+	}
+	switch b {
+	case PlusByte:
+		return p.processStatusCodeReply()
+	case DollarByte:
+		return p.processBulkReply()
+	case AsteriskByte:
+		return p.processMultiBulkReply()
+	case ColonByte:
+		return p.processInteger()
+	case MinusByte:
+		return p.processError()
+	default:
+		return nil, NewConnectError(fmt.Sprintf("Unknown reply: %b", b))
+	}
+
+	/*line, err := p.readLine()
 	if err != nil {
 		return nil, NewConnectError(err.Error())
 	}
@@ -185,7 +366,84 @@ func (p *protocol) process() (interface{}, error) {
 		return p.processMinus(line)
 	default:
 		return nil, NewConnectError(fmt.Sprint("Unknown reply: ", line[0]))
+	}*/
+}
+
+func (p *protocol) processStatusCodeReply() ([]byte, error) {
+	return p.is.readLineBytes()
+}
+
+func (p *protocol) processBulkReply() ([]byte, error) {
+	len, err := p.is.readIntCrLf()
+	if err != nil {
+		return nil, NewConnectError(err.Error())
 	}
+	if len == -1 {
+		return nil, nil
+	}
+
+	offset := 0
+	result := make([]byte, 0)
+	for offset < int(len) {
+		cap := int(len) - offset - offset
+		read := make([]byte, cap)
+		size, err := p.is.Read(read)
+		if err != nil {
+			return nil, NewConnectError(err.Error())
+		}
+		if size == -1 {
+			return nil, NewConnectError("It seems like server has closed the connection.")
+		}
+		offset += size
+		result = append(result, read...)
+	}
+	p.is.ReadByte()
+	p.is.ReadByte()
+	return result, nil
+}
+
+func (p *protocol) processMultiBulkReply() ([]interface{}, error) {
+	len, err := p.is.readIntCrLf()
+	if err != nil {
+		return nil, NewConnectError(err.Error())
+	}
+	if len == -1 {
+		return nil, nil
+	}
+	ret := make([]interface{}, 0)
+	for i := 0; i < int(len); i++ {
+		if obj, err := p.process(); err != nil {
+			ret = append(ret, NewDataError(err.Error()))
+		} else {
+			ret = append(ret, obj)
+		}
+	}
+	return ret, nil
+}
+
+func (p *protocol) processInteger() (int64, error) {
+	return p.is.readIntCrLf()
+}
+
+func (p *protocol) processError() (interface{}, error) {
+	msg, err := p.is.readLine()
+	if err != nil {
+		return nil, NewConnectError(err.Error())
+	}
+	if strings.HasPrefix(msg, MovedPrefix) {
+		host, port, slot := p.parseTargetHostAndSlot(msg)
+		return nil, NewMovedDataError(msg, host, port, slot)
+	} else if strings.HasPrefix(msg, AskPrefix) {
+		host, port, slot := p.parseTargetHostAndSlot(msg)
+		return nil, NewAskDataError(msg, host, port, slot)
+	} else if strings.HasPrefix(msg, ClusterdownPrefix) {
+		return nil, NewClusterError(msg)
+	} else if strings.HasPrefix(msg, BusyPrefix) {
+		return nil, NewBusyError(msg)
+	} else if strings.HasPrefix(msg, NoscriptPrefix) {
+		return nil, NewNoScriptError(msg)
+	}
+	return nil, NewDataError(msg)
 }
 
 func (p *protocol) processPlus(line []byte) (string, error) {

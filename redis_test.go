@@ -2,6 +2,7 @@ package godis
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -9,9 +10,11 @@ import (
 var option = &Option{
 	//Host:     "10.1.1.63",
 	//Password: "123456",
-	Host: "localhost",
-	Port: 6379,
-	Db:   0,
+	Host:              "localhost",
+	Port:              6379,
+	Db:                0,
+	ConnectionTimeout: 100 * time.Second,
+	SoTimeout:         100 * time.Second,
 }
 
 // run before every test case ,ensure the redis is empty
@@ -1545,80 +1548,77 @@ func TestRedis_Hvals(t *testing.T) {
 }
 
 func TestRedis_Incr(t *testing.T) {
-
-	type args struct {
-		key string
+	flushAll()
+	pool := NewPool(nil, option)
+	i := 0
+	for ; i < 100000; i++ {
+		redis, err := pool.Get()
+		if err != nil {
+			t.Errorf("err happen,%v", err)
+			return
+		}
+		_, err = redis.Incr("godis")
+		if err != nil {
+			t.Errorf("err happen,%v", err)
+			return
+		}
+		redis.Close()
 	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
+	redis, err := pool.Get()
+	if err != nil {
+		t.Errorf("err happen,%v", err)
+		return
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.Incr(tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Incr() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Incr() got = %v, want %v", got, tt.want)
-			}
-		})
+	reply, err := redis.Get("godis")
+	if err != nil {
+		t.Errorf("err happen,%v", err)
+		return
 	}
+	if reply != "100000" {
+		t.Errorf("want 100000,but %s", reply)
+	}
+	redis.Close()
 }
 
 func TestRedis_IncrBy(t *testing.T) {
-
-	type args struct {
-		key       string
-		increment int64
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.IncrBy(tt.args.key, tt.args.increment)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("IncrBy() error = %v, wantErr %v", err, tt.wantErr)
+	flushAll()
+	pool := NewPool(nil, option)
+	var group sync.WaitGroup
+	ch := make(chan bool, 8)
+	for i := 0; i < 100000; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			ch <- true
+			redis, err := pool.Get()
+			if err != nil {
+				t.Errorf("err happen,%v", err)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("IncrBy() got = %v, want %v", got, tt.want)
+			_, err = redis.IncrBy("godis", 2)
+			if err != nil {
+				t.Errorf("err happen,%v", err)
+				return
 			}
-		})
+			redis.Close()
+			<-ch
+		}()
 	}
+	group.Wait()
+	redis, err := pool.Get()
+	if err != nil {
+		t.Errorf("err happen,%v", err)
+		return
+	}
+	reply, err := redis.Get("godis")
+	if err != nil {
+		t.Errorf("err happen,%v", err)
+		return
+	}
+	if reply != "200000" {
+		t.Errorf("want 200000,but %s", reply)
+	}
+	redis.Close()
 }
 
 func TestRedis_IncrByFloat(t *testing.T) {

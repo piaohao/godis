@@ -200,11 +200,14 @@ func (c *connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 
 func (c *connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
 	reply, err := c.readProtocolWithCheckingBroken()
-	return reply.([]interface{}), err
+	if err != nil {
+		return nil, err
+	}
+	return reply.([]interface{}), nil
 }
 
 func (c *connection) getObjectMultiBulkReply() ([]interface{}, error) {
-	return c.getUnflushedObjectMultiBulkReply()
+	return c.getRawObjectMultiBulkReply()
 }
 
 func (c *connection) getIntegerMultiBulkReply() ([]int64, error) {

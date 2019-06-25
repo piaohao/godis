@@ -28,6 +28,7 @@ type Redis struct {
 	pipeline    *pipeline
 	transaction *transaction
 	dataSource  *Pool
+	activeTime  time.Time
 }
 
 // constructor for creating new redis
@@ -43,14 +44,18 @@ func (r *Redis) Connect() error {
 
 //Close close redis connection
 func (r *Redis) Close() error {
-	if r.dataSource != nil {
-		if r.client.broken {
-			return r.dataSource.returnBrokenResourceObject(r)
-		} else {
-			return r.dataSource.returnResourceObject(r)
-		}
+	if r == nil {
+		return nil
 	}
-	if r != nil && r.client != nil {
+	if r.dataSource != nil {
+		return r.dataSource.Put(r)
+		//if r.client.broken {
+		//	return r.dataSource.returnBrokenResourceObject(r)
+		//} else {
+		//	return r.dataSource.returnResourceObject(r)
+		//}
+	}
+	if r.client != nil {
 		return r.client.close()
 	}
 	return nil

@@ -1,36 +1,42 @@
 package godis
 
 import (
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestRedisCluster_Lock(t *testing.T) {
 	count := 0
 	var group sync.WaitGroup
 	locker := NewClusterLocker(clusterOption, nil)
-	ch := make(chan bool, 2)
-	for i := 0; i < 100; i++ {
+	ch := make(chan bool, 8)
+	total := 10
+	timeoutCount := 0
+	for i := 0; i < total; i++ {
 		group.Add(1)
 		go func() {
 			defer group.Done()
 			ch <- true
-			//start := time.Now()
 			ok, err := locker.TryLock("lock")
-			//t.Logf("cost time:%s", time.Now().Sub(start))
-			if err == nil && ok {
-				count++
+			if err == nil {
+				if ok {
+					count++
+					locker.UnLock()
+				} else {
+					timeoutCount++
+				}
 			}
-			//start = time.Now()
-			locker.UnLock()
-			//t.Logf("cost time:%s", time.Now().Sub(start))
 			<-ch
 		}()
 	}
 	group.Wait()
 	t.Log(count)
-	if count != 100 {
-		t.Errorf("want 100,but %d", count)
+	t.Log(timeoutCount)
+	realCount := count + timeoutCount
+	if realCount != total {
+		t.Errorf("want %d,but %d", total, realCount)
 	}
 }
 
@@ -53,26 +59,36 @@ func _TestRedis_NoLock(t *testing.T) {
 }
 
 func TestRedis_Lock(t *testing.T) {
-	locker := NewLocker(option, nil)
+	locker := NewLocker(option, &LockOption{Timeout: 100 * time.Second})
 	count := 0
 	var group sync.WaitGroup
-	ch := make(chan bool, 4)
-	for i := 0; i < 100; i++ {
+	ch := make(chan bool, 8)
+	total := 1000
+	timeoutCount := 0
+	for i := 0; i < total; i++ {
 		group.Add(1)
 		go func() {
 			defer group.Done()
 			ch <- true
 			ok, err := locker.TryLock("lock")
-			if err == nil && ok {
-				count++
+			if err == nil {
+				if ok {
+					count++
+					locker.UnLock()
+				} else {
+					timeoutCount++
+				}
+			} else {
+				fmt.Printf("%v\n", err)
 			}
-			locker.UnLock()
 			<-ch
 		}()
 	}
 	group.Wait()
 	t.Log(count)
-	if count != 100 {
-		t.Errorf("want 100,but %d", count)
+	t.Log(timeoutCount)
+	realCount := count + timeoutCount
+	if realCount != total {
+		t.Errorf("want %d,but %d", total, realCount)
 	}
 }

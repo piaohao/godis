@@ -6,27 +6,23 @@ import (
 )
 
 func TestRedis_Auth(t *testing.T) {
-
 	type args struct {
 		password string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "auth1",
-
+			name:    "auth1",
 			args:    args{password: ""},
 			want:    "",
 			wantErr: true,
 		},
 		{
-			name: "auth2",
-
+			name:    "auth2",
 			args:    args{password: "1234567"},
 			want:    "",
 			wantErr: true,
@@ -48,16 +44,13 @@ func TestRedis_Auth(t *testing.T) {
 }
 
 func TestRedis_Ping(t *testing.T) {
-
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "ping",
-
+			name:    "ping",
 			want:    "PONG",
 			wantErr: false,
 		},
@@ -65,7 +58,6 @@ func TestRedis_Ping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRedis(option)
-			r.Connect()
 			got, err := r.Ping()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ping() error = %v, wantErr %v", err, tt.wantErr)
@@ -80,16 +72,13 @@ func TestRedis_Ping(t *testing.T) {
 }
 
 func TestRedis_Quit(t *testing.T) {
-
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "append",
-
+			name:    "quit",
 			want:    "OK",
 			wantErr: false,
 		},
@@ -136,14 +125,12 @@ func TestRedis_FlushDB(t *testing.T) {
 	redis.Close()
 
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "flushdb",
-
+			name:    "flushdb",
 			want:    "OK",
 			wantErr: false,
 		},
@@ -257,14 +244,12 @@ func TestRedis_DbSize(t *testing.T) {
 	redis.Close()
 
 	tests := []struct {
-		name string
-
+		name    string
 		want    int64
 		wantErr bool
 	}{
 		{
-			name: "dbsize",
-
+			name:    "dbsize",
 			want:    2,
 			wantErr: false,
 		},

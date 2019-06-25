@@ -8,16 +8,16 @@ import (
 	"time"
 )
 
-var connectionHandler = newRedisClusterConnectionHandler([]string{"localhost:7000", "localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005"},
-	0, 0, "", &PoolConfig{})
+//var connectionHandler = newRedisClusterConnectionHandler([]string{"localhost:7000", "localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005"},
+//	0, 0, "", &PoolConfig{})
 var clusterOption = &ClusterOption{
 	Nodes:             []string{"localhost:7000", "localhost:7001", "localhost:7002", "localhost:7003", "localhost:7004", "localhost:7005"},
-	ConnectionTimeout: 0,
-	SoTimeout:         0,
+	ConnectionTimeout: 5 * time.Second,
+	SoTimeout:         5 * time.Second,
 	MaxAttempts:       0,
 	Password:          "",
 	PoolConfig: &PoolConfig{
-		MaxTotal: 10,
+		MaxTotal: 100,
 	},
 }
 
@@ -32,15 +32,13 @@ func TestRedisCluster_Append(t *testing.T) {
 		value string
 	}
 	tests := []struct {
-		name string
-
+		name    string
 		args    args
 		want    int64
 		wantErr bool
 	}{
 		{
 			name: "append",
-
 			args: args{
 				key:   "godis",
 				value: "good",
