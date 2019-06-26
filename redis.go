@@ -3,6 +3,7 @@ package godis
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,8 @@ type Redis struct {
 	transaction *transaction
 	dataSource  *Pool
 	activeTime  time.Time
+
+	mu sync.RWMutex
 }
 
 // constructor for creating new redis
@@ -47,13 +50,10 @@ func (r *Redis) Close() error {
 	if r == nil {
 		return nil
 	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	if r.dataSource != nil {
 		return r.dataSource.Put(r)
-		//if r.client.broken {
-		//	return r.dataSource.returnBrokenResourceObject(r)
-		//} else {
-		//	return r.dataSource.returnResourceObject(r)
-		//}
 	}
 	if r.client != nil {
 		return r.client.close()
@@ -62,7 +62,9 @@ func (r *Redis) Close() error {
 }
 
 func (r *Redis) setDataSource(pool *Pool) {
+	r.mu.Lock()
 	r.dataSource = pool
+	r.mu.Unlock()
 }
 
 // Send send command to redis

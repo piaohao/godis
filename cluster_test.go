@@ -1932,43 +1932,14 @@ func TestRedisCluster_Hvals(t *testing.T) {
 }
 
 func TestRedisCluster_Incr(t *testing.T) {
-	type fields struct {
-		MaxAttempts       int
-		ConnectionHandler *redisClusterConnectionHandler
+	cluster := NewRedisCluster(clusterOption)
+	cluster.Del("godis")
+	for i := 0; i < 10000; i++ {
+		cluster.Incr("godis")
 	}
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "godis",
-				value: "good",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedisCluster(clusterOption)
-			got, err := r.Incr(tt.args.key)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Incr() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Incr() got = %v, want %v", got, tt.want)
-			}
-		})
+	reply, _ := cluster.Get("godis")
+	if reply != "10000" {
+		t.Errorf("want 10000,but %s", reply)
 	}
 }
 
@@ -6865,7 +6836,7 @@ func Test_redisClusterConnectionHandler_getNodes(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   map[string]*Pool
+		want   sync.Map
 	}{
 		/*{
 			name: "append",
@@ -7015,8 +6986,8 @@ func Test_redisClusterHashTagUtil_isClusterCompliantMatchPattern(t *testing.T) {
 
 func Test_redisClusterInfoCache_assignSlotToNode(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7067,8 +7038,8 @@ func Test_redisClusterInfoCache_assignSlotToNode(t *testing.T) {
 
 func Test_redisClusterInfoCache_assignSlotsToNode(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7120,8 +7091,8 @@ func Test_redisClusterInfoCache_assignSlotsToNode(t *testing.T) {
 
 func Test_redisClusterInfoCache_discoverClusterNodesAndSlots(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7174,8 +7145,8 @@ func Test_redisClusterInfoCache_discoverClusterNodesAndSlots(t *testing.T) {
 
 func Test_redisClusterInfoCache_discoverClusterSlots(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7228,8 +7199,8 @@ func Test_redisClusterInfoCache_discoverClusterSlots(t *testing.T) {
 
 func Test_redisClusterInfoCache_generateHostAndPort(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7287,8 +7258,8 @@ func Test_redisClusterInfoCache_generateHostAndPort(t *testing.T) {
 
 func Test_redisClusterInfoCache_getAssignedSlotArray(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7341,8 +7312,8 @@ func Test_redisClusterInfoCache_getAssignedSlotArray(t *testing.T) {
 
 func Test_redisClusterInfoCache_getNode(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7395,8 +7366,8 @@ func Test_redisClusterInfoCache_getNode(t *testing.T) {
 
 func Test_redisClusterInfoCache_getNodes(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7409,7 +7380,7 @@ func Test_redisClusterInfoCache_getNodes(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   map[string]*Pool
+		want   sync.Map
 	}{
 		/*{
 			name: "append",
@@ -7445,8 +7416,8 @@ func Test_redisClusterInfoCache_getNodes(t *testing.T) {
 
 func Test_redisClusterInfoCache_getShuffledNodesPool(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7495,8 +7466,8 @@ func Test_redisClusterInfoCache_getShuffledNodesPool(t *testing.T) {
 
 func Test_redisClusterInfoCache_getSlotPool(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7549,8 +7520,8 @@ func Test_redisClusterInfoCache_getSlotPool(t *testing.T) {
 
 func Test_redisClusterInfoCache_renewClusterSlots(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7603,8 +7574,8 @@ func Test_redisClusterInfoCache_renewClusterSlots(t *testing.T) {
 
 func Test_redisClusterInfoCache_reset(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7653,8 +7624,8 @@ func Test_redisClusterInfoCache_reset(t *testing.T) {
 
 func Test_redisClusterInfoCache_setupNodeIfNotExist(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex
@@ -7709,8 +7680,8 @@ func Test_redisClusterInfoCache_setupNodeIfNotExist(t *testing.T) {
 
 func Test_redisClusterInfoCache_shuffle(t *testing.T) {
 	type fields struct {
-		nodes             map[string]*Pool
-		slots             map[int]*Pool
+		nodes             sync.Map
+		slots             sync.Map
 		rwLock            sync.RWMutex
 		rLock             sync.Mutex
 		wLock             sync.Mutex

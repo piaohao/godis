@@ -105,10 +105,13 @@ func (p *Pool) Get() (*Redis, error) {
 			if redis == nil {
 				return nil, ErrClosed
 			}
+			p.lock.Lock()
 			if p.maxLifetime > 0 && redis.activeTime.Add(p.maxLifetime).Before(time.Now()) {
+				p.lock.Unlock()
 				p.Close(redis)
 				continue
 			}
+			p.lock.Unlock()
 			redis.setDataSource(p)
 			return redis, nil
 		default:
@@ -134,11 +137,6 @@ func (p *Pool) Put(redis *Redis) error {
 		p.lock.Unlock()
 		return p.Close(redis)
 	}
-	//newRedis, err := redis
-	//if err != nil {
-	//	p.lock.Unlock()
-	//	return nil
-	//}
 	redis.activeTime = time.Now()
 	select {
 	case p.redisPool <- redis:

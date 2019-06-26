@@ -2,29 +2,32 @@ package godis
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 )
 
 func TestRedisCluster_Lock(t *testing.T) {
-	//os.Remove("count.txt")
+	os.Remove("count.txt")
 	count := 0
 	var group sync.WaitGroup
 	locker := NewClusterLocker(clusterOption, nil)
 	ch := make(chan bool, 4)
-	total := 1000
+	total := 10000
 	timeoutCount := 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
+		ch <- true
 		go func() {
 			defer group.Done()
-			ch <- true
 			lock, err := locker.TryLock("lock")
 			if err == nil {
 				if lock != nil {
 					count++
-					/*file, _ := os.OpenFile(
+					file, _ := os.OpenFile(
 						"count.txt",
 						os.O_RDWR|os.O_CREATE,
 						0664,
@@ -41,7 +44,7 @@ func TestRedisCluster_Lock(t *testing.T) {
 					file.Close()
 					if chCount := len(locker.ch); chCount > 0 {
 						fmt.Printf("locker ch:%d\n", chCount)
-					}*/
+					}
 					locker.UnLock(lock)
 				} else {
 					timeoutCount++
@@ -64,13 +67,13 @@ func TestRedis_Lock(t *testing.T) {
 	count := 0
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
-	total := 1000
+	total := 10000
 	timeoutCount := 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
+		ch <- true
 		go func() {
 			defer group.Done()
-			ch <- true
 			lock, err := locker.TryLock("lock")
 			if err == nil {
 				if lock != nil {

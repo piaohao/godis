@@ -15,8 +15,8 @@ const (
 )
 
 type redisClusterInfoCache struct {
-	nodes map[string]*Pool
-	slots map[int]*Pool
+	nodes sync.Map
+	slots sync.Map
 
 	rwLock        sync.RWMutex
 	rLock         sync.Mutex
@@ -69,13 +69,13 @@ func (r *redisClusterInfoCache) discoverClusterNodesAndSlots(redis *Redis) error
 }
 
 func (r *redisClusterInfoCache) renewClusterSlots(redis *Redis) error {
+	r.wLock.Lock()
 	if r.rediscovering {
 		return nil
 	}
-	r.wLock.Lock()
 	defer func() {
-		r.wLock.Unlock()
 		r.rediscovering = false
+		r.wLock.Unlock()
 	}()
 	if redis != nil {
 		return r.discoverClusterSlots(redis)
@@ -100,7 +100,11 @@ func (r *redisClusterInfoCache) discoverClusterSlots(redis *Redis) error {
 	if err != nil {
 		return err
 	}
-	r.slots = make(map[int]*Pool)
+	//r.slots = make(map[int]*Pool)
+	r.slots.Range(func(key, value interface{}) bool {
+		r.slots.Delete(key)
+		return true
+	})
 	for _, s := range slots {
 		slotInfo := s.([]interface{})
 		size := len(slotInfo)
@@ -119,21 +123,35 @@ func (r *redisClusterInfoCache) discoverClusterSlots(redis *Redis) error {
 }
 
 func (r *redisClusterInfoCache) reset(lock bool) {
-	if lock {
-		r.wLock.Lock()
-	}
-	defer func() {
-		if lock {
-			r.wLock.Unlock()
+	//if lock {
+	//	r.wLock.Lock()
+	//}
+	//defer func() {
+	//	if lock {
+	//		r.wLock.Unlock()
+	//	}
+	//}()
+	r.nodes.Range(func(key, value interface{}) bool {
+		if value != nil {
+			value.(*Pool).Destroy()
 		}
-	}()
-	for _, v := range r.nodes {
-		if v != nil {
-			v.Destroy()
-		}
-	}
-	r.nodes = make(map[string]*Pool)
-	r.slots = make(map[int]*Pool)
+		return true
+	})
+	//for _, v := range r.nodes {
+	//	if v != nil {
+	//		v.Destroy()
+	//	}
+	//}
+	//r.nodes = make(map[string]*Pool)
+	r.nodes.Range(func(key, value interface{}) bool {
+		r.nodes.Delete(key)
+		return true
+	})
+	//r.slots = make(map[int]*Pool)
+	r.slots.Range(func(key, value interface{}) bool {
+		r.slots.Delete(key)
+		return true
+	})
 }
 
 func (r *redisClusterInfoCache) getAssignedSlotArray(slotInfo []interface{}) []int {
@@ -149,18 +167,18 @@ func (r *redisClusterInfoCache) generateHostAndPort(hostInfos []interface{}) (st
 }
 
 func (r *redisClusterInfoCache) setupNodeIfNotExist(lock bool, host string, port int) *Pool {
-	if lock {
-		r.wLock.Lock()
-	}
-	defer func() {
-		if lock {
-			r.wLock.Unlock()
-		}
-	}()
+	//if lock {
+	//	r.wLock.Lock()
+	//}
+	//defer func() {
+	//	if lock {
+	//		r.wLock.Unlock()
+	//	}
+	//}()
 	nodeKey := host + ":" + strconv.Itoa(port)
-	existingPool, ok := r.nodes[nodeKey]
+	existingPool, ok := r.nodes.Load(nodeKey)
 	if ok && existingPool != nil {
-		return existingPool
+		return existingPool.(*Pool)
 	}
 	nodePool := NewPool(r.poolConfig, &Option{
 		Host:              host,
@@ -169,46 +187,48 @@ func (r *redisClusterInfoCache) setupNodeIfNotExist(lock bool, host string, port
 		SoTimeout:         r.soTimeout,
 		Password:          r.password,
 	})
-	/*nodePool := NewPool(r.poolConfig, NewFactory(&Option{
-		Host:              host,
-		Port:              port,
-		ConnectionTimeout: r.connectionTimeout,
-		SoTimeout:         r.soTimeout,
-		Password:          r.password,
-	}))*/
-	r.nodes[nodeKey] = nodePool
+	//r.nodes[nodeKey] = nodePool
+	r.nodes.Store(nodeKey, nodePool)
 	return nodePool
 }
 
 func (r *redisClusterInfoCache) assignSlotToNode(slot int, host string, port int) {
-	r.wLock.Lock()
-	defer r.wLock.Unlock()
+	//r.wLock.Lock()
+	//defer r.wLock.Unlock()
 	targetPool := r.setupNodeIfNotExist(false, host, port)
-	r.slots[slot] = targetPool
+	r.slots.Store(slot, targetPool)
+	//r.slots[slot] = targetPool
 }
 
 func (r *redisClusterInfoCache) assignSlotsToNode(lock bool, slots []int, host string, port int) {
-	if lock {
-		r.wLock.Lock()
-	}
-	defer func() {
-		if lock {
-			r.wLock.Unlock()
-		}
-	}()
+	//if lock {
+	//	r.wLock.Lock()
+	//}
+	//defer func() {
+	//	if lock {
+	//		r.wLock.Unlock()
+	//	}
+	//}()
 	targetPool := r.setupNodeIfNotExist(false, host, port)
 	for _, slot := range slots {
-		r.slots[slot] = targetPool
+		//r.slots[slot] = targetPool
+		r.slots.Store(slot, targetPool)
 	}
 }
 
 func (r *redisClusterInfoCache) getShuffledNodesPool() []*Pool {
-	r.rLock.Lock()
-	defer r.rLock.Unlock()
+	//r.rLock.Lock()
+	//defer r.rLock.Unlock()
 	pools := make([]*Pool, 0)
-	for _, v := range r.nodes {
-		pools = append(pools, v)
-	}
+	r.nodes.Range(func(key, value interface{}) bool {
+		if value != nil {
+			pools = append(pools, value.(*Pool))
+		}
+		return true
+	})
+	//for _, v := range r.nodes {
+	//	pools = append(pools, v)
+	//}
 	r.shuffle(pools)
 	return pools
 }
@@ -224,21 +244,39 @@ func (r *redisClusterInfoCache) shuffle(vals []*Pool) {
 }
 
 func (r *redisClusterInfoCache) getNode(nodeKey string) *Pool {
-	r.rLock.Lock()
-	defer r.rLock.Unlock()
-	return r.nodes[nodeKey]
+	//r.rLock.Lock()
+	//defer r.rLock.Unlock()
+	//return r.nodes[nodeKey]
+	if value, ok := r.nodes.Load(nodeKey); ok {
+		return value.(*Pool)
+	} else {
+		return nil
+	}
 }
 
 func (r *redisClusterInfoCache) getNodes() map[string]*Pool {
-	r.rLock.Lock()
-	defer r.rLock.Unlock()
-	return r.nodes
+	//r.rLock.Lock()
+	//defer r.rLock.Unlock()
+	//return r.nodes
+	ret := make(map[string]*Pool)
+	r.nodes.Range(func(key, value interface{}) bool {
+		if value != nil {
+			ret[key.(string)] = value.(*Pool)
+		}
+		return true
+	})
+	return ret
 }
 
 func (r *redisClusterInfoCache) getSlotPool(slot int) *Pool {
-	r.rLock.Lock()
-	defer r.rLock.Unlock()
-	return r.slots[slot]
+	//r.rLock.Lock()
+	//defer r.rLock.Unlock()
+	//return r.slots[slot]
+	if value, ok := r.slots.Load(slot); ok {
+		return value.(*Pool)
+	} else {
+		return nil
+	}
 }
 
 type redisClusterConnectionHandler struct {
