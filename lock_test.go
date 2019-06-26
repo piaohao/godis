@@ -20,9 +20,9 @@ func TestRedisCluster_Lock(t *testing.T) {
 		go func() {
 			defer group.Done()
 			ch <- true
-			ok, err := locker.TryLock("lock")
+			lock, err := locker.TryLock("lock")
 			if err == nil {
-				if ok {
+				if lock != nil {
 					count++
 					/*file, _ := os.OpenFile(
 						"count.txt",
@@ -42,7 +42,7 @@ func TestRedisCluster_Lock(t *testing.T) {
 					if chCount := len(locker.ch); chCount > 0 {
 						fmt.Printf("locker ch:%d\n", chCount)
 					}*/
-					locker.UnLock()
+					locker.UnLock(lock)
 				} else {
 					timeoutCount++
 				}
@@ -71,11 +71,11 @@ func TestRedis_Lock(t *testing.T) {
 		go func() {
 			defer group.Done()
 			ch <- true
-			ok, err := locker.TryLock("lock")
+			lock, err := locker.TryLock("lock")
 			if err == nil {
-				if ok {
+				if lock != nil {
 					count++
-					locker.UnLock()
+					locker.UnLock(lock)
 				} else {
 					timeoutCount++
 				}
@@ -98,15 +98,15 @@ func _BenchmarkRedis_Lock(b *testing.B) {
 	locker := NewLocker(option, &LockOption{Timeout: 3 * time.Second})
 	count := 0
 	for i := 0; i < 100; i++ {
-		ok, err := locker.TryLock("lock")
+		lock, err := locker.TryLock("lock")
 		if err != nil {
 			fmt.Printf("%v\n", err)
 			continue
 		}
-		if ok {
+		if lock != nil {
 			count++
 			fmt.Printf("%d\n", count)
-			locker.UnLock()
+			locker.UnLock(lock)
 		}
 	}
 	b.Log(count)

@@ -209,11 +209,12 @@ require github.com/piaohao/godis latest
                   }, &godis.LockOption{
                       Timeout: 5*time.Second,
                   })
-                ok, err := locker.TryLock("lock")
-                if err == nil && ok {
+                lock, err := locker.TryLock("lock")
+                if err == nil && lock!=nil {
                     //do something
+                    locker.UnLock(lock)
                 }
-                locker.UnLock()
+                
             }
         ``` 
     * redis cluster   
@@ -236,11 +237,11 @@ require github.com/piaohao/godis latest
                 },&godis.LockOption{
                     Timeout: 5*time.Second,
                 })
-                ok, err := locker.TryLock("lock")
-                if err == nil && ok {
+                lock, err := locker.TryLock("lock")
+                if err == nil && lock!=nil {
                     //do something
+                    locker.UnLock(lock)
                 }
-                locker.UnLock()
             }
         ```   
 # License

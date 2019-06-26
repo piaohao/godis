@@ -23,19 +23,19 @@ func GoID() (int, error) {
 }
 
 type Locker interface {
-	TryLock(key string) (bool, error)
-	UnLock() error
+	TryLock(key string) (*lock, error)
+	UnLock(lock *lock) error
+}
+
+type lock struct {
+	Name string
 }
 
 type locker struct {
 	timeout time.Duration
 
-	ch    chan bool
-	state int32
-
-	key  string
+	ch   chan bool
 	pool *Pool
-
 	vMap map[int]string
 }
 
@@ -46,12 +46,6 @@ func NewLocker(option *Option, lockOption *LockOption) *locker {
 	if lockOption.Timeout.Nanoseconds() == 0 {
 		lockOption.Timeout = 5 * time.Second
 	}
-	//if lockOption.RetryCount <= 0 {
-	//	lockOption.RetryCount = 0
-	//}
-	//if lockOption.RetryDelay.Nanoseconds() == 0 {
-	//	lockOption.RetryDelay = 100 * time.Millisecond
-	//}
 	pool := NewPool(&PoolConfig{MaxTotal: 500}, option)
 	return &locker{
 		timeout: lockOption.Timeout,
@@ -63,51 +57,47 @@ func NewLocker(option *Option, lockOption *LockOption) *locker {
 
 type LockOption struct {
 	Timeout time.Duration
-	//RetryCount int
-	//RetryDelay time.Duration
 }
 
-func (l *locker) TryLock(key string) (bool, error) {
-	l.key = key
+func (l *locker) TryLock(key string) (*lock, error) {
 	deadline := time.Now().Add(l.timeout)
 	id, err := GoID()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	value := strconv.FormatInt(int64(id), 10) + "-" + strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
 		redis, err := l.pool.Get()
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 		if time.Now().After(deadline) {
-			return false, LockTimeoutErr
+			return nil, LockTimeoutErr
 		}
 		status, err := redis.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 		redis.Close()
 		if err == nil {
 			if status == KeywordOk.Name {
 				l.vMap[id] = value
-				return true, nil
+				return &lock{Name: key}, nil
 			}
 		}
-
 		select {
 		case <-l.ch:
 			continue
 		case <-time.After(l.timeout):
-			return false, LockTimeoutErr
+			return nil, LockTimeoutErr
 		}
 	}
 }
 
-func (l *locker) UnLock() error {
+func (l *locker) UnLock(lock *lock) error {
 	redis, err := l.pool.Get()
 	if err != nil {
 		return err
 	}
 	defer redis.Close()
-	v, err := redis.Get(l.key)
+	v, err := redis.Get(lock.Name)
 	if err != nil {
 		return err
 	}
@@ -120,7 +110,7 @@ func (l *locker) UnLock() error {
 		return nil
 	}
 	l.ch <- true
-	c, err := redis.Del(l.key)
+	c, err := redis.Del(lock.Name)
 	if err != nil {
 		return err
 	}
@@ -133,13 +123,10 @@ func (l *locker) UnLock() error {
 type clusterLocker struct {
 	timeout time.Duration
 
-	ch    chan int
-	state int32
-
-	key          string
+	ch           chan int
+	state        int32
 	redisCluster *RedisCluster
-
-	vMap map[int]string
+	vMap         map[int]string
 }
 
 func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLocker {
@@ -149,12 +136,6 @@ func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLoc
 	if lockOption.Timeout.Nanoseconds() == 0 {
 		lockOption.Timeout = 5 * time.Second
 	}
-	//if lockOption.RetryCount <= 0 {
-	//	lockOption.RetryCount = 0
-	//}
-	//if lockOption.RetryDelay.Nanoseconds() == 0 {
-	//	lockOption.RetryDelay = 500 * time.Millisecond
-	//}
 	return &clusterLocker{
 		timeout:      lockOption.Timeout,
 		ch:           make(chan int, 1),
@@ -163,40 +144,36 @@ func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLoc
 	}
 }
 
-var inCh int32 = 0
-var outCh int32 = 0
-
-func (l *clusterLocker) TryLock(key string) (bool, error) {
-	l.key = key
+func (l *clusterLocker) TryLock(key string) (*lock, error) {
 	deadline := time.Now().Add(l.timeout)
 	id, err := GoID()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	value := strconv.FormatInt(int64(id), 10) + "-" + strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
 		if time.Now().After(deadline) {
-			return false, LockTimeoutErr
+			return nil, LockTimeoutErr
 		}
 		if len(l.ch) == 0 {
 			status, err := l.redisCluster.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 			//get lock success
 			if err == nil && status == KeywordOk.Name {
 				l.vMap[id] = value
-				return true, nil
+				return &lock{Name: key}, nil
 			}
 		}
 		select {
 		case <-l.ch:
 			continue
 		case <-time.After(l.timeout):
-			return false, LockTimeoutErr
+			return nil, LockTimeoutErr
 		}
 	}
 }
 
-func (l *clusterLocker) UnLock() error {
-	v, err := l.redisCluster.Get(l.key)
+func (l *clusterLocker) UnLock(lock *lock) error {
+	v, err := l.redisCluster.Get(lock.Name)
 	if err != nil {
 		return err
 	}
@@ -209,7 +186,7 @@ func (l *clusterLocker) UnLock() error {
 		return nil
 	}
 	l.ch <- 1
-	c, err := l.redisCluster.Del(l.key)
+	c, err := l.redisCluster.Del(lock.Name)
 	if c == 0 {
 		return nil
 	}
