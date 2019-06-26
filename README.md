@@ -57,13 +57,13 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(&godis.Option{
+        option:=&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
-        })
-        pool := godis.NewPool(&godis.PoolConfig{}, factory)
-        redis, _ := pool.GetResource()
+        }
+        pool := godis.NewPool(&godis.PoolConfig{}, option)
+        redis, _ := pool.Get()
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
@@ -80,17 +80,16 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(&godis.Option{
+        option:=&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
-        })
-        pool := godis.NewPool(&godis.PoolConfig{}, factory)
+        }
+        pool := godis.NewPool(&godis.PoolConfig{}, option)
         go func() {
-            redis, _ := pool.GetResource()
+            redis, _ := pool.Get()
             defer redis.Close()
             pubsub := &godis.RedisPubSub{
-                Redis: redis,
                 OnMessage: func(channel, message string) {
                     println(channel, message)
                 },
@@ -105,7 +104,7 @@ require github.com/piaohao/godis latest
         }()
         time.Sleep(1 * time.Second)
         {
-            redis, _ := pool.GetResource()
+            redis, _ := pool.Get()
             defer redis.Close()
             redis.Publish("godis", "godis pubsub")
             redis.Close()
@@ -146,13 +145,13 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(&godis.Option{
+        option:=&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
-        })
-        pool := godis.NewPool(&godis.PoolConfig{}, factory)
-        redis, _ := pool.GetResource()
+        }
+        pool := godis.NewPool(&godis.PoolConfig{}, option)
+        redis, _ := pool.Get()
         defer redis.Close()
         p := redis.Pipelined()
         infoResp, _ := p.Info()
@@ -174,13 +173,13 @@ require github.com/piaohao/godis latest
     )
     
     func main() {
-        factory := godis.NewFactory(&godis.Option{
+        option:=&godis.Option{
             Host: "localhost",
             Port: 6379,
             Db:   0,
-        })
-        pool := godis.NewPool(nil, factory)
-        redis, _ := pool.GetResource()
+        }
+        pool := godis.NewPool(nil, option)
+        redis, _ := pool.Get()
         defer redis.Close()
         p, _ := redis.Multi()
         infoResp, _ := p.Info()

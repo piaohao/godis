@@ -147,7 +147,7 @@ func (r *redisInputStream) readLine() (string, error) {
 		}
 		b := r.buf[r.count]
 		r.count++
-		if b == 'r' {
+		if b == '\r' {
 			err := r.ensureFill()
 			if err != nil {
 				return "", err

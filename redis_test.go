@@ -1551,7 +1551,7 @@ func TestRedis_Incr(t *testing.T) {
 	flushAll()
 	pool := NewPool(nil, option)
 	i := 0
-	for ; i < 100000; i++ {
+	for ; i < 10000; i++ {
 		redis, err := pool.Get()
 		if err != nil {
 			t.Errorf("err happen,%v", err)
@@ -1574,8 +1574,8 @@ func TestRedis_Incr(t *testing.T) {
 		t.Errorf("err happen,%v", err)
 		return
 	}
-	if reply != "100000" {
-		t.Errorf("want 100000,but %s", reply)
+	if reply != "10000" {
+		t.Errorf("want 10000,but %s", reply)
 	}
 	redis.Close()
 }
@@ -1585,7 +1585,7 @@ func TestRedis_IncrBy(t *testing.T) {
 	pool := NewPool(nil, option)
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		group.Add(1)
 		go func() {
 			defer group.Done()
@@ -1615,8 +1615,8 @@ func TestRedis_IncrBy(t *testing.T) {
 		t.Errorf("err happen,%v", err)
 		return
 	}
-	if reply != "200000" {
-		t.Errorf("want 200000,but %s", reply)
+	if reply != "20000" {
+		t.Errorf("want 20000,but %s", reply)
 	}
 	redis.Close()
 }

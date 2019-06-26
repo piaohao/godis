@@ -1,10 +1,26 @@
 package godis
 
 import (
+	"errors"
+	"fmt"
+	"runtime"
 	"strconv"
-	"sync/atomic"
+	"strings"
 	"time"
 )
+
+var LockTimeoutErr = errors.New("get lock timeout")
+
+func GoID() (int, error) {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("cannot get goroutine id: %v", err))
+	}
+	return id, nil
+}
 
 type Locker interface {
 	TryLock(key string) (bool, error)
@@ -13,14 +29,14 @@ type Locker interface {
 
 type locker struct {
 	timeout time.Duration
-	//retryCount int
-	//retryDelay time.Duration
 
 	ch    chan bool
 	state int32
 
 	key  string
 	pool *Pool
+
+	vMap map[int]string
 }
 
 func NewLocker(option *Option, lockOption *LockOption) *locker {
@@ -30,105 +46,100 @@ func NewLocker(option *Option, lockOption *LockOption) *locker {
 	if lockOption.Timeout.Nanoseconds() == 0 {
 		lockOption.Timeout = 5 * time.Second
 	}
-	if lockOption.RetryCount <= 0 {
-		lockOption.RetryCount = 0
-	}
-	if lockOption.RetryDelay.Nanoseconds() == 0 {
-		lockOption.RetryDelay = 100 * time.Millisecond
-	}
+	//if lockOption.RetryCount <= 0 {
+	//	lockOption.RetryCount = 0
+	//}
+	//if lockOption.RetryDelay.Nanoseconds() == 0 {
+	//	lockOption.RetryDelay = 100 * time.Millisecond
+	//}
 	pool := NewPool(&PoolConfig{MaxTotal: 500}, option)
 	return &locker{
 		timeout: lockOption.Timeout,
-		//retryCount: lockOption.RetryCount,
-		//retryDelay: lockOption.RetryDelay,
-		ch:   make(chan bool, 1),
-		pool: pool,
+		ch:      make(chan bool, 1),
+		pool:    pool,
+		vMap:    make(map[int]string),
 	}
 }
 
 type LockOption struct {
-	Timeout    time.Duration
-	RetryCount int
-	RetryDelay time.Duration
+	Timeout time.Duration
+	//RetryCount int
+	//RetryDelay time.Duration
 }
-
-var m int32 = 0
-var n int32 = 0
 
 func (l *locker) TryLock(key string) (bool, error) {
 	l.key = key
 	deadline := time.Now().Add(l.timeout)
-	value := deadline.UnixNano()
+	id, err := GoID()
+	if err != nil {
+		return false, err
+	}
+	value := strconv.FormatInt(int64(id), 10) + "-" + strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
 		redis, err := l.pool.Get()
-		//println(1)
 		if err != nil {
 			return false, err
 		}
-		status, err := redis.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-		//println(2)
+		if time.Now().After(deadline) {
+			return false, LockTimeoutErr
+		}
+		status, err := redis.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 		redis.Close()
-		//get lock success
 		if err == nil {
-			//println(3)
-
-			//println(4)
 			if status == KeywordOk.Name {
-				//fmt.Printf("m:%d\n", atomic.AddInt32(&m, 1))
+				l.vMap[id] = value
 				return true, nil
 			}
 		}
 
-		//fmt.Printf("l.state:%d\n", atomic.AddInt32(&l.state, 1))
-		atomic.AddInt32(&l.state, 1)
 		select {
 		case <-l.ch:
-			atomic.AddInt32(&l.state, -1)
 			continue
 		case <-time.After(l.timeout):
-			//fmt.Printf("n:%d\n", atomic.AddInt32(&n, 1))
-			atomic.AddInt32(&l.state, -1)
-			return false, nil
+			return false, LockTimeoutErr
 		}
 	}
 }
-
-var i int32 = 0
-var j int32 = 0
 
 func (l *locker) UnLock() error {
 	redis, err := l.pool.Get()
 	if err != nil {
 		return err
 	}
-	//fmt.Printf("i:%d\n", atomic.AddInt32(&i, 1))
+	defer redis.Close()
+	v, err := redis.Get(l.key)
+	if err != nil {
+		return err
+	}
+	arr := strings.Split(v, "-")
+	if len(arr) < 1 {
+		return nil
+	}
+	goid, _ := strconv.Atoi(arr[0])
+	if l.vMap[goid] != v {
+		return nil
+	}
+	l.ch <- true
 	c, err := redis.Del(l.key)
-	//fmt.Printf("j:%d\n", atomic.AddInt32(&j, 1))
-	//fmt.Printf("state:%d\n", atomic.LoadInt32(&l.state))
-	redis.Close()
 	if err != nil {
 		return err
 	}
 	if c == 0 {
 		return nil
 	}
-	if atomic.LoadInt32(&l.state) > 0 {
-		//fmt.Printf("j:%d\n", atomic.AddInt32(&j, 1))
-		l.ch <- true
-	}
 	return nil
 }
 
 type clusterLocker struct {
 	timeout time.Duration
-	//retryCount int
-	//retryDelay time.Duration
 
-	ch    chan bool
+	ch    chan int
 	state int32
 
 	key          string
 	redisCluster *RedisCluster
+
+	vMap map[int]string
 }
 
 func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLocker {
@@ -138,50 +149,69 @@ func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLoc
 	if lockOption.Timeout.Nanoseconds() == 0 {
 		lockOption.Timeout = 5 * time.Second
 	}
-	if lockOption.RetryCount <= 0 {
-		lockOption.RetryCount = 0
-	}
-	if lockOption.RetryDelay.Nanoseconds() == 0 {
-		lockOption.RetryDelay = 500 * time.Millisecond
-	}
+	//if lockOption.RetryCount <= 0 {
+	//	lockOption.RetryCount = 0
+	//}
+	//if lockOption.RetryDelay.Nanoseconds() == 0 {
+	//	lockOption.RetryDelay = 500 * time.Millisecond
+	//}
 	return &clusterLocker{
-		timeout: lockOption.Timeout,
-		//retryCount: lockOption.RetryCount,
-		//retryDelay: lockOption.RetryDelay,
-		ch:           make(chan bool, 1),
+		timeout:      lockOption.Timeout,
+		ch:           make(chan int, 1),
 		redisCluster: NewRedisCluster(option),
+		vMap:         make(map[int]string),
 	}
 }
+
+var inCh int32 = 0
+var outCh int32 = 0
 
 func (l *clusterLocker) TryLock(key string) (bool, error) {
 	l.key = key
 	deadline := time.Now().Add(l.timeout)
-	value := deadline.UnixNano()
+	id, err := GoID()
+	if err != nil {
+		return false, err
+	}
+	value := strconv.FormatInt(int64(id), 10) + "-" + strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
-		status, err := l.redisCluster.SetWithParamsAndTime(key, strconv.FormatInt(value, 10), "nx", "px", l.timeout.Nanoseconds()/1e6)
-		//get lock success
-		if err == nil && status == KeywordOk.Name {
-			return true, nil
+		if time.Now().After(deadline) {
+			return false, LockTimeoutErr
 		}
-		atomic.AddInt32(&l.state, 1)
+		if len(l.ch) == 0 {
+			status, err := l.redisCluster.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
+			//get lock success
+			if err == nil && status == KeywordOk.Name {
+				l.vMap[id] = value
+				return true, nil
+			}
+		}
 		select {
 		case <-l.ch:
-			atomic.AddInt32(&l.state, -1)
 			continue
 		case <-time.After(l.timeout):
-			atomic.AddInt32(&l.state, -1)
-			return false, nil
+			return false, LockTimeoutErr
 		}
 	}
 }
 
 func (l *clusterLocker) UnLock() error {
+	v, err := l.redisCluster.Get(l.key)
+	if err != nil {
+		return err
+	}
+	arr := strings.Split(v, "-")
+	if len(arr) < 1 {
+		return nil
+	}
+	goid, _ := strconv.Atoi(arr[0])
+	if l.vMap[goid] != v {
+		return nil
+	}
+	l.ch <- 1
 	c, err := l.redisCluster.Del(l.key)
 	if c == 0 {
 		return nil
-	}
-	if atomic.LoadInt32(&l.state) > 0 {
-		l.ch <- true
 	}
 	return err
 }
