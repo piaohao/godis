@@ -1552,7 +1552,7 @@ func TestRedis_Incr(t *testing.T) {
 	pool := NewPool(nil, option)
 	i := 0
 	for ; i < 10000; i++ {
-		redis, err := pool.Get()
+		redis, err := pool.GetResource()
 		if err != nil {
 			t.Errorf("err happen,%v", err)
 			return
@@ -1564,7 +1564,7 @@ func TestRedis_Incr(t *testing.T) {
 		}
 		redis.Close()
 	}
-	redis, err := pool.Get()
+	redis, err := pool.GetResource()
 	if err != nil {
 		t.Errorf("err happen,%v", err)
 		return
@@ -1590,7 +1590,7 @@ func TestRedis_IncrBy(t *testing.T) {
 		go func() {
 			defer group.Done()
 			ch <- true
-			redis, err := pool.Get()
+			redis, err := pool.GetResource()
 			if err != nil {
 				t.Errorf("err happen,%v", err)
 				return
@@ -1605,7 +1605,7 @@ func TestRedis_IncrBy(t *testing.T) {
 		}()
 	}
 	group.Wait()
-	redis, err := pool.Get()
+	redis, err := pool.GetResource()
 	if err != nil {
 		t.Errorf("err happen,%v", err)
 		return

@@ -288,35 +288,35 @@ func newProtocol(os *redisOutputStream, is *redisInputStream) *protocol {
 
 func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
 	if err := p.os.WriteByte(AsteriskByte); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	if _, err := p.os.writeIntCrLf(len(args) + 1); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	if err := p.os.WriteByte(DollarByte); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	if _, err := p.os.writeIntCrLf(len(command)); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	if _, err := p.os.Write(command); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	if _, err := p.os.writeCrLf(); err != nil {
-		return err
+		return NewConnectError(err.Error())
 	}
 	for _, arg := range args {
 		if err := p.os.WriteByte(DollarByte); err != nil {
-			return err
+			return NewConnectError(err.Error())
 		}
 		if _, err := p.os.writeIntCrLf(len(arg)); err != nil {
-			return err
+			return NewConnectError(err.Error())
 		}
 		if _, err := p.os.Write(arg); err != nil {
-			return err
+			return NewConnectError(err.Error())
 		}
 		if _, err := p.os.writeCrLf(); err != nil {
-			return err
+			return NewConnectError(err.Error())
 		}
 	}
 	return nil

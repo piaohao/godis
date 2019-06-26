@@ -6,7 +6,7 @@ func BenchmarkSet(b *testing.B) {
 	b.ResetTimer()
 	pool := NewPool(nil, option)
 	for i := 0; i < b.N; i++ {
-		redis, _ := pool.Get()
+		redis, _ := pool.GetResource()
 		redis.Set("godis", "good")
 		redis.Close()
 	}
@@ -16,7 +16,7 @@ func BenchmarkGet(b *testing.B) {
 	b.ResetTimer()
 	pool := NewPool(nil, option)
 	for i := 0; i < b.N; i++ {
-		redis, _ := pool.Get()
+		redis, _ := pool.GetResource()
 		redis.Get("godis")
 		redis.Close()
 	}
@@ -28,7 +28,7 @@ func BenchmarkIncr(b *testing.B) {
 	pool := NewPool(nil, option)
 	i := 0
 	for ; i < b.N; i++ {
-		redis, _ := pool.Get()
+		redis, _ := pool.GetResource()
 		redis.Incr("godis")
 		redis.Close()
 	}

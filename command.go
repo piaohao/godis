@@ -19,6 +19,30 @@ func (e *RedisError) Error() string {
 	return e.Message
 }
 
+type RedirectError struct {
+	Message string
+}
+
+func NewRedirectError(message string) *RedirectError {
+	return &RedirectError{Message: message}
+}
+
+func (e *RedirectError) Error() string {
+	return e.Message
+}
+
+type ClusterMaxAttemptsError struct {
+	Message string
+}
+
+func NewClusterMaxAttemptsError(message string) *ClusterMaxAttemptsError {
+	return &ClusterMaxAttemptsError{Message: message}
+}
+
+func (e *ClusterMaxAttemptsError) Error() string {
+	return e.Message
+}
+
 type NoReachableClusterNodeError struct {
 	Message string
 }

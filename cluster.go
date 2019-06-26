@@ -1,7 +1,6 @@
 package godis
 
 import (
-	"context"
 	"errors"
 	"math/rand"
 	"strconv"
@@ -81,7 +80,7 @@ func (r *redisClusterInfoCache) renewClusterSlots(redis *Redis) error {
 		return r.discoverClusterSlots(redis)
 	}
 	for _, jp := range r.getShuffledNodesPool() {
-		newRedis, err := jp.Get()
+		newRedis, err := jp.GetResource()
 		if err != nil {
 			continue
 		}
@@ -315,7 +314,7 @@ func newRedisClusterConnectionHandler(nodes []string, connectionTimeout, soTimeo
 func (r *redisClusterConnectionHandler) getConnection() (*Redis, error) {
 	pools := r.cache.getShuffledNodesPool()
 	for _, pool := range pools {
-		redis, err := pool.Get()
+		redis, err := pool.GetResource()
 		if err != nil {
 			continue
 		}
@@ -333,18 +332,18 @@ func (r *redisClusterConnectionHandler) getConnection() (*Redis, error) {
 func (r *redisClusterConnectionHandler) getConnectionFromSlot(slot int) (*Redis, error) {
 	connectionPool := r.cache.getSlotPool(slot)
 	if connectionPool != nil {
-		return connectionPool.Get()
+		return connectionPool.GetResource()
 	}
 	r.renewSlotCache()
 	connectionPool = r.cache.getSlotPool(slot)
 	if connectionPool != nil {
-		return connectionPool.Get()
+		return connectionPool.GetResource()
 	}
 	return r.getConnection()
 }
 
 func (r *redisClusterConnectionHandler) getConnectionFromNode(host string, port int) (*Redis, error) {
-	return r.cache.setupNodeIfNotExist(true, host, port).Get()
+	return r.cache.setupNodeIfNotExist(true, host, port).GetResource()
 }
 
 func (r *redisClusterConnectionHandler) getNodes() map[string]*Pool {
@@ -396,20 +395,20 @@ type redisClusterCommand struct {
 	MaxAttempts       int
 	ConnectionHandler *redisClusterConnectionHandler
 
-	ctx context.Context
+	//ctx context.Context
 
 	execute func(redis *Redis) (interface{}, error)
 }
 
 func newRedisClusterCommand(maxAttempts int, connectionHandler *redisClusterConnectionHandler) *redisClusterCommand {
-	return &redisClusterCommand{MaxAttempts: maxAttempts, ConnectionHandler: connectionHandler, ctx: context.Background()}
+	return &redisClusterCommand{MaxAttempts: maxAttempts, ConnectionHandler: connectionHandler}
 }
 
 func (r *redisClusterCommand) run(key string) (interface{}, error) {
 	if key == "" {
 		return nil, errors.New("no way to dispatch this command to Redis cluster")
 	}
-	return r.runWithRetries([]byte(key), r.MaxAttempts, false, false)
+	return r.runWithRetries([]byte(key), r.MaxAttempts, false, nil)
 }
 
 func (r *redisClusterCommand) runBatch(keyCount int, keys ...string) (interface{}, error) {
@@ -426,7 +425,7 @@ func (r *redisClusterCommand) runBatch(keyCount int, keys ...string) (interface{
 			}
 		}
 	}
-	return r.runWithRetries([]byte(keys[0]), r.MaxAttempts, false, false)
+	return r.runWithRetries([]byte(keys[0]), r.MaxAttempts, false, nil)
 }
 
 func (r *redisClusterCommand) runWithAnyNode() (interface{}, error) {
@@ -449,19 +448,31 @@ func (r *redisClusterCommand) releaseConnection(redis *Redis) error {
 	return nil
 }
 
-func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandomNode, asking bool) (interface{}, error) {
+func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandomNode bool, redirect error) (interface{}, error) {
 	if attempts <= 0 {
-		return nil, errors.New("too many cluster redirections")
+		return nil, NewClusterMaxAttemptsError("too many cluster redirections")
 	}
-	connection := new(Redis)
+	var connection *Redis
 	var err error
-	if asking {
-		connection = r.ctx.Value("redis").(*Redis)
-		_, err = connection.Asking()
-		if err != nil {
-			return nil, err
+	if redirect != nil {
+		switch redirect.(type) {
+		case *MovedDataError:
+			dataError := err.(*MovedDataError)
+			connection, err = r.ConnectionHandler.getConnectionFromNode(dataError.Host, dataError.Port)
+			if err != nil {
+				return nil, err
+			}
+		case *AskDataError:
+			dataError := err.(*AskDataError)
+			connection, err = r.ConnectionHandler.getConnectionFromNode(dataError.Host, dataError.Port)
+			if err != nil {
+				return nil, err
+			}
+			_, err = connection.Asking()
+			if err != nil {
+				return nil, err
+			}
 		}
-		asking = false
 	} else {
 		if tryRandomNode {
 			connection, err = r.ConnectionHandler.getConnection()
@@ -492,25 +503,25 @@ func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandom
 		connection = nil
 		if attempts <= 1 {
 			r.ConnectionHandler.renewSlotCache()
-			return nil, err
+			//return nil, err
 		}
-		return r.runWithRetries(key, attempts-1, tryRandomNode, asking)
+		return r.runWithRetries(key, attempts-1, tryRandomNode, redirect)
 	case *MovedDataError:
 		r.ConnectionHandler.renewSlotCache(connection)
 		r.releaseConnection(connection)
 		connection = nil
-		return r.runWithRetries(key, attempts-1, false, asking)
-	case *AskDataError:
-		r.releaseConnection(connection)
-		connection = nil
-		asking = true
-		dataError := err.(*AskDataError)
-		redis, err := r.ConnectionHandler.getConnectionFromNode(dataError.Host, dataError.Port)
-		if err != nil {
-			return nil, err
-		}
-		context.WithValue(r.ctx, "redis", redis)
-		return r.runWithRetries(key, attempts-1, false, asking)
+		return r.runWithRetries(key, attempts-1, false, err)
+		//case *AskDataError:
+		//	//r.releaseConnection(connection)
+		//	connection = nil
+		//	asking = true
+		//	dataError := err.(*AskDataError)
+		//	redis, err := r.ConnectionHandler.getConnectionFromNode(dataError.Host, dataError.Port)
+		//	if err != nil {
+		//		return nil, err
+		//	}
+		//	context.WithValue(r.ctx, "redis", redis)
+		//	return r.runWithRetries(key, attempts-1, false, asking)
 	}
 	return nil, err
 }

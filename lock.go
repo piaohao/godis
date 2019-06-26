@@ -67,7 +67,7 @@ func (l *locker) TryLock(key string) (*lock, error) {
 	}
 	value := strconv.FormatInt(int64(id), 10) + "-" + strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
-		redis, err := l.pool.Get()
+		redis, err := l.pool.GetResource()
 		if err != nil {
 			return nil, err
 		}
@@ -92,7 +92,7 @@ func (l *locker) TryLock(key string) (*lock, error) {
 }
 
 func (l *locker) UnLock(lock *lock) error {
-	redis, err := l.pool.Get()
+	redis, err := l.pool.GetResource()
 	if err != nil {
 		return err
 	}
@@ -185,6 +185,7 @@ func (l *clusterLocker) UnLock(lock *lock) error {
 	if l.vMap[goid] != v {
 		return nil
 	}
+	delete(l.vMap, goid)
 	l.ch <- 1
 	c, err := l.redisCluster.Del(lock.Name)
 	if c == 0 {

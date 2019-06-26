@@ -6504,7 +6504,6 @@ func Test_redisClusterCommand_releaseConnection(t *testing.T) {
 			r := &redisClusterCommand{
 				MaxAttempts:       tt.fields.MaxAttempts,
 				ConnectionHandler: tt.fields.ConnectionHandler,
-				ctx:               tt.fields.ctx,
 				execute:           tt.fields.execute,
 			}
 			if err := r.releaseConnection(tt.args.redis); (err != nil) != tt.wantErr {
@@ -6547,7 +6546,6 @@ func Test_redisClusterCommand_run(t *testing.T) {
 			r := &redisClusterCommand{
 				MaxAttempts:       tt.fields.MaxAttempts,
 				ConnectionHandler: tt.fields.ConnectionHandler,
-				ctx:               tt.fields.ctx,
 				execute:           tt.fields.execute,
 			}
 			got, err := r.run(tt.args.key)
@@ -6596,7 +6594,6 @@ func Test_redisClusterCommand_runBatch(t *testing.T) {
 			r := &redisClusterCommand{
 				MaxAttempts:       tt.fields.MaxAttempts,
 				ConnectionHandler: tt.fields.ConnectionHandler,
-				ctx:               tt.fields.ctx,
 				execute:           tt.fields.execute,
 			}
 			got, err := r.runBatch(tt.args.keyCount, tt.args.keys...)
@@ -6640,7 +6637,6 @@ func Test_redisClusterCommand_runWithAnyNode(t *testing.T) {
 			r := &redisClusterCommand{
 				MaxAttempts:       tt.fields.MaxAttempts,
 				ConnectionHandler: tt.fields.ConnectionHandler,
-				ctx:               tt.fields.ctx,
 				execute:           tt.fields.execute,
 			}
 			got, err := r.runWithAnyNode()
@@ -6691,10 +6687,9 @@ func Test_redisClusterCommand_runWithRetries(t *testing.T) {
 			r := &redisClusterCommand{
 				MaxAttempts:       tt.fields.MaxAttempts,
 				ConnectionHandler: tt.fields.ConnectionHandler,
-				ctx:               tt.fields.ctx,
 				execute:           tt.fields.execute,
 			}
-			got, err := r.runWithRetries(tt.args.key, tt.args.attempts, tt.args.tryRandomNode, tt.args.asking)
+			got, err := r.runWithRetries(tt.args.key, tt.args.attempts, tt.args.tryRandomNode, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("runWithRetries() error = %v, wantErr %v", err, tt.wantErr)
 				return
