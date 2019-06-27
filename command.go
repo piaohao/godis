@@ -6,155 +6,33 @@ import (
 	"strings"
 )
 
-// RedisError basic redis error
-type RedisError struct {
-	Message string
-}
-
-func NewRedisError(message string) *RedisError {
-	return &RedisError{Message: message}
-}
-
-func (e *RedisError) Error() string {
-	return e.Message
-}
-
-type RedirectError struct {
-	Message string
-}
-
-func NewRedirectError(message string) *RedirectError {
-	return &RedirectError{Message: message}
-}
-
-func (e *RedirectError) Error() string {
-	return e.Message
-}
-
-type ClusterMaxAttemptsError struct {
-	Message string
-}
-
-func NewClusterMaxAttemptsError(message string) *ClusterMaxAttemptsError {
-	return &ClusterMaxAttemptsError{Message: message}
-}
-
-func (e *ClusterMaxAttemptsError) Error() string {
-	return e.Message
-}
-
-type NoReachableClusterNodeError struct {
-	Message string
-}
-
-func NewNoReachableClusterNodeError(message string) *NoReachableClusterNodeError {
-	return &NoReachableClusterNodeError{Message: message}
-}
-
-func (e *NoReachableClusterNodeError) Error() string {
-	return e.Message
-}
-
-type MovedDataError struct {
-	Message string
-	Host    string
-	Port    int
-	Slot    int
-}
-
-func NewMovedDataError(message string, host string, port int, slot int) *MovedDataError {
-	return &MovedDataError{Message: message, Host: host, Port: port, Slot: slot}
-}
-
-func (e *MovedDataError) Error() string {
-	return e.Message
-}
-
-type AskDataError struct {
-	Message string
-	Host    string
-	Port    int
-	Slot    int
-}
-
-func NewAskDataError(message string, host string, port int, slot int) *AskDataError {
-	return &AskDataError{Message: message, Host: host, Port: port, Slot: slot}
-}
-
-func (e *AskDataError) Error() string {
-	return e.Message
-}
-
-type ClusterError struct {
-	Message string
-}
-
-func NewClusterError(message string) *ClusterError {
-	return &ClusterError{Message: message}
-}
-
-func (e *ClusterError) Error() string {
-	return e.Message
-}
-
-type BusyError struct {
-	Message string
-}
-
-func NewBusyError(message string) *BusyError {
-	return &BusyError{Message: message}
-}
-
-func (e *BusyError) Error() string {
-	return e.Message
-}
-
-type NoScriptError struct {
-	Message string
-}
-
-func NewNoScriptError(message string) *NoScriptError {
-	return &NoScriptError{Message: message}
-}
-
-func (e *NoScriptError) Error() string {
-	return e.Message
-}
-
-type DataError struct {
-	Message string
-}
-
-func NewDataError(message string) *DataError {
-	return &DataError{Message: message}
-}
-
-func (e *DataError) Error() string {
-	return e.Message
-}
-
-type ConnectError struct {
-	Message string
-}
-
-func NewConnectError(message string) *ConnectError {
-	return &ConnectError{Message: message}
-}
-
-func (e *ConnectError) Error() string {
-	return e.Message
-}
-
 //ZAddParams ...
 type ZAddParams struct {
-	XX     bool
-	NX     bool
-	CH     bool
 	params map[string]string
 }
 
+//NewZAddParams constructor
+func NewZAddParams() *ZAddParams {
+	return &ZAddParams{params: make(map[string]string)}
+}
+
+func (p *ZAddParams) XX() *ZAddParams {
+	p.params["XX"] = "XX"
+	return p
+}
+
+func (p *ZAddParams) NX() *ZAddParams {
+	p.params["NX"] = "NX"
+	return p
+}
+
+func (p *ZAddParams) CH() *ZAddParams {
+	p.params["CH"] = "CH"
+	return p
+}
+
 //GetByteParams ...
-func (p ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
+func (p *ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
 	arr := make([][]byte, 0)
 	arr = append(arr, key)
 	if p.Contains("XX") {
@@ -173,7 +51,7 @@ func (p ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
 }
 
 //Contains ...
-func (p ZAddParams) Contains(key string) bool {
+func (p *ZAddParams) Contains(key string) bool {
 	_, ok := p.params[key]
 	return ok
 }
@@ -190,12 +68,12 @@ type SortingParams struct {
 
 //ScanParams
 type ScanParams struct {
-	params map[keyword][]byte
+	params map[*keyword][]byte
 }
 
 //NewScanParams ...
 func NewScanParams() *ScanParams {
-	return &ScanParams{params: make(map[keyword][]byte)}
+	return &ScanParams{params: make(map[*keyword][]byte)}
 }
 
 //GetParams ...
@@ -228,8 +106,7 @@ func (s ScanParams) Count() int {
 
 //ListOption ...
 type ListOption struct {
-	// name  ...
-	Name string
+	Name string // name  ...
 }
 
 //GetRaw ...
@@ -249,8 +126,7 @@ var (
 
 //GeoUnit
 type GeoUnit struct {
-	// name ...
-	Name string
+	Name string // name ...
 }
 
 //GetRaw ...
@@ -336,8 +212,7 @@ type ScanResult struct {
 
 //ZParams ...
 type ZParams struct {
-	//name  ...
-	Name   string
+	Name   string //name  ...
 	params [][]byte
 }
 
@@ -589,8 +464,7 @@ func (r *RedisPubSub) processPong(reply []interface{}) {
 
 //BitOP ...
 type BitOP struct {
-	//name  ...
-	Name string
+	Name string //name  ...
 }
 
 //GetRaw ...
@@ -637,8 +511,7 @@ func NewDebugParamsReload() *DebugParams {
 
 //Reset ...
 type Reset struct {
-	//name  ...
-	Name string
+	Name string //name  ...
 }
 
 //GetRaw ...

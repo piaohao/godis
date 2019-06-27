@@ -1,303 +1,90 @@
 package godis
 
 import (
-	"reflect"
+	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestRedis_ConfigGet(t *testing.T) {
-
-	type args struct {
-		pattern string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    []string
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.ConfigGet(tt.args.pattern)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ConfigGet() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ConfigGet() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	redis := NewRedis(option)
+	defer redis.Close()
+	reply, err := redis.ConfigGet("timeout")
+	assert.Nil(t, err, "err is nil")
+	assert.Equal(t, []string{"timeout", "0"}, reply)
 }
 
 func TestRedis_ConfigSet(t *testing.T) {
-
-	type args struct {
-		parameter string
-		value     string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    string
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.ConfigSet(tt.args.parameter, tt.args.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ConfigSet() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ConfigSet() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	redis := NewRedis(option)
+	defer redis.Close()
+	reply, err := redis.ConfigSet("timeout", "30")
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", reply)
+	reply1, err := redis.ConfigGet("timeout")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"timeout", "30"}, reply1)
+	reply, err = redis.ConfigSet("timeout", "0")
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", reply)
+	reply1, err = redis.ConfigGet("timeout")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"timeout", "0"}, reply1)
 }
 
 func TestRedis_SlowlogGet(t *testing.T) {
-
-	type args struct {
-		entries []int64
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    []Slowlog
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.SlowlogGet(tt.args.entries...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SlowlogGet() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SlowlogGet() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	redis := NewRedis(option)
+	defer redis.Close()
+	_, err := redis.SlowlogGet()
+	assert.Nil(t, err)
 }
 
 func TestRedis_SlowlogLen(t *testing.T) {
-
-	tests := []struct {
-		name string
-
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.SlowlogLen()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SlowlogLen() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("SlowlogLen() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	redis := NewRedis(option)
+	defer redis.Close()
+	l, err := redis.SlowlogLen()
+	assert.Nil(t, err)
+	assert.True(t, l >= 0)
 }
 
 func TestRedis_SlowlogReset(t *testing.T) {
-
-	tests := []struct {
-		name string
-
-		want    string
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.SlowlogReset()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SlowlogReset() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("SlowlogReset() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	redis := NewRedis(option)
+	defer redis.Close()
+	str, err := redis.SlowlogReset()
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", str)
 }
 
 func TestRedis_ObjectEncoding(t *testing.T) {
-
-	type args struct {
-		str string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    string
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.ObjectEncoding(tt.args.str)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ObjectEncoding() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ObjectEncoding() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.Set("godis", "good")
+	encode, err := redis.ObjectEncoding("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, "embstr", encode)
+	redis.Set("godis", "12")
+	encode, err = redis.ObjectEncoding("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, "int", encode)
 }
 
 func TestRedis_ObjectIdletime(t *testing.T) {
-
-	type args struct {
-		str string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.ObjectIdletime(tt.args.str)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ObjectIdletime() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ObjectIdletime() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.Set("godis", "good")
+	time.Sleep(1000 * time.Millisecond)
+	idle, err := redis.ObjectIdletime("godis")
+	assert.Nil(t, err)
+	assert.True(t, idle > 0)
 }
 
 func TestRedis_ObjectRefcount(t *testing.T) {
-
-	type args struct {
-		str string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    int64
-		wantErr bool
-	}{
-		/*{
-			name: "append",
-
-			args: args{
-				key:   "a",
-				value: "b",
-			},
-			want:    1,
-			wantErr: false,
-		},*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.ObjectRefcount(tt.args.str)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ObjectRefcount() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("ObjectRefcount() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.Set("godis", "good")
+	count, err := redis.ObjectRefcount("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), count)
 }

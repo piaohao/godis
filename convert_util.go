@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-//BoolToByteArray ...
+//BoolToByteArray convert bool to byte array
 func BoolToByteArray(a bool) []byte {
 	if a {
 		return BytesTrue
@@ -14,37 +14,37 @@ func BoolToByteArray(a bool) []byte {
 	return BytesFalse
 }
 
-//IntToByteArray ...
+//IntToByteArray convert int to byte array
 func IntToByteArray(a int) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, int64(a), 10)
 }
 
-//Int64ToByteArray ...
+//Int64ToByteArray  convert int64 to byte array
 func Int64ToByteArray(a int64) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, a, 10)
 }
 
-//Float64ToByteArray ...
+//Float64ToByteArray convert float64 to byte array
 func Float64ToByteArray(a float64) []byte {
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], math.Float64bits(a))
 	return buf[:]
 }
 
-//ByteArrayToFloat64 ...
+//ByteArrayToFloat64 convert byte array to float64
 func ByteArrayToFloat64(bytes []byte) float64 {
 	bits := binary.LittleEndian.Uint64(bytes)
 	return math.Float64frombits(bits)
 }
 
-//ByteArrayToInt64 ...
+//ByteArrayToInt64 convert byte array to int64
 func ByteArrayToInt64(bytes []byte) uint64 {
 	return binary.LittleEndian.Uint64(bytes)
 }
 
-//StringStringArrayToByteArray ...
+//StringStringArrayToByteArray convert string and string array to byte array
 func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	params := make([][]byte, 0)
 	params = append(params, []byte(str))
@@ -54,7 +54,7 @@ func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	return params
 }
 
-//StringStringArrayToStringArray ...
+//StringStringArrayToStringArray convert string and string array to string array
 func StringStringArrayToStringArray(str string, arr []string) []string {
 	params := make([]string, 0)
 	params = append(params, str)
@@ -64,7 +64,7 @@ func StringStringArrayToStringArray(str string, arr []string) []string {
 	return params
 }
 
-//StringArrayToByteArray ...
+//StringArrayToByteArray convert string array to byte array list
 func StringArrayToByteArray(arr []string) [][]byte {
 	newArr := make([][]byte, 0)
 	for _, a := range arr {
@@ -73,7 +73,7 @@ func StringArrayToByteArray(arr []string) [][]byte {
 	return newArr
 }
 
-//StringToFloat64Reply ...
+//StringToFloat64Reply convert string reply to float64 reply
 func StringToFloat64Reply(reply string, err error) (float64, error) {
 	if err != nil {
 		return 0, err
@@ -85,7 +85,7 @@ func StringToFloat64Reply(reply string, err error) (float64, error) {
 	return f, nil
 }
 
-//StringArrayToMapReply ...
+//StringArrayToMapReply convert string array reply to map reply
 func StringArrayToMapReply(reply []string, err error) (map[string]string, error) {
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func StringArrayToMapReply(reply []string, err error) (map[string]string, error)
 	return newMap, nil
 }
 
-//Int64ToBoolReply ...
+//Int64ToBoolReply convert int64 reply to bool reply
 func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	if err != nil {
 		return false, err
@@ -105,15 +105,15 @@ func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	return reply == 1, nil
 }
 
-//ByteToStringReply ...
-func ByteToStringReply(reply []byte, err error) (string, error) {
+//ByteToStringReply convert byte array reply to string reply
+func ByteArrToStringReply(reply []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
 	return string(reply), nil
 }
 
-//StringArrToTupleReply ...
+//StringArrToTupleReply convert string array reply to tuple array reply
 func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 	if len(reply) == 0 {
 		return []Tuple{}, nil
@@ -129,7 +129,7 @@ func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 	return newArr, err
 }
 
-//ObjectArrToScanResultReply ...
+//ObjectArrToScanResultReply convert object array reply to scanresult reply
 func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -142,7 +142,7 @@ func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, er
 	return &ScanResult{Cursor: nexCursor, Results: result}, err
 }
 
-//ObjectArrToGeoCoordinateReply ...
+//ObjectArrToGeoCoordinateReply convert object array reply to GeoCoordinate reply
 func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -162,7 +162,7 @@ func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordi
 	return arr, err
 }
 
-//ObjectArrToMapArrayReply ...
+//ObjectArrToMapArrayReply convert object array reply to map array reply
 func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]string, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
@@ -204,7 +204,7 @@ func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 
 //<editor-fold desc="cluster reply convert">
 
-//ToStringReply ...
+//ToStringReply convert object reply to string reply
 func ToStringReply(reply interface{}, err error) (string, error) {
 	if err != nil {
 		return "", err
@@ -212,7 +212,7 @@ func ToStringReply(reply interface{}, err error) (string, error) {
 	return reply.(string), nil
 }
 
-//ToInt64Reply ...
+//ToInt64Reply convert object reply to int64 reply
 func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	if err != nil {
 		return 0, err
@@ -220,7 +220,7 @@ func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	return reply.(int64), nil
 }
 
-//ToInt64ArrayReply ...
+//ToInt64ArrayReply convert object reply to int64 array reply
 func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
 	if err != nil {
 		return nil, err
@@ -228,7 +228,7 @@ func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
 	return reply.([]int64), nil
 }
 
-//ToBoolReply ...
+//ToBoolReply convert object reply to bool reply
 func ToBoolReply(reply interface{}, err error) (bool, error) {
 	if err != nil {
 		return false, err
@@ -236,7 +236,7 @@ func ToBoolReply(reply interface{}, err error) (bool, error) {
 	return reply.(bool), nil
 }
 
-//ToFloat64Reply ...
+//ToFloat64Reply convert object reply to float64 reply
 func ToFloat64Reply(reply interface{}, err error) (float64, error) {
 	if err != nil {
 		return 0, err
@@ -244,7 +244,7 @@ func ToFloat64Reply(reply interface{}, err error) (float64, error) {
 	return reply.(float64), nil
 }
 
-//ToBoolArrayReply ...
+//ToBoolArrayReply convert object reply to bool array reply
 func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
 	if err != nil {
 		return nil, err
@@ -252,7 +252,7 @@ func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
 	return reply.([]bool), nil
 }
 
-//ToStringArrayReply ...
+//ToStringArrayReply convert object reply to string array reply
 func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
 	return reply.([]string), nil
 }
 
-//ToScanResultReply ...
+//ToScanResultReply convert object reply to scanresult reply
 func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
 	if err != nil {
 		return nil, err
@@ -268,7 +268,7 @@ func ToScanResultReply(reply interface{}, err error) (*ScanResult, error) {
 	return reply.(*ScanResult), nil
 }
 
-//ToMapReply ...
+//ToMapReply convert object reply to map reply
 func ToMapReply(reply interface{}, err error) (map[string]string, error) {
 	if err != nil {
 		return nil, err
@@ -276,7 +276,7 @@ func ToMapReply(reply interface{}, err error) (map[string]string, error) {
 	return reply.(map[string]string), nil
 }
 
-//ToTupleArrayReply ...
+//ToTupleArrayReply convert object reply to tuple array reply
 func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
 	if err != nil {
 		return nil, err
@@ -284,7 +284,7 @@ func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
 	return reply.([]Tuple), nil
 }
 
-//ToGeoArrayReply ...
+//ToGeoArrayReply convert object reply to geocoordinate array reply
 func ToGeoArrayReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil {
 		return nil, err
@@ -300,12 +300,9 @@ type Builder interface {
 }
 
 var (
-	//convert interface to string
-	StringBuilder = newStringBuilder()
-	//convert interface to int64
-	Int64Builder = newInt64Builder()
-	//convert interface to string array
-	StringArrayBuilder = newStringArrayBuilder()
+	StringBuilder      = newStringBuilder()      //convert interface to string
+	Int64Builder       = newInt64Builder()       //convert interface to int64
+	StringArrayBuilder = newStringArrayBuilder() //convert interface to string array
 )
 
 type stringBuilder struct {

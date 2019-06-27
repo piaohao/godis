@@ -13,7 +13,7 @@ func TestRedisCluster_Lock(t *testing.T) {
 	var group sync.WaitGroup
 	locker := NewClusterLocker(clusterOption, nil)
 	ch := make(chan bool, 4)
-	total := 100000
+	total := 10000
 	timeoutCount := 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
@@ -47,6 +47,8 @@ func TestRedisCluster_Lock(t *testing.T) {
 				} else {
 					timeoutCount++
 				}
+			} else {
+				timeoutCount++
 			}
 			<-ch
 		}()
@@ -82,6 +84,7 @@ func TestRedis_Lock(t *testing.T) {
 				}
 			} else {
 				fmt.Printf("%v\n", err)
+				timeoutCount++
 			}
 			<-ch
 		}()

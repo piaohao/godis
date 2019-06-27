@@ -31,11 +31,11 @@ func newClient(option *Option) *client {
 }
 
 func (c *client) host() string {
-	return c.connection.Host
+	return c.connection.host
 }
 
 func (c *client) port() int {
-	return c.connection.Port
+	return c.connection.port
 }
 
 //Receive
@@ -473,6 +473,10 @@ func (c *client) zrangeByScore(key, min, max string) error {
 	return c.sendCommand(CmdZrangebyscore, []byte(key), []byte(min), []byte(max))
 }
 
+func (c *client) zrangeByScoreWithScores(key, min, max string) error {
+	return c.sendCommand(CmdZrangebyscore, []byte(key), []byte(min), []byte(max), KeywordWithscores.GetRaw())
+}
+
 func (c *client) zrevrangeByScore(key, max, min string) error {
 	return c.sendCommand(CmdZrevrangebyscore, []byte(key), []byte(max), []byte(min))
 }
@@ -699,13 +703,14 @@ func (c *client) migrate(host string, port int, key string, destinationDb int, t
 }
 
 func (c *client) hincrByFloat(key, field string, increment float64) error {
-	incrBytes := make([]byte, 0)
+	var incrBytes []byte
 	if math.IsInf(increment, 1) {
 		incrBytes = []byte("+inf")
 	} else if math.IsInf(increment, -1) {
 		incrBytes = []byte("-inf")
+	} else {
+		incrBytes = []byte(strconv.FormatFloat(increment, 'f', -1, 64))
 	}
-	incrBytes = []byte(strconv.FormatFloat(increment, 'f', -1, 64))
 	return c.sendCommand(CmdHincrbyfloat, []byte(key), []byte(field), incrBytes)
 }
 

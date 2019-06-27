@@ -556,8 +556,7 @@ func TestRedis_Slaveof(t *testing.T) {
 
 func TestRedis_SlaveofNoOne(t *testing.T) {
 	tests := []struct {
-		name string
-
+		name    string
 		want    string
 		wantErr bool
 	}{
@@ -577,26 +576,6 @@ func TestRedis_SlaveofNoOne(t *testing.T) {
 			}
 			t.Log(got)
 			r.Close()
-		})
-	}
-}
-
-func TestRedis_GetDB(t *testing.T) {
-	tests := []struct {
-		name string
-		want int
-	}{
-		{
-			name: "GetDB",
-			want: 0,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			if got := r.GetDB(); got != tt.want {
-				t.Errorf("GetDB() = %v, want %v", got, tt.want)
-			}
 		})
 	}
 }

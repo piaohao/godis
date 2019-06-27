@@ -1,42 +1,43 @@
 package godis
 
-import "errors"
+import "sync"
 
+// pipleline and transaction response,include replys from redis
 type response struct {
-	response interface{}
+	response interface{} //store replys
 
-	building bool
-	built    bool
-	set      bool
+	building bool //whether response is building
+	built    bool //whether response is build done
+	isSet    bool //whether response is set with data
 
-	builder    Builder
-	data       interface{}
-	dependency *response
+	builder    Builder     //response data convert rule
+	data       interface{} //real data
+	dependency *response   //response cycle dependency
 }
 
 func newResponse() *response {
 	return &response{
 		building: false,
 		built:    false,
-		set:      false,
+		isSet:    false,
 	}
 }
 
-func (r *response) set_(data interface{}) {
+func (r *response) set(data interface{}) {
 	r.data = data
-	r.set = true
+	r.isSet = true
 }
 
 //Get get real content of response
 func (r *response) Get() (interface{}, error) {
-	if r.dependency != nil && r.dependency.set && !r.dependency.built {
+	if r.dependency != nil && r.dependency.isSet && !r.dependency.built {
 		err := r.dependency.build()
 		if err != nil {
 			return nil, err
 		}
 	}
-	if !r.set {
-		return nil, errors.New("please close pipeline or multi block before calling this method")
+	if !r.isSet {
+		return nil, newDataError("please close pipeline or multi block before calling this method")
 	}
 	if !r.built {
 		err := r.build()
@@ -80,7 +81,7 @@ func newTransaction(c *client) *transaction {
 	return &transaction{multiKeyPipelineBase: base}
 }
 
-//Clear ...
+//Clear  clear
 func (t *transaction) Clear() (string, error) {
 	if t.inTransaction {
 		return t.Discard()
@@ -180,6 +181,7 @@ func (p *pipeline) Sync() error {
 
 type queable struct {
 	pipelinedResponses []*response
+	mu                 sync.Mutex
 }
 
 func newQueable() *queable {
@@ -187,16 +189,20 @@ func newQueable() *queable {
 }
 
 func (q *queable) clean() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 	q.pipelinedResponses = make([]*response, 0)
 }
 
 func (q *queable) generateResponse(data interface{}) *response {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 	size := len(q.pipelinedResponses)
 	if size == 0 {
 		return nil
 	}
 	r := q.pipelinedResponses[0]
-	r.set_(data)
+	r.set(data)
 	if size == 1 {
 		q.pipelinedResponses = make([]*response, 0)
 	} else {
@@ -206,6 +212,8 @@ func (q *queable) generateResponse(data interface{}) *response {
 }
 
 func (q *queable) getResponse(builder Builder) *response {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 	response := newResponse()
 	response.builder = builder
 	q.pipelinedResponses = append(q.pipelinedResponses, response)
@@ -217,6 +225,8 @@ func (q *queable) hasPipelinedResponse() bool {
 }
 
 func (q *queable) getPipelinedResponseLength() int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 	return len(q.pipelinedResponses)
 }
 

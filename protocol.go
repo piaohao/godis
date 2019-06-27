@@ -2,9 +2,7 @@ package godis
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -73,6 +71,7 @@ var (
 	NegativeInfinityBytes = []byte("-inf")
 )
 
+// send message to redis
 type redisOutputStream struct {
 	*bufio.Writer
 	buf   []byte
@@ -98,6 +97,7 @@ func (r *redisOutputStream) writeCrLf() (int, error) {
 	return r.WriteString("\r\n")
 }
 
+// receive message from redis
 type redisInputStream struct {
 	*bufio.Reader
 	buf   []byte
@@ -129,11 +129,11 @@ func (r *redisInputStream) ensureFill() error {
 	var err error
 	r.limit, err = r.Read(r.buf)
 	if err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	r.count = 0
 	if r.limit == -1 {
-		return NewConnectError("Unexpected end of stream")
+		return newConnectError("Unexpected end of stream")
 	}
 	return nil
 }
@@ -164,7 +164,7 @@ func (r *redisInputStream) readLine() (string, error) {
 		}
 	}
 	if buf == "" {
-		return "", NewConnectError("It seems like server has closed the connection.")
+		return "", newConnectError("It seems like server has closed the connection.")
 	}
 	return buf, nil
 }
@@ -261,7 +261,7 @@ func (r *redisInputStream) readIntCrLf() (int64, error) {
 			c := buf[r.count]
 			r.count++
 			if c != '\n' {
-				return 0, NewConnectError("Unexpected character!")
+				return 0, newConnectError("Unexpected character!")
 			}
 			break
 		} else {
@@ -288,35 +288,35 @@ func newProtocol(os *redisOutputStream, is *redisInputStream) *protocol {
 
 func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
 	if err := p.os.WriteByte(AsteriskByte); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	if _, err := p.os.writeIntCrLf(len(args) + 1); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	if err := p.os.WriteByte(DollarByte); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	if _, err := p.os.writeIntCrLf(len(command)); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	if _, err := p.os.Write(command); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	if _, err := p.os.writeCrLf(); err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	for _, arg := range args {
 		if err := p.os.WriteByte(DollarByte); err != nil {
-			return NewConnectError(err.Error())
+			return newConnectError(err.Error())
 		}
 		if _, err := p.os.writeIntCrLf(len(arg)); err != nil {
-			return NewConnectError(err.Error())
+			return newConnectError(err.Error())
 		}
 		if _, err := p.os.Write(arg); err != nil {
-			return NewConnectError(err.Error())
+			return newConnectError(err.Error())
 		}
 		if _, err := p.os.writeCrLf(); err != nil {
-			return NewConnectError(err.Error())
+			return newConnectError(err.Error())
 		}
 	}
 	return nil
@@ -329,7 +329,7 @@ func (p *protocol) read() (interface{}, error) {
 func (p *protocol) process() (interface{}, error) {
 	b, err := p.is.readByte()
 	if err != nil {
-		return nil, NewConnectError(err.Error())
+		return nil, newConnectError(err.Error())
 	}
 	switch b {
 	case PlusByte:
@@ -343,30 +343,8 @@ func (p *protocol) process() (interface{}, error) {
 	case MinusByte:
 		return p.processError()
 	default:
-		return nil, NewConnectError(fmt.Sprintf("Unknown reply: %b", b))
+		return nil, newConnectError(fmt.Sprintf("Unknown reply: %b", b))
 	}
-
-	/*line, err := p.readLine()
-	if err != nil {
-		return nil, NewConnectError(err.Error())
-	}
-	if len(line) == 0 {
-		return nil, errors.New("short response line")
-	}
-	switch line[0] {
-	case PlusByte:
-		return p.processPlus(line)
-	case DollarByte:
-		return p.processDollar(line)
-	case AsteriskByte:
-		return p.processAsterisk(line)
-	case ColonByte:
-		return p.parseInt(line[1:])
-	case MinusByte:
-		return p.processMinus(line)
-	default:
-		return nil, NewConnectError(fmt.Sprint("Unknown reply: ", line[0]))
-	}*/
 }
 
 func (p *protocol) processStatusCodeReply() ([]byte, error) {
@@ -374,11 +352,11 @@ func (p *protocol) processStatusCodeReply() ([]byte, error) {
 }
 
 func (p *protocol) processBulkReply() ([]byte, error) {
-	len, err := p.is.readIntCrLf()
+	l, err := p.is.readIntCrLf()
 	if err != nil {
-		return nil, NewConnectError(err.Error())
+		return nil, newConnectError(err.Error())
 	}
-	if len == -1 {
+	if l == -1 {
 		return nil, nil
 	}
 	line := make([]byte, 0)
@@ -397,9 +375,8 @@ func (p *protocol) processBulkReply() ([]byte, error) {
 			c := p.is.buf[p.is.count]
 			p.is.count++
 			if c != '\n' {
-				return nil, NewConnectError("Unexpected character!")
+				return nil, newConnectError("Unexpected character!")
 			}
-			//line = append(line, c)
 			break
 		} else {
 			line = append(line, b)
@@ -409,17 +386,17 @@ func (p *protocol) processBulkReply() ([]byte, error) {
 }
 
 func (p *protocol) processMultiBulkReply() ([]interface{}, error) {
-	len, err := p.is.readIntCrLf()
+	l, err := p.is.readIntCrLf()
 	if err != nil {
-		return nil, NewConnectError(err.Error())
+		return nil, newConnectError(err.Error())
 	}
-	if len == -1 {
+	if l == -1 {
 		return nil, nil
 	}
 	ret := make([]interface{}, 0)
-	for i := 0; i < int(len); i++ {
+	for i := 0; i < int(l); i++ {
 		if obj, err := p.process(); err != nil {
-			ret = append(ret, NewDataError(err.Error()))
+			ret = append(ret, newDataError(err.Error()))
 		} else {
 			ret = append(ret, obj)
 		}
@@ -434,25 +411,25 @@ func (p *protocol) processInteger() (int64, error) {
 func (p *protocol) processError() (interface{}, error) {
 	msg, err := p.is.readLine()
 	if err != nil {
-		return nil, NewConnectError(err.Error())
+		return nil, newConnectError(err.Error())
 	}
 	if strings.HasPrefix(msg, MovedPrefix) {
 		host, port, slot := p.parseTargetHostAndSlot(msg)
-		return nil, NewMovedDataError(msg, host, port, slot)
+		return nil, newMovedDataError(msg, host, port, slot)
 	} else if strings.HasPrefix(msg, AskPrefix) {
 		host, port, slot := p.parseTargetHostAndSlot(msg)
-		return nil, NewAskDataError(msg, host, port, slot)
+		return nil, newAskDataError(msg, host, port, slot)
 	} else if strings.HasPrefix(msg, ClusterdownPrefix) {
-		return nil, NewClusterError(msg)
+		return nil, newClusterError(msg)
 	} else if strings.HasPrefix(msg, BusyPrefix) {
-		return nil, NewBusyError(msg)
+		return nil, newBusyError(msg)
 	} else if strings.HasPrefix(msg, NoscriptPrefix) {
-		return nil, NewNoScriptError(msg)
+		return nil, newNoScriptError(msg)
 	}
-	return nil, NewDataError(msg)
+	return nil, newDataError(msg)
 }
 
-func (p *protocol) processPlus(line []byte) (string, error) {
+/*func (p *protocol) processPlus(line []byte) (string, error) {
 	switch {
 	case len(line) == 3 && line[1] == 'O' && line[2] == 'K':
 		// Avoid allocation for frequent "+OK" response.
@@ -502,19 +479,19 @@ func (p *protocol) processMinus(line []byte) (interface{}, error) {
 	msg := string(line)
 	if strings.HasPrefix(msg, MovedPrefix) {
 		host, port, slot := p.parseTargetHostAndSlot(msg)
-		return nil, NewMovedDataError(msg, host, port, slot)
+		return nil, newMovedDataError(msg, host, port, slot)
 	} else if strings.HasPrefix(msg, AskPrefix) {
 		host, port, slot := p.parseTargetHostAndSlot(msg)
-		return nil, NewAskDataError(msg, host, port, slot)
+		return nil, newAskDataError(msg, host, port, slot)
 	} else if strings.HasPrefix(msg, ClusterdownPrefix) {
-		return nil, NewClusterError(msg)
+		return nil, newClusterError(msg)
 	} else if strings.HasPrefix(msg, BusyPrefix) {
-		return nil, NewBusyError(msg)
+		return nil, newBusyError(msg)
 	} else if strings.HasPrefix(msg, NoscriptPrefix) {
-		return nil, NewNoScriptError(msg)
+		return nil, newNoScriptError(msg)
 	}
-	return nil, NewDataError(msg)
-}
+	return nil, newDataError(msg)
+}*/
 
 func (p *protocol) parseTargetHostAndSlot(clusterRedirectResponse string) (string, int, int) {
 	arr := strings.Split(clusterRedirectResponse, " ")
@@ -537,86 +514,86 @@ func (p *protocol) extractParts(from string) (string, string) {
 	return host, port
 }
 
-func (p *protocol) readLine() ([]byte, error) {
-	// To avoid allocations, attempt to read the line using ReadSlice. This
-	// call typically succeeds. The known case where the call fails is when
-	// reading the output from the MONITOR command.
-	line, err := p.is.ReadSlice('\n')
-	if err == bufio.ErrBufferFull {
-		// The line does not fit in the bufio.Reader's buffer. Fall back to
-		// allocating a buffer for the line.
-		buf := append([]byte{}, line...)
-		for err == bufio.ErrBufferFull {
-			line, err = p.is.ReadSlice('\n')
-			buf = append(buf, line...)
-		}
-		line = buf
-	}
-	if err != nil {
-		return nil, err
-	}
-	i := len(line) - 2
-	if i < 0 || line[i] != '\r' {
-		return nil, errors.New("bad response line terminator")
-	}
-	return line[:i], nil
-}
+//func (p *protocol) readLine() ([]byte, error) {
+//	// To avoid allocations, attempt to read the line using ReadSlice. This
+//	// call typically succeeds. The known case where the call fails is when
+//	// reading the output from the MONITOR command.
+//	line, err := p.is.ReadSlice('\n')
+//	if err == bufio.ErrBufferFull {
+//		// The line does not fit in the bufio.Reader's buffer. Fall back to
+//		// allocating a buffer for the line.
+//		buf := append([]byte{}, line...)
+//		for err == bufio.ErrBufferFull {
+//			line, err = p.is.ReadSlice('\n')
+//			buf = append(buf, line...)
+//		}
+//		line = buf
+//	}
+//	if err != nil {
+//		return nil, err
+//	}
+//	i := len(line) - 2
+//	if i < 0 || line[i] != '\r' {
+//		return nil, errors.New("bad response line terminator")
+//	}
+//	return line[:i], nil
+//}
 
-func (p *protocol) parseLen(b []byte) (int, error) {
-	if len(b) == 0 {
-		return -1, errors.New("malformed length")
-	}
+//func (p *protocol) parseLen(b []byte) (int, error) {
+//	if len(b) == 0 {
+//		return -1, errors.New("malformed length")
+//	}
+//
+//	if b[0] == '-' && len(b) == 2 && b[1] == '1' {
+//		// handle $-1 and $-1 null replies.
+//		return -1, nil
+//	}
+//
+//	var n int
+//	for _, b := range b {
+//		n *= 10
+//		if b < '0' || b > '9' {
+//			return -1, errors.New("illegal bytes in length")
+//		}
+//		n += int(b - '0')
+//	}
+//
+//	return n, nil
+//}
 
-	if b[0] == '-' && len(b) == 2 && b[1] == '1' {
-		// handle $-1 and $-1 null replies.
-		return -1, nil
-	}
+//// parseInt parses an integer reply.
+//func (p *protocol) parseInt(b []byte) (int64, error) {
+//	if len(b) == 0 {
+//		return 0, errors.New("malformed integer")
+//	}
+//
+//	var negate bool
+//	if b[0] == '-' {
+//		negate = true
+//		b = b[1:]
+//		if len(b) == 0 {
+//			return 0, errors.New("malformed integer")
+//		}
+//	}
+//
+//	var n int64
+//	for _, a := range b {
+//		n *= 10
+//		if a < '0' || a > '9' {
+//			return 0, errors.New("illegal bytes in length")
+//		}
+//		n += int64(a - '0')
+//	}
+//
+//	if negate {
+//		n = -n
+//	}
+//	return n, nil
+//}
 
-	var n int
-	for _, b := range b {
-		n *= 10
-		if b < '0' || b > '9' {
-			return -1, errors.New("illegal bytes in length")
-		}
-		n += int(b - '0')
-	}
-
-	return n, nil
-}
-
-// parseInt parses an integer reply.
-func (p *protocol) parseInt(b []byte) (int64, error) {
-	if len(b) == 0 {
-		return 0, errors.New("malformed integer")
-	}
-
-	var negate bool
-	if b[0] == '-' {
-		negate = true
-		b = b[1:]
-		if len(b) == 0 {
-			return 0, errors.New("malformed integer")
-		}
-	}
-
-	var n int64
-	for _, a := range b {
-		n *= 10
-		if a < '0' || a > '9' {
-			return 0, errors.New("illegal bytes in length")
-		}
-		n += int64(a - '0')
-	}
-
-	if negate {
-		n = -n
-	}
-	return n, nil
-}
-
+// redis protocol command
 type protocolCommand struct {
-	// name of command
-	Name string
+	Name string // name of command
 }
 
 // GetRaw get name byte array
@@ -815,18 +792,18 @@ var (
 	CmdXclaim              = newProtocolCommand("XCLAIM")
 )
 
+// redis keyword
 type keyword struct {
-	// name of keyword
-	Name string
+	Name string // name of keyword
 }
 
 // GetRaw byte array of name
-func (k keyword) GetRaw() []byte {
+func (k *keyword) GetRaw() []byte {
 	return []byte(k.Name)
 }
 
-func newKeyword(name string) keyword {
-	return keyword{name}
+func newKeyword(name string) *keyword {
+	return &keyword{name}
 }
 
 var (

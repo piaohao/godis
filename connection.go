@@ -2,17 +2,16 @@ package godis
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"net"
 	"time"
 )
 
 type connection struct {
-	Host              string
-	Port              int
-	ConnectionTimeout time.Duration
-	SoTimeout         time.Duration
+	host              string
+	port              int
+	connectionTimeout time.Duration
+	soTimeout         time.Duration
 
 	socket            net.Conn
 	protocol          *protocol
@@ -34,10 +33,10 @@ func newConnection(host string, port int, connectionTimeout, soTimeout time.Dura
 		soTimeout = DefaultTimeout
 	}
 	return &connection{
-		Host:              host,
-		Port:              port,
-		ConnectionTimeout: connectionTimeout,
-		SoTimeout:         soTimeout,
+		host:              host,
+		port:              port,
+		connectionTimeout: connectionTimeout,
+		soTimeout:         soTimeout,
 		broken:            false,
 	}
 }
@@ -52,16 +51,16 @@ func (c *connection) setTimeoutInfinite() error {
 	err := c.socket.SetDeadline(time.Time{})
 	if err != nil {
 		c.broken = true
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	return nil
 }
 
 func (c *connection) rollbackTimeout() error {
-	err := c.socket.SetDeadline(time.Now().Add(c.ConnectionTimeout))
+	err := c.socket.SetDeadline(time.Now().Add(c.connectionTimeout))
 	if err != nil {
 		c.broken = true
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	return nil
 }
@@ -95,9 +94,9 @@ func (c *connection) sendCommandByStr(cmd string, args ...[]byte) error {
 }
 
 func (c *connection) readProtocolWithCheckingBroken() (interface{}, error) {
-	//if c.broken {
-	//	return nil, errors.New("attempting to read from a broken connection")
-	//}
+	if c.broken {
+		return nil, newConnectError("attempting to read from a broken connection")
+	}
 	read, err := c.protocol.read()
 	if err == nil {
 		return read, nil
@@ -123,7 +122,7 @@ func (c *connection) getStatusCodeReply() (string, error) {
 	case []byte:
 		return string(t), nil
 	default:
-		return "", errors.New("internal error")
+		return "", newDataError(fmt.Sprintf("data error:%v", reply))
 	}
 }
 
@@ -188,7 +187,7 @@ func (c *connection) getBinaryMultiBulkReply() ([][]byte, error) {
 }
 
 func (c *connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
-	reply, err := c.getOne()
+	reply, err := c.readProtocolWithCheckingBroken()
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +198,7 @@ func (c *connection) getUnflushedObjectMultiBulkReply() ([]interface{}, error) {
 }
 
 func (c *connection) getRawObjectMultiBulkReply() ([]interface{}, error) {
-	reply, err := c.readProtocolWithCheckingBroken()
-	if err != nil {
-		return nil, err
-	}
-	return reply.([]interface{}), nil
+	return c.getUnflushedObjectMultiBulkReply()
 }
 
 func (c *connection) getObjectMultiBulkReply() ([]interface{}, error) {
@@ -258,7 +253,7 @@ func (c *connection) flush() error {
 	err := c.protocol.os.Flush()
 	if err != nil {
 		c.broken = true
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	return nil
 }
@@ -267,13 +262,13 @@ func (c *connection) connect() error {
 	if c.isConnected() {
 		return nil
 	}
-	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.Host, ":", c.Port), c.ConnectionTimeout)
+	conn, err := net.DialTimeout("tcp", fmt.Sprint(c.host, ":", c.port), c.connectionTimeout)
 	if err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
-	err = conn.SetDeadline(time.Now().Add(c.SoTimeout))
+	err = conn.SetDeadline(time.Now().Add(c.soTimeout))
 	if err != nil {
-		return NewConnectError(err.Error())
+		return newConnectError(err.Error())
 	}
 	c.socket = conn
 	c.protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.socket)), newRedisInputStream(bufio.NewReader(c.socket)))

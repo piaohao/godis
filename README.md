@@ -63,7 +63,7 @@ require github.com/piaohao/godis latest
             Db:   0,
         }
         pool := godis.NewPool(&godis.PoolConfig{}, option)
-        redis, _ := pool.Get()
+        redis, _ := pool.GetResource()
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
@@ -87,7 +87,7 @@ require github.com/piaohao/godis latest
         }
         pool := godis.NewPool(&godis.PoolConfig{}, option)
         go func() {
-            redis, _ := pool.Get()
+            redis, _ := pool.GetResource()
             defer redis.Close()
             pubsub := &godis.RedisPubSub{
                 OnMessage: func(channel, message string) {
@@ -104,7 +104,7 @@ require github.com/piaohao/godis latest
         }()
         time.Sleep(1 * time.Second)
         {
-            redis, _ := pool.Get()
+            redis, _ := pool.GetResource()
             defer redis.Close()
             redis.Publish("godis", "godis pubsub")
             redis.Close()
@@ -151,7 +151,7 @@ require github.com/piaohao/godis latest
             Db:   0,
         }
         pool := godis.NewPool(&godis.PoolConfig{}, option)
-        redis, _ := pool.Get()
+        redis, _ := pool.GetResource()
         defer redis.Close()
         p := redis.Pipelined()
         infoResp, _ := p.Info()
@@ -179,7 +179,7 @@ require github.com/piaohao/godis latest
             Db:   0,
         }
         pool := godis.NewPool(nil, option)
-        redis, _ := pool.Get()
+        redis, _ := pool.GetResource()
         defer redis.Close()
         p, _ := redis.Multi()
         infoResp, _ := p.Info()
@@ -251,6 +251,7 @@ require github.com/piaohao/godis latest
 # Thanks
 * [jedis](https://github.com/xetorthio/jedis)
 * [gf](https://github.com/gogf/gf)
+* [go-commons-pool](https://github.com/jolestar/go-commons-pool)
 
 # Contact
 
