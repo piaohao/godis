@@ -1,6 +1,7 @@
 package godis
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"sync"
 	"testing"
@@ -940,54 +941,15 @@ func TestRedis_HincrBy(t *testing.T) {
 func TestRedis_HincrByFloat(t *testing.T) {
 	flushAll()
 	redis := NewRedis(option)
+	defer redis.Close()
 	redis.Hset("godis", "a", "1")
-	redis.Close()
-	type args struct {
-		key   string
-		field string
-		value float64
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    float64
-		wantErr bool
-	}{
-		{
-			name: "HincrByFloat",
-			args: args{
-				key:   "godis",
-				field: "a",
-				value: 1.5,
-			},
-			want:    2.5,
-			wantErr: false,
-		},
-		{
-			name: "HincrByFloat",
-			args: args{
-				key:   "godis",
-				field: "b",
-				value: 5.0987,
-			},
-			want:    5.0987,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			got, err := r.HincrByFloat(tt.args.key, tt.args.field, tt.args.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HincrByFloat() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("HincrByFloat() got = %v, want %v", got, tt.want)
-			}
-			r.Close()
-		})
-	}
+	ret, err := redis.HincrByFloat("godis", "a", 1.5)
+	assert.Nil(t, err)
+	assert.Equal(t, 2.5, ret)
+
+	ret, err = redis.HincrByFloat("godis", "b", 5.0987)
+	assert.Nil(t, err)
+	assert.Equal(t, 5.0987, ret)
 }
 
 func TestRedis_Hkeys(t *testing.T) {
@@ -1021,29 +983,21 @@ func TestRedis_Incr(t *testing.T) {
 	for ; i < 10000; i++ {
 		redis, err := pool.GetResource()
 		if err != nil {
-			t.Errorf("err happen,%v", err)
+			assert.Errorf(t, err, "err happen")
 			return
 		}
 		_, err = redis.Incr("godis")
-		if err != nil {
-			t.Errorf("err happen,%v", err)
-			return
-		}
+		assert.Nil(t, err)
 		redis.Close()
 	}
 	redis, err := pool.GetResource()
 	if err != nil {
-		t.Errorf("err happen,%v", err)
+		assert.Errorf(t, err, "err happen")
 		return
 	}
 	reply, err := redis.Get("godis")
-	if err != nil {
-		t.Errorf("err happen,%v", err)
-		return
-	}
-	if reply != "10000" {
-		t.Errorf("want 10000,but %s", reply)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, "10000", reply)
 	redis.Close()
 }
 
@@ -1052,21 +1006,18 @@ func TestRedis_IncrBy(t *testing.T) {
 	pool := NewPool(nil, option)
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100000; i++ {
 		group.Add(1)
+		ch <- true
 		go func() {
 			defer group.Done()
-			ch <- true
 			redis, err := pool.GetResource()
 			if err != nil {
-				t.Errorf("err happen,%v", err)
+				assert.Errorf(t, err, "err happen")
 				return
 			}
 			_, err = redis.IncrBy("godis", 2)
-			if err != nil {
-				t.Errorf("err happen,%v", err)
-				return
-			}
+			assert.Nil(t, err)
 			redis.Close()
 			<-ch
 		}()
@@ -1074,17 +1025,12 @@ func TestRedis_IncrBy(t *testing.T) {
 	group.Wait()
 	redis, err := pool.GetResource()
 	if err != nil {
-		t.Errorf("err happen,%v", err)
+		assert.Errorf(t, err, "err happen")
 		return
 	}
 	reply, err := redis.Get("godis")
-	if err != nil {
-		t.Errorf("err happen,%v", err)
-		return
-	}
-	if reply != "2000" {
-		t.Errorf("want 2000,but %s", reply)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, "200000", reply)
 	redis.Close()
 }
 
@@ -1179,44 +1125,12 @@ func TestRedis_SendByStr(t *testing.T) {
 }
 
 func TestRedis_Set(t *testing.T) {
-
-	type args struct {
-		key   string
-		value string
-	}
-	tests := []struct {
-		name string
-
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "set",
-
-			args: args{
-				key:   "godis",
-				value: "good",
-			},
-			want:    "OK",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(option)
-			r.Connect()
-			got, err := r.Set(tt.args.key, tt.args.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Set() got = %v, want %v", got, tt.want)
-			}
-			r.Close()
-		})
-	}
+	flushAll()
+	redis := NewRedis(option)
+	ret, err := redis.Set("godis", "good")
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", ret)
+	redis.Close()
 }
 
 func TestRedis_SetWithParams(t *testing.T) {

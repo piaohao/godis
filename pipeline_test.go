@@ -1,6 +1,7 @@
 package godis
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -69,6 +70,18 @@ func Test_multiKeyPipelineBase_DbSize(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Del(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Del("godis")
+	assert.Nil(t, err)
+	obj, err := ToInt64Reply(del.Get())
+	assert.NotNil(t, err)
+	//assert.Equal(t, int64(0), obj)
+	p.Sync()
+	obj, err = ToInt64Reply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), obj)
 }
 
 func Test_multiKeyPipelineBase_Eval(t *testing.T) {

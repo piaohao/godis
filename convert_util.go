@@ -330,7 +330,7 @@ func (b *int64Builder) build(data interface{}) interface{} {
 	if data == nil {
 		return ""
 	}
-	return ByteArrayToInt64(data.([]byte))
+	return data.(int64)
 }
 
 type stringArrayBuilder struct {
