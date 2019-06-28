@@ -2,7 +2,6 @@ package godis
 
 import (
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
@@ -77,11 +76,11 @@ func Test_multiKeyPipelineBase_Del(t *testing.T) {
 	assert.Nil(t, err)
 	obj, err := ToInt64Reply(del.Get())
 	assert.NotNil(t, err)
-	//assert.Equal(t, int64(0), obj)
 	p.Sync()
 	obj, err = ToInt64Reply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), obj)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_Eval(t *testing.T) {
@@ -91,47 +90,88 @@ func Test_multiKeyPipelineBase_Evalsha(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Exists(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
+
+	redis = NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Exists("godis")
+	assert.Nil(t, err)
+	del2, err := p.Exists("godis2")
+	assert.Nil(t, err)
+	p.Sync()
+	obj, err := ToInt64Reply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), obj)
+
+	obj, err = ToInt64Reply(del2.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), obj)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_FlushAll(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
+
+	redis = NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.FlushAll()
+	assert.Nil(t, err)
+	obj, err := ToStringReply(del.Get())
+	assert.NotNil(t, err)
+	p.Sync()
+	obj, err = ToStringReply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", obj)
+	redis.Close()
+
+	redis = NewRedis(option)
+	ret, _ := redis.Get("godis")
+	assert.Equal(t, "", ret)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_FlushDB(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	redis.Set("godis", "good")
+	redis.Close()
+
+	redis = NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.FlushDB()
+	assert.Nil(t, err)
+	obj, err := ToStringReply(del.Get())
+	assert.NotNil(t, err)
+	p.Sync()
+	obj, err = ToStringReply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", obj)
+	redis.Close()
+
+	redis = NewRedis(option)
+	ret, _ := redis.Get("godis")
+	assert.Equal(t, "", ret)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_Info(t *testing.T) {
-	tests := []struct {
-		name    string
-		want    *response
-		wantErr bool
-	}{
-		{
-			name: "keys",
-			want: &response{
-				builder: StringBuilder,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			redis := NewRedis(option)
-			p := redis.Pipelined()
-			got, err := p.Info()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Info() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Info() got = %v, want %v", got, tt.want)
-				return
-			}
-			reply, _ := got.Get()
-			if reply == "" {
-				t.Errorf("Info() got empty string , want not empty string")
-			}
-		})
-	}
+	flushAll()
+	redis := NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Info()
+	assert.Nil(t, err)
+	_, err = ToStringReply(del.Get())
+	assert.NotNil(t, err)
+	p.Sync()
+	_, err = ToStringReply(del.Get())
+	assert.Nil(t, err)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_Keys(t *testing.T) {
@@ -139,48 +179,18 @@ func Test_multiKeyPipelineBase_Keys(t *testing.T) {
 	redis := NewRedis(option)
 	redis.Set("godis", "good")
 	redis.Close()
-	type args struct {
-		pattern string
-	}
-	tests := []struct {
-		name string
 
-		args    args
-		want    *response
-		wantErr bool
-	}{
-		{
-			name: "keys",
-			args: args{
-				pattern: "*",
-			},
-			want: &response{
-				builder: StringArrayBuilder,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			redis := NewRedis(option)
-			p := redis.Pipelined()
-			got, err := p.Keys(tt.args.pattern)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Keys() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Keys() got = %v, want %v", got, tt.want)
-				return
-			}
-			p.Sync()
-			reply, _ := got.Get()
-			if !reflect.DeepEqual(reply, []string{"godis"}) {
-				t.Errorf("Keys() got = %v, want %v", got, []string{"godis"})
-			}
-			redis.Close()
-		})
-	}
+	redis = NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Keys("*")
+	assert.Nil(t, err)
+	obj, err := ToStringArrayReply(del.Get())
+	assert.NotNil(t, err)
+	p.Sync()
+	obj, err = ToStringArrayReply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"godis"}, obj)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_Lastsave(t *testing.T) {
@@ -202,9 +212,29 @@ func Test_multiKeyPipelineBase_Pfmerge(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Ping(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Ping()
+	assert.Nil(t, err)
+	p.Sync()
+	obj, err := ToStringReply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, "PONG", obj)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_Publish(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	p := redis.Pipelined()
+	del, err := p.Publish("godis", "good")
+	assert.Nil(t, err)
+	p.Sync()
+	obj, err := ToInt64Reply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), obj)
+	redis.Close()
 }
 
 func Test_multiKeyPipelineBase_RandomKey(t *testing.T) {
@@ -268,64 +298,4 @@ func Test_multiKeyPipelineBase_Zunionstore(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_ZunionstoreWithParams(t *testing.T) {
-}
-
-func Test_newMultiKeyPipelineBase(t *testing.T) {
-}
-
-func Test_newPipeline(t *testing.T) {
-}
-
-func Test_newQueable(t *testing.T) {
-}
-
-func Test_newResponse(t *testing.T) {
-}
-
-func Test_newTransaction(t *testing.T) {
-}
-
-func Test_pipeline_Sync(t *testing.T) {
-}
-
-func Test_queable_clean(t *testing.T) {
-}
-
-func Test_queable_generateResponse(t *testing.T) {
-}
-
-func Test_queable_getPipelinedResponseLength(t *testing.T) {
-}
-
-func Test_queable_getResponse(t *testing.T) {
-}
-
-func Test_queable_hasPipelinedResponse(t *testing.T) {
-}
-
-func Test_response_Get(t *testing.T) {
-}
-
-func Test_response_build(t *testing.T) {
-}
-
-func Test_response_setDependency(t *testing.T) {
-}
-
-func Test_response_set_(t *testing.T) {
-}
-
-func Test_transaction_Clear(t1 *testing.T) {
-}
-
-func Test_transaction_Discard(t1 *testing.T) {
-}
-
-func Test_transaction_Exec(t1 *testing.T) {
-}
-
-func Test_transaction_ExecGetResponse(t1 *testing.T) {
-}
-
-func Test_transaction_clean(t1 *testing.T) {
 }

@@ -2,6 +2,7 @@ package godis
 
 import (
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
@@ -61,29 +62,11 @@ func TestRedis_ClusterGetKeysInSlot(t *testing.T) {
 }
 
 func TestRedis_ClusterInfo(t *testing.T) {
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			name:    "ClusterInfo",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(&Option{
-				Host: "localhost",
-				Port: 7000,
-			})
-			got, err := r.ClusterInfo()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ClusterInfo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Log(got)
-		})
-	}
+	redis := NewRedis(option1)
+	defer redis.Close()
+	s, err := redis.ClusterInfo()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, s)
 }
 
 func TestRedis_ClusterKeySlot(t *testing.T) {
@@ -93,6 +76,17 @@ func TestRedis_ClusterMeet(t *testing.T) {
 }
 
 func TestRedis_ClusterNodes(t *testing.T) {
+	redis := NewRedis(option1)
+	defer redis.Close()
+	s, err := redis.ClusterNodes()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, s)
+	//t.Log(s)
+
+	nodeId := s[:strings.Index(s, " ")]
+	slaves, err := redis.ClusterSlaves(nodeId)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, slaves)
 }
 
 func TestRedis_ClusterReplicate(t *testing.T) {
@@ -116,31 +110,10 @@ func TestRedis_ClusterSetSlotNode(t *testing.T) {
 func TestRedis_ClusterSetSlotStable(t *testing.T) {
 }
 
-func TestRedis_ClusterSlaves(t *testing.T) {
-}
-
 func TestRedis_ClusterSlots(t *testing.T) {
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			name:    "ClusterSlots",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := NewRedis(&Option{
-				Host: "localhost",
-				Port: 7000,
-			})
-			got, err := r.ClusterSlots()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ClusterSlots() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Log(got)
-		})
-	}
+	redis := NewRedis(option1)
+	defer redis.Close()
+	s, err := redis.ClusterSlots()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, s)
 }

@@ -217,7 +217,16 @@ func (c *connection) getIntegerMultiBulkReply() ([]int64, error) {
 	if reply == nil {
 		return []int64{}, nil
 	}
-	return reply.([]int64), nil
+	switch reply.(type) {
+	case []interface{}:
+		arr := make([]int64, 0)
+		for _, item := range reply.([]interface{}) {
+			arr = append(arr, item.(int64))
+		}
+		return arr, nil
+	default:
+		return reply.([]int64), nil
+	}
 }
 
 func (c *connection) getOne() (interface{}, error) {

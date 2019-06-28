@@ -1048,7 +1048,7 @@ func (r *RedisCluster) Strlen(key string) (int64, error) {
 }
 
 //Zadd  wait complete
-func (r *RedisCluster) Zadd(key string, score float64, member string, params ...ZAddParams) (int64, error) {
+func (r *RedisCluster) Zadd(key string, score float64, member string, params ...*ZAddParams) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
 		return redis.Zadd(key, score, member, params...)
@@ -1057,7 +1057,7 @@ func (r *RedisCluster) Zadd(key string, score float64, member string, params ...
 }
 
 //ZaddByMap  wait complete
-func (r *RedisCluster) ZaddByMap(key string, scoreMembers map[string]float64, params ...ZAddParams) (int64, error) {
+func (r *RedisCluster) ZaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
 		return redis.ZaddByMap(key, scoreMembers, params...)
@@ -1084,7 +1084,7 @@ func (r *RedisCluster) Zrem(key string, member ...string) (int64, error) {
 }
 
 //Zincrby  wait complete
-func (r *RedisCluster) Zincrby(key string, score float64, member string, params ...ZAddParams) (float64, error) {
+func (r *RedisCluster) Zincrby(key string, score float64, member string, params ...*ZAddParams) (float64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
 		return redis.Zincrby(key, score, member, params...)
@@ -1458,21 +1458,21 @@ func (r *RedisCluster) Geopos(key string, members ...string) ([]*GeoCoordinate, 
 }
 
 //Georadius  wait complete
-func (r *RedisCluster) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+func (r *RedisCluster) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
 		return redis.Georadius(key, longitude, latitude, radius, unit, param...)
 	}
-	return ToGeoArrayReply(command.run(key))
+	return ToGeoRespArrayReply(command.run(key))
 }
 
 //GeoradiusByMember  wait complete
-func (r *RedisCluster) GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+func (r *RedisCluster) GeoradiusByMember(key string, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
 		return redis.GeoradiusByMember(key, member, radius, unit, param...)
 	}
-	return ToGeoArrayReply(command.run(key))
+	return ToGeoRespArrayReply(command.run(key))
 }
 
 //Bitfield  wait complete

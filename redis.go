@@ -76,11 +76,8 @@ func (r *Redis) SendByStr(command string, args ...[]byte) error {
 }
 
 // Receive receive reply from redis
-func (r *Redis) Receive() error {
-	if r != nil && r.client != nil {
-		return r.client.close()
-	}
-	return nil
+func (r *Redis) Receive() (interface{}, error) {
+	return r.client.getOne()
 }
 
 // check current redis is in transaction or pipeline mode
@@ -865,9 +862,6 @@ func (r *Redis) Ltrim(key string, start, stop int64) (string, error) {
 //If the value stored at key is not of list type an error is returned. If the index is out of
 //range a 'nil' reply is returned.
 //
-//Note that even if the average time complexity is O(n) asking for the first or the last element
-//of the list is O(1).
-//
 //return Bulk reply, specifically the requested element
 func (r *Redis) Lindex(key string, index int64) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
@@ -1219,7 +1213,7 @@ func (r *Redis) Srandmember(key string) (string, error) {
 //
 //return Integer reply, specifically: 1 if the new element was added 0 if the element was
 //        already a member of the sorted set and the score was updated
-func (r *Redis) Zadd(key string, score float64, member string, mparams ...ZAddParams) (int64, error) {
+func (r *Redis) Zadd(key string, score float64, member string, mparams ...*ZAddParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1291,7 +1285,7 @@ func (r *Redis) Zrem(key string, members ...string) (int64, error) {
 //For an introduction to sorted sets check the Introduction to Redis data types page.
 //
 //return The new score
-func (r *Redis) Zincrby(key string, increment float64, member string, params ...ZAddParams) (float64, error) {
+func (r *Redis) Zincrby(key string, increment float64, member string, params ...*ZAddParams) (float64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1807,7 +1801,7 @@ func (r *Redis) SrandmemberBatch(key string, count int) ([]string, error) {
 }
 
 //see Zadd(key string, score float64, member string, mparams ...ZAddParams)
-func (r *Redis) ZaddByMap(key string, scoreMembers map[string]float64, params ...ZAddParams) (int64, error) {
+func (r *Redis) ZaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2164,6 +2158,10 @@ func (r *Redis) Geoadd(key string, longitude, latitude float64, member string) (
 }
 
 //GeoaddByMap add geo point by map
+// Return value
+//Integer reply, specifically:
+//The number of elements added to the sorted set,
+// not including elements already existing for which the score was updated.
 func (r *Redis) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -2216,7 +2214,7 @@ func (r *Redis) Geopos(key string, members ...string) ([]*GeoCoordinate, error) 
 }
 
 //Georadius get members in certain rage
-func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2225,11 +2223,11 @@ func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit 
 	if err != nil {
 		return nil, err
 	}
-	return ObjectArrToGeoCoordinateReply(r.client.getObjectMultiBulkReply())
+	return ObjectArrToGeoRadiusResponseReply(r.client.getObjectMultiBulkReply())
 }
 
 //GeoradiusByMember ...
-func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) ([]*GeoCoordinate, error) {
+func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2238,7 +2236,7 @@ func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUn
 	if err != nil {
 		return nil, err
 	}
-	return ObjectArrToGeoCoordinateReply(r.client.getObjectMultiBulkReply())
+	return ObjectArrToGeoRadiusResponseReply(r.client.getObjectMultiBulkReply())
 }
 
 //Bitfield The command treats a Redis string as a array of bits,
@@ -3248,7 +3246,7 @@ func (r *Redis) ClusterInfo() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return r.client.getStatusCodeReply()
+	return r.client.getBulkReply()
 }
 
 //ClusterGetKeysInSlot ...

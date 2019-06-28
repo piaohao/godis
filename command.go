@@ -3,6 +3,7 @@ package godis
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -115,13 +116,13 @@ func (l ListOption) GetRaw() []byte {
 }
 
 //NewListOption ...
-func NewListOption(name string) ListOption {
+func newListOption(name string) ListOption {
 	return ListOption{name}
 }
 
 var (
-	ListoptionBefore = NewListOption("BEFORE")
-	ListoptionAfter  = NewListOption("AFTER")
+	ListoptionBefore = newListOption("BEFORE")
+	ListoptionAfter  = newListOption("AFTER")
 )
 
 //GeoUnit
@@ -135,20 +136,52 @@ func (g GeoUnit) GetRaw() []byte {
 }
 
 //NewGeoUnit ...
-func NewGeoUnit(name string) GeoUnit {
+func newGeoUnit(name string) GeoUnit {
 	return GeoUnit{name}
 }
 
 var (
-	GeounitMi = NewGeoUnit("MI")
-	GeounitM  = NewGeoUnit("M")
-	GeounitKm = NewGeoUnit("KM")
-	GeounitFt = NewGeoUnit("FT")
+	GeounitMi = newGeoUnit("mi")
+	GeounitM  = newGeoUnit("m")
+	GeounitKm = newGeoUnit("km")
+	GeounitFt = newGeoUnit("ft")
 )
 
 //GeoRadiusParam
 type GeoRadiusParam struct {
-	params map[string]interface{}
+	params map[string]string
+}
+
+//NewGeoRadiusParam constructor
+func NewGeoRadiusParam() *GeoRadiusParam {
+	return &GeoRadiusParam{params: make(map[string]string)}
+}
+
+func (p *GeoRadiusParam) WithCoord() *GeoRadiusParam {
+	p.params["withcoord"] = "withcoord"
+	return p
+}
+
+func (p *GeoRadiusParam) WithDist() *GeoRadiusParam {
+	p.params["withdist"] = "withdist"
+	return p
+}
+
+func (p *GeoRadiusParam) SortAscending() *GeoRadiusParam {
+	p.params["asc"] = "asc"
+	return p
+}
+
+func (p *GeoRadiusParam) SortDescending() *GeoRadiusParam {
+	p.params["desc"] = "desc"
+	return p
+}
+
+func (p *GeoRadiusParam) Count(count int) *GeoRadiusParam {
+	if count > 0 {
+		p.params["count"] = strconv.Itoa(count)
+	}
+	return p
 }
 
 //GetParams ...
@@ -158,22 +191,23 @@ func (g GeoRadiusParam) GetParams(args [][]byte) [][]byte {
 		arr = append(arr, a)
 	}
 
-	if g.Contains("WITHCOORD") {
-		arr = append(arr, []byte("WITHCOORD"))
+	if g.Contains("withcoord") {
+		arr = append(arr, []byte("withcoord"))
 	}
-	if g.Contains("WITHDIST") {
-		arr = append(arr, []byte("WITHDIST"))
-	}
-
-	if g.Contains("COUNT") {
-		arr = append(arr, []byte("COUNT"))
-		arr = append(arr, IntToByteArray(g.params["COUNT"].(int)))
+	if g.Contains("withdist") {
+		arr = append(arr, []byte("withdist"))
 	}
 
-	if g.Contains("ASC") {
-		arr = append(arr, []byte("ASC"))
-	} else if g.Contains("DESC") {
-		arr = append(arr, []byte("DESC"))
+	if g.Contains("count") {
+		arr = append(arr, []byte("count"))
+		count, _ := strconv.Atoi(g.params["count"])
+		arr = append(arr, IntToByteArray(count))
+	}
+
+	if g.Contains("asc") {
+		arr = append(arr, []byte("asc"))
+	} else if g.Contains("desc") {
+		arr = append(arr, []byte("desc"))
 	}
 
 	return arr
@@ -196,6 +230,10 @@ type GeoRadiusResponse struct {
 	member     []byte
 	distance   float64
 	coordinate GeoCoordinate
+}
+
+func newGeoRadiusResponse(member []byte) *GeoRadiusResponse {
+	return &GeoRadiusResponse{member: member}
 }
 
 //GeoCoordinate ...

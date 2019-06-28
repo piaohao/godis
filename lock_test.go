@@ -2,6 +2,8 @@ package godis
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -54,20 +56,16 @@ func TestRedisCluster_Lock(t *testing.T) {
 		}()
 	}
 	group.Wait()
-	t.Log(count)
-	t.Log(timeoutCount)
 	realCount := count + timeoutCount
-	if realCount != total {
-		t.Errorf("want %d,but %d", total, realCount)
-	}
+	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
 func TestRedis_Lock(t *testing.T) {
-	locker := NewLocker(option, &LockOption{Timeout: 3 * time.Second})
+	locker := NewLocker(option, &LockOption{Timeout: 1 * time.Second})
 	count := 0
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
-	total := 100000
+	total := 10000
 	timeoutCount := 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
@@ -90,12 +88,46 @@ func TestRedis_Lock(t *testing.T) {
 		}()
 	}
 	group.Wait()
-	t.Log(count)
-	t.Log(timeoutCount)
 	realCount := count + timeoutCount
-	if realCount != total {
-		t.Errorf("want %d,but %d", total, realCount)
+	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
+}
+
+func TestRedis_Lock_Exception(t *testing.T) {
+	locker := NewLocker(option, &LockOption{Timeout: 1 * time.Second})
+	count := 0
+	var group sync.WaitGroup
+	ch := make(chan bool, 8)
+	total := 20
+	timeoutCount := 0
+	for i := 0; i < total; i++ {
+		group.Add(1)
+		ch <- true
+		go func() {
+			defer group.Done()
+			lock, err := locker.TryLock("lock")
+			if err == nil {
+				if lock != nil {
+					count++
+					//simulate business exception
+					rand.NewSource(time.Now().UnixNano())
+					if rand.Intn(10) > 4 {
+						<-ch
+						return
+					}
+					locker.UnLock(lock)
+				} else {
+					timeoutCount++
+				}
+			} else {
+				fmt.Printf("%v\n", err)
+				timeoutCount++
+			}
+			<-ch
+		}()
 	}
+	group.Wait()
+	realCount := count + timeoutCount
+	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
 func _BenchmarkRedis_Lock(b *testing.B) {

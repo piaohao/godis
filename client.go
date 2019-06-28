@@ -1,7 +1,6 @@
 package godis
 
 import (
-	"math"
 	"strconv"
 )
 
@@ -232,7 +231,7 @@ func (c *client) hget(key, field string) error {
 }
 
 func (c *client) hsetnx(key, field, value string) error {
-	return c.sendCommand(CmdSetnx, []byte(key), []byte(field), []byte(value))
+	return c.sendCommand(CmdHsetnx, []byte(key), []byte(field), []byte(value))
 }
 
 func (c *client) hmset(key string, hash map[string]string) error {
@@ -330,7 +329,7 @@ func (c *client) smembers(key string) error {
 }
 
 func (c *client) srem(key string, members ...string) error {
-	return c.sendCommand(CmdDel, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(CmdSrem, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) spop(key string) error {
@@ -385,11 +384,11 @@ func (c *client) zadd(key string, score float64, member string) error {
 	return c.sendCommand(CmdZadd, []byte(key), Float64ToByteArray(score), []byte(member))
 }
 
-func (c *client) zaddByMap(key string, scoreMembers map[string]float64, params ...ZAddParams) error {
+func (c *client) zaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) error {
 	newArr := make([][]byte, 0)
 	for k, v := range scoreMembers {
-		newArr = append(newArr, []byte(k))
 		newArr = append(newArr, Float64ToByteArray(v))
+		newArr = append(newArr, []byte(k))
 	}
 	return c.sendCommand(CmdZadd, params[0].GetByteParams([]byte(key), newArr...)...)
 }
@@ -703,15 +702,7 @@ func (c *client) migrate(host string, port int, key string, destinationDb int, t
 }
 
 func (c *client) hincrByFloat(key, field string, increment float64) error {
-	var incrBytes []byte
-	if math.IsInf(increment, 1) {
-		incrBytes = []byte("+inf")
-	} else if math.IsInf(increment, -1) {
-		incrBytes = []byte("-inf")
-	} else {
-		incrBytes = []byte(strconv.FormatFloat(increment, 'f', -1, 64))
-	}
-	return c.sendCommand(CmdHincrbyfloat, []byte(key), []byte(field), incrBytes)
+	return c.sendCommand(CmdHincrbyfloat, []byte(key), []byte(field), Float64ToByteArray(increment))
 }
 
 func (c *client) waitReplicas(replicas int, timeout int64) error {
@@ -911,29 +902,23 @@ func (c *client) pfadd(key string, elements ...string) error {
 	return c.sendCommand(CmdPfadd, StringStringArrayToByteArray(key, elements)...)
 }
 
-func (c *client) georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...GeoRadiusParam) error {
+func (c *client) georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(key))
 	arr = append(arr, Float64ToByteArray(longitude))
 	arr = append(arr, Float64ToByteArray(latitude))
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
-	for _, p := range param {
-		arr = append(arr, p.GetParams([][]byte{})...)
-	}
-	return c.sendCommand(CmdGeoradius, arr...)
+	return c.sendCommand(CmdGeoradius, param[0].GetParams(arr)...)
 }
 
-func (c *client) georadiusByMember(key, member string, radius float64, unit GeoUnit, param ...GeoRadiusParam) error {
+func (c *client) georadiusByMember(key, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(member))
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
-	for _, p := range param {
-		arr = append(arr, p.GetParams([][]byte{})...)
-	}
-	return c.sendCommand(CmdGeoradiusbymember, arr...)
+	return c.sendCommand(CmdGeoradiusbymember, param[0].GetParams(arr)...)
 }
 
 func (c *client) bitfield(key string, arguments ...string) error {
