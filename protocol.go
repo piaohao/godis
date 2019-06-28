@@ -71,30 +71,166 @@ var (
 	NegativeInfinityBytes = []byte("-inf")
 )
 
+const (
+	MaxUint = ^uint(0)
+	MinUint = 0
+	MaxInt  = int(MaxUint >> 1)
+	MinInt  = -MaxInt - 1
+)
+
+var (
+	sizeTable = []int{9, 99, 999, 9999, 99999, 999999, 9999999, 99999999,
+		999999999, MaxInt}
+
+	DigitTens = []byte{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1',
+		'1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2',
+		'2', '3', '3', '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4',
+		'4', '4', '4', '5', '5', '5', '5', '5', '5', '5', '5', '5', '5', '6', '6', '6', '6', '6',
+		'6', '6', '6', '6', '6', '7', '7', '7', '7', '7', '7', '7', '7', '7', '7', '8', '8', '8',
+		'8', '8', '8', '8', '8', '8', '8', '9', '9', '9', '9', '9', '9', '9', '9', '9', '9'}
+
+	DigitOnes = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+		'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8',
+		'9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6',
+		'7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4',
+		'5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2',
+		'3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
+
+	digits = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a',
+		'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+		't', 'u', 'v', 'w', 'x', 'y', 'z'}
+)
+
 // send message to redis
 type redisOutputStream struct {
 	*bufio.Writer
 	buf   []byte
 	count int
+	c     *connection
 }
 
-func newRedisOutputStream(bw *bufio.Writer) *redisOutputStream {
+func newRedisOutputStream(bw *bufio.Writer, c *connection) *redisOutputStream {
 	return &redisOutputStream{
 		Writer: bw,
-		buf:    make([]byte, 0),
+		buf:    make([]byte, 8192),
+		c:      c,
 	}
 }
 
-func (r *redisOutputStream) writeIntCrLf(b int) (int, error) {
-	_, err := r.Write(strconv.AppendInt(r.buf, int64(b), 10))
-	if err != nil {
-		return 0, err
+func (r *redisOutputStream) writeIntCrLf(b int) error {
+	//_, err := r.Write(strconv.AppendInt(r.buf, int64(b), 10))
+	//if err != nil {
+	//	return 0, err
+	//}
+	//return r.writeCrLf()
+	if b < 0 {
+		if err := r.writeByte('-'); err != nil {
+			return err
+		}
+		b = -b
 	}
+	size := 0
+	for b > sizeTable[size] {
+		size++
+	}
+	size++
+	if size >= len(r.buf)-r.count {
+		if err := r.flushBuffer(); err != nil {
+			return err
+		}
+	}
+	q, p := 0, 0
+	charPos := r.count + size
+	for b >= 65536 {
+		q = b / 100
+		p = b - ((q << 6) + (q << 5) + (q << 2))
+		b = q
+		charPos--
+		r.buf[charPos] = DigitOnes[p]
+		charPos--
+		r.buf[charPos] = DigitTens[p]
+	}
+	for {
+		q = (b * 52429) >> (16 + 3)
+		p = b - ((q << 3) + (q << 1))
+		charPos--
+		r.buf[charPos] = digits[p]
+		b = q
+		if b == 0 {
+			break
+		}
+	}
+	r.count += size
 	return r.writeCrLf()
 }
 
-func (r *redisOutputStream) writeCrLf() (int, error) {
-	return r.WriteString("\r\n")
+func (r *redisOutputStream) writeCrLf() error {
+	//return r.WriteString("\r\n")
+	if 2 >= len(r.buf)-r.count {
+		if err := r.flushBuffer(); err != nil {
+			return err
+		}
+	}
+	r.buf[r.count] = '\r'
+	r.count++
+	r.buf[r.count] = '\n'
+	r.count++
+	return nil
+}
+
+func (r *redisOutputStream) flushBuffer() error {
+	if r.count > 0 {
+		_, err := r.Write(r.buf[0:r.count])
+		if err != nil {
+			return err
+		}
+		r.count = 0
+	}
+	return nil
+}
+
+func (r *redisOutputStream) writeByte(b byte) error {
+	if r.count == len(r.buf) {
+		return r.flushBuffer()
+	}
+	r.buf[r.count] = b
+	r.count++
+	return nil
+}
+
+func (r *redisOutputStream) write(b []byte) error {
+	return r.writeWithPos(b, 0, len(b))
+}
+
+func (r *redisOutputStream) writeWithPos(b []byte, off, size int) error {
+	if size >= len(r.buf) {
+		err := r.flushBuffer()
+		if err != nil {
+			return err
+		}
+		_, err = r.Write(b[off:size])
+		return err
+	} else {
+		if size >= len(r.buf)-r.count {
+			err := r.flushBuffer()
+			if err != nil {
+				return err
+			}
+		}
+		for i := off; i < size; i++ {
+			r.buf[r.count] = b[i]
+			r.count++
+		}
+		return nil
+	}
+}
+
+func (r *redisOutputStream) flush() error {
+	r.flushBuffer()
+	if err := r.Flush(); err != nil {
+		return err
+	}
+	return r.c.socket.SetDeadline(time.Now().Add(r.c.soTimeout))
 }
 
 // receive message from redis
@@ -103,12 +239,14 @@ type redisInputStream struct {
 	buf   []byte
 	count int
 	limit int
+	c     *connection
 }
 
-func newRedisInputStream(br *bufio.Reader) *redisInputStream {
+func newRedisInputStream(br *bufio.Reader, c *connection) *redisInputStream {
 	return &redisInputStream{
 		Reader: br,
 		buf:    make([]byte, 8192),
+		c:      c,
 	}
 }
 
@@ -128,6 +266,10 @@ func (r *redisInputStream) ensureFill() error {
 	}
 	var err error
 	r.limit, err = r.Read(r.buf)
+	if err != nil {
+		return newConnectError(err.Error())
+	}
+	err = r.c.socket.SetDeadline(time.Now().Add(r.c.soTimeout))
 	if err != nil {
 		return newConnectError(err.Error())
 	}
@@ -287,36 +429,36 @@ func newProtocol(os *redisOutputStream, is *redisInputStream) *protocol {
 }
 
 func (p *protocol) sendCommand(command []byte, args ...[]byte) error {
-	if err := p.os.WriteByte(AsteriskByte); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.writeByte(AsteriskByte); err != nil {
+		return err
 	}
-	if _, err := p.os.writeIntCrLf(len(args) + 1); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.writeIntCrLf(len(args) + 1); err != nil {
+		return err
 	}
-	if err := p.os.WriteByte(DollarByte); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.writeByte(DollarByte); err != nil {
+		return err
 	}
-	if _, err := p.os.writeIntCrLf(len(command)); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.writeIntCrLf(len(command)); err != nil {
+		return err
 	}
-	if _, err := p.os.Write(command); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.write(command); err != nil {
+		return err
 	}
-	if _, err := p.os.writeCrLf(); err != nil {
-		return newConnectError(err.Error())
+	if err := p.os.writeCrLf(); err != nil {
+		return err
 	}
 	for _, arg := range args {
-		if err := p.os.WriteByte(DollarByte); err != nil {
-			return newConnectError(err.Error())
+		if err := p.os.writeByte(DollarByte); err != nil {
+			return err
 		}
-		if _, err := p.os.writeIntCrLf(len(arg)); err != nil {
-			return newConnectError(err.Error())
+		if err := p.os.writeIntCrLf(len(arg)); err != nil {
+			return err
 		}
-		if _, err := p.os.Write(arg); err != nil {
-			return newConnectError(err.Error())
+		if err := p.os.write(arg); err != nil {
+			return err
 		}
-		if _, err := p.os.writeCrLf(); err != nil {
-			return newConnectError(err.Error())
+		if err := p.os.writeCrLf(); err != nil {
+			return err
 		}
 	}
 	return nil

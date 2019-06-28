@@ -449,7 +449,7 @@ func TestRedis_IncrBy(t *testing.T) {
 	pool := NewPool(nil, option)
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 1000000; i++ {
 		group.Add(1)
 		ch <- true
 		go func() {
@@ -473,7 +473,7 @@ func TestRedis_IncrBy(t *testing.T) {
 	}
 	reply, err := redis.Get("godis")
 	assert.Nil(t, err)
-	assert.Equal(t, "200000", reply)
+	assert.Equal(t, "2000000", reply)
 	redis.Close()
 }
 

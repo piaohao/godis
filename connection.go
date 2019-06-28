@@ -259,7 +259,7 @@ func (c *connection) getAll(expect ...int) (interface{}, error) {
 }
 
 func (c *connection) flush() error {
-	err := c.protocol.os.Flush()
+	err := c.protocol.os.flush()
 	if err != nil {
 		c.broken = true
 		return newConnectError(err.Error())
@@ -280,7 +280,9 @@ func (c *connection) connect() error {
 		return newConnectError(err.Error())
 	}
 	c.socket = conn
-	c.protocol = newProtocol(newRedisOutputStream(bufio.NewWriter(c.socket)), newRedisInputStream(bufio.NewReader(c.socket)))
+	os := newRedisOutputStream(bufio.NewWriter(c.socket), c)
+	is := newRedisInputStream(bufio.NewReader(c.socket), c)
+	c.protocol = newProtocol(os, is)
 	return nil
 }
 

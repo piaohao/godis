@@ -678,11 +678,8 @@ func TestRedisCluster_Strlen(t *testing.T) {
 }
 
 func TestRedisCluster_Subscribe(t *testing.T) {
-	NewRedisCluster(clusterOption).Del("godis")
-	type args struct {
-		redisPubSub *RedisPubSub
-		channels    []string
-	}
+	cluster := NewRedisCluster(clusterOption)
+	cluster.Del("godis")
 	pubsub := &RedisPubSub{
 		OnMessage: func(channel, message string) {
 			t.Logf("receive message ,channel:%s,message:%s", channel, message)
@@ -706,39 +703,14 @@ func TestRedisCluster_Subscribe(t *testing.T) {
 			t.Logf("receive pong ,channel:%s", channel)
 		},
 	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Subscribe",
-			args: args{
-				redisPubSub: pubsub,
-				channels:    []string{"godis"},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			go func(tmp struct {
-				name    string
-				args    args
-				wantErr bool
-			}) {
-				r := NewRedisCluster(clusterOption)
-				if err := r.Subscribe(tt.args.redisPubSub, tt.args.channels...); (err != nil) != tt.wantErr {
-					t.Errorf("Subscribe() error = %v, wantErr %v", err, tt.wantErr)
-				}
-			}(tt)
-			//sleep mills, ensure message can publish to subscribers
-			time.Sleep(500 * time.Millisecond)
-			NewRedisCluster(clusterOption).Publish("godis", "publish a message to godis channel")
-			//sleep mills, ensure message can publish to subscribers
-			time.Sleep(500 * time.Millisecond)
-		})
-	}
+	go func() {
+		cluster.Subscribe(pubsub, "godis")
+	}()
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+	cluster.Publish("godis", "publish a message to godis channel")
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
 }
 
 func TestRedisCluster_Substr(t *testing.T) {

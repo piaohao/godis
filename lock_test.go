@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -16,7 +17,7 @@ func TestRedisCluster_Lock(t *testing.T) {
 	locker := NewClusterLocker(clusterOption, nil)
 	ch := make(chan bool, 4)
 	total := 10000
-	timeoutCount := 0
+	var timeoutCount int32 = 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
@@ -47,16 +48,16 @@ func TestRedisCluster_Lock(t *testing.T) {
 					}*/
 					locker.UnLock(lock)
 				} else {
-					timeoutCount++
+					atomic.AddInt32(&timeoutCount, 1)
 				}
 			} else {
-				timeoutCount++
+				atomic.AddInt32(&timeoutCount, 1)
 			}
 			<-ch
 		}()
 	}
 	group.Wait()
-	realCount := count + timeoutCount
+	realCount := count + int(timeoutCount)
 	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
@@ -66,7 +67,7 @@ func TestRedis_Lock(t *testing.T) {
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	total := 10000
-	timeoutCount := 0
+	var timeoutCount int32 = 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
@@ -78,17 +79,17 @@ func TestRedis_Lock(t *testing.T) {
 					count++
 					locker.UnLock(lock)
 				} else {
-					timeoutCount++
+					atomic.AddInt32(&timeoutCount, 1)
 				}
 			} else {
 				fmt.Printf("%v\n", err)
-				timeoutCount++
+				atomic.AddInt32(&timeoutCount, 1)
 			}
 			<-ch
 		}()
 	}
 	group.Wait()
-	realCount := count + timeoutCount
+	realCount := count + int(timeoutCount)
 	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
@@ -98,7 +99,7 @@ func TestRedis_Lock_Exception(t *testing.T) {
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	total := 20
-	timeoutCount := 0
+	var timeoutCount int32 = 0
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
@@ -116,17 +117,17 @@ func TestRedis_Lock_Exception(t *testing.T) {
 					}
 					locker.UnLock(lock)
 				} else {
-					timeoutCount++
+					atomic.AddInt32(&timeoutCount, 1)
 				}
 			} else {
 				fmt.Printf("%v\n", err)
-				timeoutCount++
+				atomic.AddInt32(&timeoutCount, 1)
 			}
 			<-ch
 		}()
 	}
 	group.Wait()
-	realCount := count + timeoutCount
+	realCount := count + int(timeoutCount)
 	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
@@ -168,7 +169,7 @@ func _TestRedis_NoLock(t *testing.T) {
 
 func TestCluster_Set(t *testing.T) {
 	cluster := NewRedisCluster(clusterOption)
-	count := 0
+	var count int32 = 0
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	for i := 0; i < 100000; i++ {
@@ -176,7 +177,7 @@ func TestCluster_Set(t *testing.T) {
 		ch <- true
 		go func() {
 			defer group.Done()
-			count++
+			atomic.AddInt32(&count, 1)
 			reply, err := cluster.SetWithParamsAndTime("lock", "1", "nx", "px", 5*time.Second.Nanoseconds()/1e6)
 			if err != nil {
 				fmt.Printf("err:%v\n", err)
