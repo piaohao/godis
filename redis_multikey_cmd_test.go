@@ -126,8 +126,7 @@ func TestRedis_Subscribe(t *testing.T) {
 	go func() {
 		r := NewRedis(option)
 		defer r.Close()
-		err := r.Subscribe(pubsub, "godis")
-		assert.Nil(t, err)
+		r.Subscribe(pubsub, "godis")
 	}()
 	//sleep mills, ensure message can publish to subscribers
 	time.Sleep(500 * time.Millisecond)
