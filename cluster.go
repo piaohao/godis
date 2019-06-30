@@ -429,7 +429,6 @@ func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandom
 		return nil, err
 	case *ConnectError:
 		_ = r.releaseConnection(connection)
-		connection = nil
 		if attempts <= 1 {
 			r.connectionHandler.renewSlotCache()
 			//return nil, err
@@ -437,8 +436,7 @@ func (r *redisClusterCommand) runWithRetries(key []byte, attempts int, tryRandom
 		return r.runWithRetries(key, attempts-1, tryRandomNode, redirect)
 	case *MovedDataError:
 		r.connectionHandler.renewSlotCache(connection)
-		r.releaseConnection(connection)
-		connection = nil
+		_ = r.releaseConnection(connection)
 		return r.runWithRetries(key, attempts-1, false, err)
 	}
 	return nil, err

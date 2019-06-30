@@ -131,7 +131,6 @@ func Test_crc16_getStringSlot(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-
 		args args
 		want uint16
 	}{
