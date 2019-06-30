@@ -11,8 +11,10 @@ if you've ever used jedis, then you can use godis easily, godis almost has the s
 especially, godis implements distributed lock in single mode and cluster mode, godis's lock is much more faster than redisson, on my compute(i7,8core,32g), run 100,000 loop, use 8 threads, the business code is just count++, redisson need 18s-20s, while godis just need 7 second.  
 godis has done many test case to make sure it's stable.  
 
-I am glad you made any suggestions, and I will actively iterate over the project. 
+I am glad you made any suggestions, and I will actively iterate over the project.  
 
+* [https://github.com/piaohao/godis](https://github.com/piaohao/godis)
+* [https://gitee.com/piaohao/godis](https://gitee.com/piaohao/godis) 
 
 # Features
 * cluster
