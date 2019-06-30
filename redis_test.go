@@ -1,6 +1,7 @@
 package godis
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
@@ -374,6 +375,35 @@ func TestRedis_Hmset(t *testing.T) {
 }
 
 func TestRedis_Hscan(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	for i := 0; i < 1000; i++ {
+		redis.Hset("godis", fmt.Sprintf("a%d", i), fmt.Sprintf("%d", i))
+	}
+	c, err := redis.Hlen("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1000), c)
+
+	params := &ScanParams{
+		params: map[*keyword][]byte{
+			KeywordMatch: []byte("a*"),
+			KeywordCount: IntToByteArray(10),
+		},
+	}
+	cursor := "0"
+	total := 0
+	for {
+		result, err := redis.Hscan("godis", cursor, params)
+		assert.Nil(t, err)
+		total += len(result.Results)
+		cursor = result.Cursor
+		if result.Cursor == "0" {
+			break
+		}
+	}
+	//total contains key and value
+	assert.Equal(t, 2000, total)
 }
 
 func TestRedis_Hset(t *testing.T) {
@@ -666,6 +696,22 @@ func TestRedis_Pfadd(t *testing.T) {
 	c, err = redis.Pfcount("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), c)
+
+	c, err = redis.Pfadd("godis1", "a", "b", "c", "d")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c)
+
+	c, err = redis.Pfcount("godis1")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), c)
+
+	s, err := redis.Pfmerge("godis3", "godis", "godis1")
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", s)
+
+	c, err = redis.Pfcount("godis3")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), c)
 }
 
 func TestRedis_Psetex(t *testing.T) {
@@ -866,6 +912,34 @@ func TestRedis_Smembers(t *testing.T) {
 }
 
 func TestRedis_Sscan(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	for i := 0; i < 1000; i++ {
+		redis.Sadd("godis", fmt.Sprintf("%d", i))
+	}
+	c, err := redis.Scard("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1000), c)
+
+	params := &ScanParams{
+		params: map[*keyword][]byte{
+			KeywordMatch: []byte("*"),
+			KeywordCount: IntToByteArray(10),
+		},
+	}
+	cursor := "0"
+	total := 0
+	for {
+		result, err := redis.Sscan("godis", cursor, params)
+		assert.Nil(t, err)
+		total += len(result.Results)
+		cursor = result.Cursor
+		if result.Cursor == "0" {
+			break
+		}
+	}
+	assert.Equal(t, 1000, total)
 }
 
 func TestRedis_Strlen(t *testing.T) {
@@ -950,4 +1024,32 @@ func TestRedis_Zadd(t *testing.T) {
 }
 
 func TestRedis_Zscan(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	for i := 0; i < 1000; i++ {
+		redis.Zadd("godis", float64(i), fmt.Sprintf("a%d", i))
+	}
+	c, err := redis.Zcard("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1000), c)
+
+	params := &ScanParams{
+		params: map[*keyword][]byte{
+			KeywordMatch: []byte("*"),
+			KeywordCount: IntToByteArray(10),
+		},
+	}
+	cursor := "0"
+	total := 0
+	for {
+		result, err := redis.Zscan("godis", cursor, params)
+		assert.Nil(t, err)
+		total += len(result.Results)
+		cursor = result.Cursor
+		if result.Cursor == "0" {
+			break
+		}
+	}
+	assert.Equal(t, 2000, total)
 }

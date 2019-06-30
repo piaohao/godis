@@ -142,8 +142,17 @@ func (c *connection) getBinaryBulkReply() ([]byte, error) {
 	if reply == nil {
 		return []byte{}, nil
 	}
-	resp := reply.([]byte)
-	return resp, nil
+	switch reply.(type) {
+	case []byte:
+		return reply.([]byte), nil
+	case []interface{}:
+		arr := make([]byte, 0)
+		for _, i := range reply.([]interface{}) {
+			arr = append(arr, i.(byte))
+		}
+		return arr, nil
+	}
+	return reply.([]byte), nil
 }
 
 func (c *connection) getIntegerReply() (int64, error) {

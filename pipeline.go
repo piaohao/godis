@@ -62,7 +62,11 @@ func (r *response) build() error {
 		r.built = true
 	}()
 	if r.data != nil {
-		r.response = r.builder.build(r.data)
+		result, err := r.builder.build(r.data)
+		if err != nil {
+			return err
+		}
+		r.response = result
 	}
 	r.data = nil
 	return nil
@@ -545,7 +549,7 @@ func (p *multiKeyPipelineBase) Smove(srckey, dstkey, member string) (*response, 
 }
 
 //SortMulti  ...
-func (p *multiKeyPipelineBase) SortMulti(key string, dstkey string, sortingParameters ...SortingParams) (*response, error) {
+func (p *multiKeyPipelineBase) SortStore(key string, dstkey string, sortingParameters ...SortingParams) (*response, error) {
 	err := p.client.sortMulti(key, dstkey, sortingParameters...)
 	if err != nil {
 		return nil, err

@@ -2,6 +2,8 @@ package godis
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"math"
 	"strconv"
 )
@@ -142,8 +144,8 @@ func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, er
 	}
 	nexCursor := string(reply[0].([]byte))
 	result := make([]string, 0)
-	for _, r := range reply[1].([][]byte) {
-		result = append(result, string(r))
+	for _, r := range reply[1].([]interface{}) {
+		result = append(result, string(r.([]byte)))
 	}
 	return &ScanResult{Cursor: nexCursor, Results: result}, err
 }
@@ -360,7 +362,7 @@ func ToGeoRespArrayReply(reply interface{}, err error) ([]GeoRadiusResponse, err
 
 //Builder convert pipeline|transaction response data
 type Builder interface {
-	build(data interface{}) interface{}
+	build(data interface{}) (interface{}, error)
 }
 
 var (
@@ -376,11 +378,17 @@ func newStringBuilder() *stringBuilder {
 	return &stringBuilder{}
 }
 
-func (b *stringBuilder) build(data interface{}) interface{} {
+func (b *stringBuilder) build(data interface{}) (interface{}, error) {
 	if data == nil {
-		return ""
+		return "", nil
 	}
-	return string(data.([]byte))
+	switch data.(type) {
+	case []byte:
+		return string(data.([]byte)), nil
+	case error:
+		return nil, data.(error)
+	}
+	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
 }
 
 type int64Builder struct {
@@ -390,11 +398,17 @@ func newInt64Builder() *int64Builder {
 	return &int64Builder{}
 }
 
-func (b *int64Builder) build(data interface{}) interface{} {
+func (b *int64Builder) build(data interface{}) (interface{}, error) {
 	if data == nil {
-		return ""
+		return "", nil
 	}
-	return data.(int64)
+	switch data.(type) {
+	case int64:
+		return data.(int64), nil
+	case error:
+		return nil, data.(error)
+	}
+	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
 }
 
 type stringArrayBuilder struct {
@@ -404,17 +418,23 @@ func newStringArrayBuilder() *stringArrayBuilder {
 	return &stringArrayBuilder{}
 }
 
-func (b *stringArrayBuilder) build(data interface{}) interface{} {
+func (b *stringArrayBuilder) build(data interface{}) (interface{}, error) {
 	if data == nil {
-		return []string{}
+		return []string{}, nil
 	}
-	arr := make([]string, 0)
-	for _, b := range data.([]interface{}) {
-		if b == nil {
-			arr = append(arr, "")
-		} else {
-			arr = append(arr, string(b.([]byte)))
+	switch data.(type) {
+	case []interface{}:
+		arr := make([]string, 0)
+		for _, b := range data.([]interface{}) {
+			if b == nil {
+				arr = append(arr, "")
+			} else {
+				arr = append(arr, string(b.([]byte)))
+			}
 		}
+		return arr, nil
+	case error:
+		return nil, data.(error)
 	}
-	return arr
+	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
 }

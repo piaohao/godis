@@ -2093,7 +2093,7 @@ func (r *Redis) Bitpos(key string, value bool, params ...BitPosParams) (int64, e
 }
 
 //Hscan scan keys of hash , see scan
-func (r *Redis) Hscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+func (r *Redis) Hscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2106,7 +2106,7 @@ func (r *Redis) Hscan(key, cursor string, params ...ScanParams) (*ScanResult, er
 }
 
 //Sscan scan keys of set,see scan
-func (r *Redis) Sscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+func (r *Redis) Sscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2119,7 +2119,7 @@ func (r *Redis) Sscan(key, cursor string, params ...ScanParams) (*ScanResult, er
 }
 
 //Zscan scan keys of zset,see scan
-func (r *Redis) Zscan(key, cursor string, params ...ScanParams) (*ScanResult, error) {
+func (r *Redis) Zscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2641,7 +2641,7 @@ func (r *Redis) Brpop(args ...string) ([]string, error) {
 }
 
 //SortMulti ...
-func (r *Redis) SortMulti(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
+func (r *Redis) SortStore(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2653,7 +2653,8 @@ func (r *Redis) SortMulti(key, dstkey string, sortingParameters ...SortingParams
 	return r.client.getIntegerReply()
 }
 
-//Unwatch ...
+//Unwatch cancel all watches for keys
+// always return OK
 func (r *Redis) Unwatch() (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -2773,7 +2774,7 @@ func (r *Redis) Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error
 }
 
 //Scan ...
-func (r *Redis) Scan(cursor string, params ...ScanParams) (*ScanResult, error) {
+func (r *Redis) Scan(cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2785,7 +2786,14 @@ func (r *Redis) Scan(cursor string, params ...ScanParams) (*ScanResult, error) {
 	return ObjectArrToScanResultReply(r.client.getObjectMultiBulkReply())
 }
 
-//Pfmerge ...
+//Pfmerge Merge multiple HyperLogLog values into an unique value that will approximate the cardinality
+// of the union of the observed Sets of the source HyperLogLog structures.
+//
+//The computed merged HyperLogLog is set to the destination variable,
+// which is created if does not exist (defaulting to an empty HyperLogLog).
+//
+//Return value
+//Simple string reply: The command just returns OK.
 func (r *Redis) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {

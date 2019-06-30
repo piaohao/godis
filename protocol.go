@@ -118,11 +118,6 @@ func newRedisOutputStream(bw *bufio.Writer, c *connection) *redisOutputStream {
 }
 
 func (r *redisOutputStream) writeIntCrLf(b int) error {
-	//_, err := r.Write(strconv.AppendInt(r.buf, int64(b), 10))
-	//if err != nil {
-	//	return 0, err
-	//}
-	//return r.writeCrLf()
 	if b < 0 {
 		if err := r.writeByte('-'); err != nil {
 			return err
@@ -165,7 +160,6 @@ func (r *redisOutputStream) writeIntCrLf(b int) error {
 }
 
 func (r *redisOutputStream) writeCrLf() error {
-	//return r.WriteString("\r\n")
 	if 2 >= len(r.buf)-r.count {
 		if err := r.flushBuffer(); err != nil {
 			return err

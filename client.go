@@ -139,7 +139,7 @@ func (c *client) rename(oldKey, newKey string) error {
 }
 
 func (c *client) renamenx(oldKey, newKey string) error {
-	return c.sendCommand(CmdRenamex, []byte(oldKey), []byte(newKey))
+	return c.sendCommand(CmdRenamenx, []byte(oldKey), []byte(newKey))
 }
 
 func (c *client) expire(key string, seconds int) error {
@@ -386,6 +386,14 @@ func (c *client) zadd(key string, score float64, member string) error {
 
 func (c *client) zaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) error {
 	newArr := make([][]byte, 0)
+	if len(params) == 0 {
+		newArr = append(newArr, []byte(key))
+		for k, v := range scoreMembers {
+			newArr = append(newArr, Float64ToByteArray(v))
+			newArr = append(newArr, []byte(k))
+		}
+		return c.sendCommand(CmdZadd, newArr...)
+	}
 	for k, v := range scoreMembers {
 		newArr = append(newArr, Float64ToByteArray(v))
 		newArr = append(newArr, []byte(k))
@@ -452,6 +460,7 @@ func (c *client) sortMulti(key, dstkey string, sortingParameters ...SortingParam
 	for _, p := range sortingParameters {
 		newArr = append(newArr, p.params...)
 	}
+	newArr = append(newArr, KeywordStore.GetRaw())
 	newArr = append(newArr, []byte(dstkey))
 	return c.sendCommand(CmdSort, newArr...)
 }
@@ -837,7 +846,7 @@ func (c *client) bitpos(key string, value bool, params ...BitPosParams) error {
 	return c.sendCommand(CmdBitpos, arr...)
 }
 
-func (c *client) scan(cursor string, params ...ScanParams) error {
+func (c *client) scan(cursor string, params ...*ScanParams) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
@@ -846,7 +855,7 @@ func (c *client) scan(cursor string, params ...ScanParams) error {
 	return c.sendCommand(CmdScan, arr...)
 }
 
-func (c *client) hscan(key, cursor string, params ...ScanParams) error {
+func (c *client) hscan(key, cursor string, params ...*ScanParams) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
@@ -856,24 +865,24 @@ func (c *client) hscan(key, cursor string, params ...ScanParams) error {
 	return c.sendCommand(CmdHscan, arr...)
 }
 
-func (c *client) sscan(key, cursor string, params ...ScanParams) error {
+func (c *client) sscan(key, cursor string, params ...*ScanParams) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
 		arr = append(arr, p.GetParams()...)
 	}
-	return c.sendCommand(CmdHscan, arr...)
+	return c.sendCommand(CmdSscan, arr...)
 }
 
-func (c *client) zscan(key, cursor string, params ...ScanParams) error {
+func (c *client) zscan(key, cursor string, params ...*ScanParams) error {
 	arr := make([][]byte, 0)
 	arr = append(arr, []byte(key))
 	arr = append(arr, []byte(cursor))
 	for _, p := range params {
 		arr = append(arr, p.GetParams()...)
 	}
-	return c.sendCommand(CmdHscan, arr...)
+	return c.sendCommand(CmdZscan, arr...)
 }
 
 func (c *client) unwatch() error {
@@ -909,6 +918,9 @@ func (c *client) georadius(key string, longitude, latitude, radius float64, unit
 	arr = append(arr, Float64ToByteArray(latitude))
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
+	if len(param) == 0 {
+		return c.sendCommand(CmdGeoradius, arr...)
+	}
 	return c.sendCommand(CmdGeoradius, param[0].GetParams(arr)...)
 }
 
@@ -918,6 +930,9 @@ func (c *client) georadiusByMember(key, member string, radius float64, unit GeoU
 	arr = append(arr, []byte(member))
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
+	if len(param) == 0 {
+		return c.sendCommand(CmdGeoradiusbymember, arr...)
+	}
 	return c.sendCommand(CmdGeoradiusbymember, param[0].GetParams(arr)...)
 }
 

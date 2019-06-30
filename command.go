@@ -67,6 +67,56 @@ type SortingParams struct {
 	params [][]byte
 }
 
+func NewSortingParams() *SortingParams {
+	return &SortingParams{params: make([][]byte, 0)}
+}
+
+func (p *SortingParams) GetParams() [][]byte {
+	return p.params
+}
+
+func (p *SortingParams) By(pattern string) *SortingParams {
+	p.params = append(p.params, KeywordBy.GetRaw())
+	p.params = append(p.params, []byte(pattern))
+	return p
+}
+
+func (p *SortingParams) NoSort() *SortingParams {
+	p.params = append(p.params, KeywordBy.GetRaw())
+	p.params = append(p.params, KeywordNosort.GetRaw())
+	return p
+}
+
+func (p *SortingParams) Desc() *SortingParams {
+	p.params = append(p.params, KeywordDesc.GetRaw())
+	return p
+}
+
+func (p *SortingParams) Asc() *SortingParams {
+	p.params = append(p.params, KeywordAsc.GetRaw())
+	return p
+}
+
+func (p *SortingParams) Limit(start, count int) *SortingParams {
+	p.params = append(p.params, KeywordLimit.GetRaw())
+	p.params = append(p.params, IntToByteArray(start))
+	p.params = append(p.params, IntToByteArray(count))
+	return p
+}
+
+func (p *SortingParams) Alpha() *SortingParams {
+	p.params = append(p.params, KeywordAlpha.GetRaw())
+	return p
+}
+
+func (p *SortingParams) Get(patterns ...string) *SortingParams {
+	for _, pattern := range patterns {
+		p.params = append(p.params, KeywordGet.GetRaw())
+		p.params = append(p.params, []byte(pattern))
+	}
+	return p
+}
+
 //ScanParams
 type ScanParams struct {
 	params map[*keyword][]byte
