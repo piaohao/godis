@@ -5,7 +5,14 @@
 [![codecov](https://codecov.io/gh/piaohao/godis/branch/master/graph/badge.svg)](https://codecov.io/gh/piaohao/godis)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/piaohao/godis)
 
-redis client implement by golang, refer to jedis.
+redis client implement by golang, refers to jedis.  
+this library implements most of redis command, include normal redis command, cluster command, sentinel command, pipeline command and transaction command.  
+if you've ever used jedis, then you can use godis easily, godis almost has the same method of jedis.  
+especially, godis implements distributed lock in single mode and cluster mode, godis's lock is much more faster than redisson, on my compute(i7,8core,32g), run 100,000 loop, use 8 threads, the business code is just count++, redisson need 18s-20s, while godis just need 7 second.  
+godis has done many test case to make sure it's stable.  
+
+I am glad you made any suggestions, and I will actively iterate over the project. 
+
 
 # Features
 * cluster
