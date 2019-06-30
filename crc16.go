@@ -31,6 +31,7 @@ type crc16 struct {
 	tagUtil *redisClusterHashTagUtil
 }
 
+//new construct
 func newCRC16() *crc16 {
 	return &crc16{tagUtil: newRedisClusterHashTagUtil()}
 }

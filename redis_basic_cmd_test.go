@@ -133,7 +133,7 @@ func TestRedis_Bgsave(t *testing.T) {
 	redis.Set("godis", "good")
 	redis.Close()
 	redis = NewRedis(option)
-	_, err := redis.Bgsave()
+	_, err := redis.BgSave()
 	redis.Close()
 	assert.Nil(t, err)
 }
@@ -144,7 +144,7 @@ func TestRedis_Bgrewriteaof(t *testing.T) {
 	redis.Set("godis", "good")
 	redis.Close()
 	redis = NewRedis(option)
-	_, err := redis.Bgrewriteaof()
+	_, err := redis.BgRewriteAof()
 	redis.Close()
 	assert.Nil(t, err)
 }
@@ -152,12 +152,12 @@ func TestRedis_Bgrewriteaof(t *testing.T) {
 func TestRedis_Lastsave(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	_, err := redis.Lastsave()
+	_, err := redis.LastSave()
 	assert.Nil(t, err)
 }
 
 // ignore this case,cause it will shutdown redis
-func _TestRedis_Shutdown(t *testing.T) {
+func _TestRedisShutdown(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	_, err := redis.Shutdown()
@@ -182,14 +182,14 @@ func TestRedis_Info(t *testing.T) {
 func TestRedis_Slaveof(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	_, err := redis.Slaveof("localhost", 6379)
+	_, err := redis.SlaveOf("localhost", 6379)
 	assert.Nil(t, err)
 }
 
 func TestRedis_SlaveofNoOne(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	_, err := redis.SlaveofNoOne()
+	_, err := redis.SlaveOfNoOne()
 	assert.Nil(t, err)
 }
 

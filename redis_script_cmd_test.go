@@ -51,7 +51,7 @@ func TestRedis_ScriptLoad(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []bool{true}, bools)
 
-	s, err := redis.Evalsha(sha, 1, "godis")
+	s, err := redis.EvalSha(sha, 1, "godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
 }

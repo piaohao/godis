@@ -21,16 +21,16 @@ type connection struct {
 
 func newConnection(host string, port int, connectionTimeout, soTimeout time.Duration) *connection {
 	if host == "" {
-		host = DefaultHost
+		host = defaultHost
 	}
 	if port == 0 {
-		port = DefaultPort
+		port = defaultPort
 	}
 	if connectionTimeout == 0 {
-		connectionTimeout = DefaultTimeout
+		connectionTimeout = defaultTimeout
 	}
 	if soTimeout == 0 {
-		soTimeout = DefaultTimeout
+		soTimeout = defaultTimeout
 	}
 	return &connection{
 		host:              host,

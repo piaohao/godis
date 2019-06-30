@@ -6,20 +6,23 @@ import (
 	"time"
 )
 
-var LockTimeoutErr = errors.New("get lock timeout")
+//ErrLockTimeOut when get lock exceed the timeout,then return error
+var ErrLockTimeOut = errors.New("get lock timeout")
 
-type lock struct {
-	Name string
+//Lock different keys with different lock
+type Lock struct {
+	name string
 }
 
-type locker struct {
+//Locker the lock client
+type Locker struct {
 	timeout time.Duration
 	ch      chan bool
 	pool    *Pool
 }
 
-// create new locker
-func NewLocker(option *Option, lockOption *LockOption) *locker {
+//NewLocker create new locker
+func NewLocker(option *Option, lockOption *LockOption) *Locker {
 	if lockOption == nil {
 		lockOption = &LockOption{}
 	}
@@ -27,21 +30,21 @@ func NewLocker(option *Option, lockOption *LockOption) *locker {
 		lockOption.Timeout = 5 * time.Second
 	}
 	pool := NewPool(&PoolConfig{MaxTotal: 500}, option)
-	return &locker{
+	return &Locker{
 		timeout: lockOption.Timeout,
 		ch:      make(chan bool, 1),
 		pool:    pool,
 	}
 }
 
-// locker options
+//LockOption locker options
 type LockOption struct {
 	Timeout time.Duration //lock wait timeout
 }
 
-// acquire a lock,when it returns a non nil locker,get lock success,
+//TryLock acquire a lock,when it returns a non nil locker,get lock success,
 // otherwise, it returns an error,get lock failed
-func (l *locker) TryLock(key string) (*lock, error) {
+func (l *Locker) TryLock(key string) (*Lock, error) {
 	deadline := time.Now().Add(l.timeout)
 	value := strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
@@ -50,33 +53,33 @@ func (l *locker) TryLock(key string) (*lock, error) {
 			return nil, err
 		}
 		if time.Now().After(deadline) {
-			return nil, LockTimeoutErr
+			return nil, ErrLockTimeOut
 		}
 		status, err := redis.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 		redis.Close()
 		if err == nil {
-			if status == KeywordOk.Name {
-				return &lock{Name: key}, nil
+			if status == keywordOk.Name {
+				return &Lock{name: key}, nil
 			}
 		}
 		select {
 		case <-l.ch:
 			continue
 		case <-time.After(l.timeout):
-			return nil, LockTimeoutErr
+			return nil, ErrLockTimeOut
 		}
 	}
 }
 
-// when your business end,then release the locker
-func (l *locker) UnLock(lock *lock) error {
+//UnLock when your business end,then release the locker
+func (l *Locker) UnLock(lock *Lock) error {
 	redis, err := l.pool.GetResource()
 	if err != nil {
 		return err
 	}
 	defer redis.Close()
 	l.ch <- true
-	c, err := redis.Del(lock.Name)
+	c, err := redis.Del(lock.name)
 	if err != nil {
 		return err
 	}
@@ -86,56 +89,57 @@ func (l *locker) UnLock(lock *lock) error {
 	return nil
 }
 
-type clusterLocker struct {
+//ClusterLocker cluster lock client
+type ClusterLocker struct {
 	timeout      time.Duration
 	ch           chan int
 	redisCluster *RedisCluster
 }
 
-// create new cluster locker
-func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *clusterLocker {
+//NewClusterLocker create new cluster locker
+func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *ClusterLocker {
 	if lockOption == nil {
 		lockOption = &LockOption{}
 	}
 	if lockOption.Timeout.Nanoseconds() == 0 {
 		lockOption.Timeout = 5 * time.Second
 	}
-	return &clusterLocker{
+	return &ClusterLocker{
 		timeout:      lockOption.Timeout,
 		ch:           make(chan int, 1),
 		redisCluster: NewRedisCluster(option),
 	}
 }
 
-// acquire a lock,when it returns a non nil locker,get lock success,
+//TryLock acquire a lock,when it returns a non nil locker,get lock success,
 // otherwise, it returns an error,get lock failed
-func (l *clusterLocker) TryLock(key string) (*lock, error) {
+func (l *ClusterLocker) TryLock(key string) (*Lock, error) {
 	deadline := time.Now().Add(l.timeout)
 	value := strconv.FormatInt(deadline.UnixNano(), 10)
 	for {
 		if time.Now().After(deadline) {
-			return nil, LockTimeoutErr
+			return nil, ErrLockTimeOut
 		}
 		if len(l.ch) == 0 {
 			status, err := l.redisCluster.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 			//get lock success
-			if err == nil && status == KeywordOk.Name {
-				return &lock{Name: key}, nil
+			if err == nil && status == keywordOk.Name {
+				return &Lock{name: key}, nil
 			}
 		}
 		select {
 		case <-l.ch:
 			continue
 		case <-time.After(l.timeout):
-			return nil, LockTimeoutErr
+			return nil, ErrLockTimeOut
 		}
 	}
 }
 
-// when your business end,then release the locker
-func (l *clusterLocker) UnLock(lock *lock) error {
+//UnLock when your business end,then release the locker
+func (l *ClusterLocker) UnLock(lock *Lock) error {
 	l.ch <- 1
-	c, err := l.redisCluster.Del(lock.Name)
+	c, err := l.redisCluster.Del(lock.name)
 	if c == 0 {
 		return nil
 	}

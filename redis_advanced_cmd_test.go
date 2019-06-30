@@ -34,14 +34,14 @@ func TestRedis_ConfigSet(t *testing.T) {
 func TestRedis_SlowlogGet(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	_, err := redis.SlowlogGet()
+	_, err := redis.SlowLogGet()
 	assert.Nil(t, err)
 }
 
 func TestRedis_SlowlogLen(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	l, err := redis.SlowlogLen()
+	l, err := redis.SlowLogLen()
 	assert.Nil(t, err)
 	assert.True(t, l >= 0)
 }
@@ -49,7 +49,7 @@ func TestRedis_SlowlogLen(t *testing.T) {
 func TestRedis_SlowlogReset(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	str, err := redis.SlowlogReset()
+	str, err := redis.SlowLogReset()
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", str)
 }
@@ -74,7 +74,7 @@ func TestRedis_ObjectIdletime(t *testing.T) {
 	defer redis.Close()
 	redis.Set("godis", "good")
 	time.Sleep(1000 * time.Millisecond)
-	idle, err := redis.ObjectIdletime("godis")
+	idle, err := redis.ObjectIdleTime("godis")
 	assert.Nil(t, err)
 	assert.True(t, idle > 0)
 }
@@ -84,7 +84,7 @@ func TestRedis_ObjectRefcount(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	redis.Set("godis", "good")
-	count, err := redis.ObjectRefcount("godis")
+	count, err := redis.ObjectRefCount("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), count)
 }

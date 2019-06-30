@@ -1,6 +1,6 @@
 package godis
 
-// RedisError basic redis error
+//RedisError basic redis error
 type RedisError struct {
 	Message string
 }
@@ -13,7 +13,7 @@ func (e *RedisError) Error() string {
 	return e.Message
 }
 
-// cluster operation redirect error
+//RedirectError cluster operation redirect error
 type RedirectError struct {
 	Message string
 }
@@ -26,7 +26,7 @@ func (e *RedirectError) Error() string {
 	return e.Message
 }
 
-// cluster operation exceed max attempts errror
+//ClusterMaxAttemptsError cluster operation exceed max attempts errror
 type ClusterMaxAttemptsError struct {
 	Message string
 }
@@ -39,7 +39,7 @@ func (e *ClusterMaxAttemptsError) Error() string {
 	return e.Message
 }
 
-// have no reachable cluster node error
+//NoReachableClusterNodeError have no reachable cluster node error
 type NoReachableClusterNodeError struct {
 	Message string
 }
@@ -52,7 +52,7 @@ func (e *NoReachableClusterNodeError) Error() string {
 	return e.Message
 }
 
-// cluster move data error
+//MovedDataError cluster move data error
 type MovedDataError struct {
 	Message string
 	Host    string
@@ -68,7 +68,7 @@ func (e *MovedDataError) Error() string {
 	return e.Message
 }
 
-// ask data error
+//AskDataError ask data error
 type AskDataError struct {
 	Message string
 	Host    string
@@ -84,7 +84,7 @@ func (e *AskDataError) Error() string {
 	return e.Message
 }
 
-// cluster basic error
+//ClusterError cluster basic error
 type ClusterError struct {
 	Message string
 }
@@ -97,7 +97,7 @@ func (e *ClusterError) Error() string {
 	return e.Message
 }
 
-// operation is busy error
+//BusyError operation is busy error
 type BusyError struct {
 	Message string
 }
@@ -110,7 +110,7 @@ func (e *BusyError) Error() string {
 	return e.Message
 }
 
-// has no script error
+//NoScriptError has no script error
 type NoScriptError struct {
 	Message string
 }
@@ -123,7 +123,7 @@ func (e *NoScriptError) Error() string {
 	return e.Message
 }
 
-// data error
+//DataError data error
 type DataError struct {
 	Message string
 }
@@ -136,7 +136,7 @@ func (e *DataError) Error() string {
 	return e.Message
 }
 
-// redis connection error,such as io timeout
+//ConnectError redis connection error,such as io timeout
 type ConnectError struct {
 	Message string
 }
@@ -149,7 +149,7 @@ func (e *ConnectError) Error() string {
 	return e.Message
 }
 
-// cluster operation error
+//ClusterOperationError cluster operation error
 type ClusterOperationError struct {
 	Message string
 }

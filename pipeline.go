@@ -2,8 +2,8 @@ package godis
 
 import "sync"
 
-// pipleline and transaction response,include replys from redis
-type response struct {
+//Response pipeline and transaction response,include replies from redis
+type Response struct {
 	response interface{} //store replys
 
 	building bool //whether response is building
@@ -12,24 +12,24 @@ type response struct {
 
 	builder    Builder     //response data convert rule
 	data       interface{} //real data
-	dependency *response   //response cycle dependency
+	dependency *Response   //response cycle dependency
 }
 
-func newResponse() *response {
-	return &response{
+func newResponse() *Response {
+	return &Response{
 		building: false,
 		built:    false,
 		isSet:    false,
 	}
 }
 
-func (r *response) set(data interface{}) {
+func (r *Response) set(data interface{}) {
 	r.data = data
 	r.isSet = true
 }
 
 //Get get real content of response
-func (r *response) Get() (interface{}, error) {
+func (r *Response) Get() (interface{}, error) {
 	if r.dependency != nil && r.dependency.isSet && !r.dependency.built {
 		err := r.dependency.build()
 		if err != nil {
@@ -48,11 +48,11 @@ func (r *response) Get() (interface{}, error) {
 	return r.response, nil
 }
 
-func (r *response) setDependency(dependency *response) {
+func (r *Response) setDependency(dependency *Response) {
 	r.dependency = dependency
 }
 
-func (r *response) build() error {
+func (r *Response) build() error {
 	if r.building {
 		return nil
 	}
@@ -72,21 +72,22 @@ func (r *response) build() error {
 	return nil
 }
 
-type transaction struct {
+//Transaction redis transaction struct
+type Transaction struct {
 	*multiKeyPipelineBase
 	inTransaction bool
 }
 
-func newTransaction(c *client) *transaction {
+func newTransaction(c *client) *Transaction {
 	base := newMultiKeyPipelineBase(c)
 	base.getClient = func(key string) *client {
 		return c
 	}
-	return &transaction{multiKeyPipelineBase: base}
+	return &Transaction{multiKeyPipelineBase: base}
 }
 
 //Clear  clear
-func (t *transaction) Clear() (string, error) {
+func (t *Transaction) Clear() (string, error) {
 	if t.inTransaction {
 		return t.Discard()
 	}
@@ -94,7 +95,7 @@ func (t *transaction) Clear() (string, error) {
 }
 
 //Exec execute transaction
-func (t *transaction) Exec() ([]interface{}, error) {
+func (t *Transaction) Exec() ([]interface{}, error) {
 	err := t.client.exec()
 	if err != nil {
 		return nil, err
@@ -116,7 +117,7 @@ func (t *transaction) Exec() ([]interface{}, error) {
 }
 
 //ExecGetResponse ...
-func (t *transaction) ExecGetResponse() ([]*response, error) {
+func (t *Transaction) ExecGetResponse() ([]*Response, error) {
 	err := t.client.exec()
 	if err != nil {
 		return nil, err
@@ -130,15 +131,15 @@ func (t *transaction) ExecGetResponse() ([]*response, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*response, 0)
+	result := make([]*Response, 0)
 	for _, r := range reply {
 		result = append(result, t.generateResponse(r))
 	}
 	return result, nil
 }
 
-//Discard  ...
-func (t *transaction) Discard() (string, error) {
+//Discard  see redis command
+func (t *Transaction) Discard() (string, error) {
 	err := t.client.discard()
 	if err != nil {
 		return "", err
@@ -152,24 +153,25 @@ func (t *transaction) Discard() (string, error) {
 	return t.client.getStatusCodeReply()
 }
 
-func (t *transaction) clean() {
-	t.pipelinedResponses = make([]*response, 0)
+func (t *Transaction) clean() {
+	t.pipelinedResponses = make([]*Response, 0)
 }
 
-type pipeline struct {
+//Pipeline redis pipeline struct
+type Pipeline struct {
 	*multiKeyPipelineBase
 }
 
-func newPipeline(c *client) *pipeline {
+func newPipeline(c *client) *Pipeline {
 	base := newMultiKeyPipelineBase(c)
 	base.getClient = func(key string) *client {
 		return c
 	}
-	return &pipeline{multiKeyPipelineBase: base}
+	return &Pipeline{multiKeyPipelineBase: base}
 }
 
-//Sync  ...
-func (p *pipeline) Sync() error {
+//Sync  see redis command
+func (p *Pipeline) Sync() error {
 	if len(p.pipelinedResponses) == 0 {
 		return nil
 	}
@@ -183,22 +185,22 @@ func (p *pipeline) Sync() error {
 	return nil
 }
 
-type queable struct {
-	pipelinedResponses []*response
+type queue struct {
+	pipelinedResponses []*Response
 	mu                 sync.Mutex
 }
 
-func newQueable() *queable {
-	return &queable{pipelinedResponses: make([]*response, 0)}
+func newQueable() *queue {
+	return &queue{pipelinedResponses: make([]*Response, 0)}
 }
 
-func (q *queable) clean() {
+func (q *queue) clean() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	q.pipelinedResponses = make([]*response, 0)
+	q.pipelinedResponses = make([]*Response, 0)
 }
 
-func (q *queable) generateResponse(data interface{}) *response {
+func (q *queue) generateResponse(data interface{}) *Response {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	size := len(q.pipelinedResponses)
@@ -208,14 +210,14 @@ func (q *queable) generateResponse(data interface{}) *response {
 	r := q.pipelinedResponses[0]
 	r.set(data)
 	if size == 1 {
-		q.pipelinedResponses = make([]*response, 0)
+		q.pipelinedResponses = make([]*Response, 0)
 	} else {
 		q.pipelinedResponses = q.pipelinedResponses[1:]
 	}
 	return r
 }
 
-func (q *queable) getResponse(builder Builder) *response {
+func (q *queue) getResponse(builder Builder) *Response {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	response := newResponse()
@@ -224,31 +226,31 @@ func (q *queable) getResponse(builder Builder) *response {
 	return response
 }
 
-func (q *queable) hasPipelinedResponse() bool {
+func (q *queue) hasPipelinedResponse() bool {
 	return q.getPipelinedResponseLength() > 0
 }
 
-func (q *queable) getPipelinedResponseLength() int {
+func (q *queue) getPipelinedResponseLength() int {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	return len(q.pipelinedResponses)
 }
 
 type multiKeyPipelineBase struct {
-	*queable
+	*queue
 	client *client
 
 	getClient func(key string) *client
 }
 
 func newMultiKeyPipelineBase(client *client) *multiKeyPipelineBase {
-	return &multiKeyPipelineBase{queable: newQueable(), client: client}
+	return &multiKeyPipelineBase{queue: newQueable(), client: client}
 }
 
 //<editor-fold desc="basicpipeline">
 
-//Bgrewriteaof ...
-func (p *multiKeyPipelineBase) Bgrewriteaof() (*response, error) {
+//BgRewriteAof see redis command
+func (p *multiKeyPipelineBase) BgRewriteAof() (*Response, error) {
 	err := p.client.bgrewriteaof()
 	if err != nil {
 		return nil, err
@@ -256,8 +258,8 @@ func (p *multiKeyPipelineBase) Bgrewriteaof() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Bgsave  ...
-func (p *multiKeyPipelineBase) Bgsave() (*response, error) {
+//BgSave  see redis command
+func (p *multiKeyPipelineBase) BgSave() (*Response, error) {
 	err := p.client.bgsave()
 	if err != nil {
 		return nil, err
@@ -265,8 +267,8 @@ func (p *multiKeyPipelineBase) Bgsave() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//ConfigGet  ...
-func (p *multiKeyPipelineBase) ConfigGet(pattern string) (*response, error) {
+//ConfigGet  see redis command
+func (p *multiKeyPipelineBase) ConfigGet(pattern string) (*Response, error) {
 	err := p.client.configGet(pattern)
 	if err != nil {
 		return nil, err
@@ -274,8 +276,8 @@ func (p *multiKeyPipelineBase) ConfigGet(pattern string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//ConfigSet  ...
-func (p *multiKeyPipelineBase) ConfigSet(parameter, value string) (*response, error) {
+//ConfigSet  see redis command
+func (p *multiKeyPipelineBase) ConfigSet(parameter, value string) (*Response, error) {
 	err := p.client.configSet(parameter, value)
 	if err != nil {
 		return nil, err
@@ -283,8 +285,8 @@ func (p *multiKeyPipelineBase) ConfigSet(parameter, value string) (*response, er
 	return p.getResponse(StringBuilder), nil
 }
 
-//ConfigResetStat  ...
-func (p *multiKeyPipelineBase) ConfigResetStat() (*response, error) {
+//ConfigResetStat  see redis command
+func (p *multiKeyPipelineBase) ConfigResetStat() (*Response, error) {
 	err := p.client.configResetStat()
 	if err != nil {
 		return nil, err
@@ -292,8 +294,8 @@ func (p *multiKeyPipelineBase) ConfigResetStat() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Save  ...
-func (p *multiKeyPipelineBase) Save() (*response, error) {
+//Save  see redis command
+func (p *multiKeyPipelineBase) Save() (*Response, error) {
 	err := p.client.save()
 	if err != nil {
 		return nil, err
@@ -301,8 +303,8 @@ func (p *multiKeyPipelineBase) Save() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Lastsave  ...
-func (p *multiKeyPipelineBase) Lastsave() (*response, error) {
+//LastSave  see redis command
+func (p *multiKeyPipelineBase) LastSave() (*Response, error) {
 	err := p.client.lastsave()
 	if err != nil {
 		return nil, err
@@ -310,8 +312,8 @@ func (p *multiKeyPipelineBase) Lastsave() (*response, error) {
 	return p.getResponse(Int64Builder), nil
 }
 
-//FlushDB  ...
-func (p *multiKeyPipelineBase) FlushDB() (*response, error) {
+//FlushDB  see redis command
+func (p *multiKeyPipelineBase) FlushDB() (*Response, error) {
 	err := p.client.flushDB()
 	if err != nil {
 		return nil, err
@@ -319,8 +321,8 @@ func (p *multiKeyPipelineBase) FlushDB() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//FlushAll  ...
-func (p *multiKeyPipelineBase) FlushAll() (*response, error) {
+//FlushAll  see redis command
+func (p *multiKeyPipelineBase) FlushAll() (*Response, error) {
 	err := p.client.flushAll()
 	if err != nil {
 		return nil, err
@@ -328,8 +330,8 @@ func (p *multiKeyPipelineBase) FlushAll() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Info  ...
-func (p *multiKeyPipelineBase) Info() (*response, error) {
+//Info  see redis command
+func (p *multiKeyPipelineBase) Info() (*Response, error) {
 	err := p.client.info()
 	if err != nil {
 		return nil, err
@@ -337,8 +339,8 @@ func (p *multiKeyPipelineBase) Info() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Time  ...
-func (p *multiKeyPipelineBase) Time() (*response, error) {
+//Time  see redis command
+func (p *multiKeyPipelineBase) Time() (*Response, error) {
 	err := p.client.time()
 	if err != nil {
 		return nil, err
@@ -346,8 +348,8 @@ func (p *multiKeyPipelineBase) Time() (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//DbSize  ...
-func (p *multiKeyPipelineBase) DbSize() (*response, error) {
+//DbSize  see redis command
+func (p *multiKeyPipelineBase) DbSize() (*Response, error) {
 	err := p.client.dbSize()
 	if err != nil {
 		return nil, err
@@ -355,8 +357,8 @@ func (p *multiKeyPipelineBase) DbSize() (*response, error) {
 	return p.getResponse(Int64Builder), nil
 }
 
-//Shutdown  ...
-func (p *multiKeyPipelineBase) Shutdown() (*response, error) {
+//Shutdown  see redis command
+func (p *multiKeyPipelineBase) Shutdown() (*Response, error) {
 	err := p.client.shutdown()
 	if err != nil {
 		return nil, err
@@ -364,8 +366,8 @@ func (p *multiKeyPipelineBase) Shutdown() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Ping  ...
-func (p *multiKeyPipelineBase) Ping() (*response, error) {
+//Ping  see redis command
+func (p *multiKeyPipelineBase) Ping() (*Response, error) {
 	err := p.client.ping()
 	if err != nil {
 		return nil, err
@@ -373,8 +375,8 @@ func (p *multiKeyPipelineBase) Ping() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Select  ...
-func (p *multiKeyPipelineBase) Select(index int) (*response, error) {
+//Select  see redis command
+func (p *multiKeyPipelineBase) Select(index int) (*Response, error) {
 	err := p.client.selectDb(index)
 	if err != nil {
 		return nil, err
@@ -386,8 +388,8 @@ func (p *multiKeyPipelineBase) Select(index int) (*response, error) {
 
 //<editor-fold desc="multikeypipeline">
 
-//Del ...
-func (p *multiKeyPipelineBase) Del(keys ...string) (*response, error) {
+//Del see redis command
+func (p *multiKeyPipelineBase) Del(keys ...string) (*Response, error) {
 	err := p.client.del(keys...)
 	if err != nil {
 		return nil, err
@@ -395,8 +397,8 @@ func (p *multiKeyPipelineBase) Del(keys ...string) (*response, error) {
 	return p.getResponse(Int64Builder), nil
 }
 
-//Exists  ...
-func (p *multiKeyPipelineBase) Exists(keys ...string) (*response, error) {
+//Exists  see redis command
+func (p *multiKeyPipelineBase) Exists(keys ...string) (*Response, error) {
 	err := p.client.exists(keys...)
 	if err != nil {
 		return nil, err
@@ -404,8 +406,8 @@ func (p *multiKeyPipelineBase) Exists(keys ...string) (*response, error) {
 	return p.getResponse(Int64Builder), nil
 }
 
-//BlpopTimout  ...
-func (p *multiKeyPipelineBase) BlpopTimout(timeout int, keys ...string) (*response, error) {
+//BLPopTimeout  see redis command
+func (p *multiKeyPipelineBase) BLPopTimeout(timeout int, keys ...string) (*Response, error) {
 	err := p.client.blpopTimout(timeout, keys...)
 	if err != nil {
 		return nil, err
@@ -413,8 +415,8 @@ func (p *multiKeyPipelineBase) BlpopTimout(timeout int, keys ...string) (*respon
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//BrpopTimout  ...
-func (p *multiKeyPipelineBase) BrpopTimout(timeout int, keys ...string) (*response, error) {
+//BRPopTimeout  see redis command
+func (p *multiKeyPipelineBase) BRPopTimeout(timeout int, keys ...string) (*Response, error) {
 	err := p.client.brpopTimout(timeout, keys...)
 	if err != nil {
 		return nil, err
@@ -422,8 +424,8 @@ func (p *multiKeyPipelineBase) BrpopTimout(timeout int, keys ...string) (*respon
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Blpop  ...
-func (p *multiKeyPipelineBase) Blpop(args ...string) (*response, error) {
+//BLPop  see redis command
+func (p *multiKeyPipelineBase) BLPop(args ...string) (*Response, error) {
 	err := p.client.blpop(args)
 	if err != nil {
 		return nil, err
@@ -431,8 +433,8 @@ func (p *multiKeyPipelineBase) Blpop(args ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Brpop  ...
-func (p *multiKeyPipelineBase) Brpop(args ...string) (*response, error) {
+//BRPop  see redis command
+func (p *multiKeyPipelineBase) BRPop(args ...string) (*Response, error) {
 	err := p.client.brpop(args)
 	if err != nil {
 		return nil, err
@@ -440,8 +442,8 @@ func (p *multiKeyPipelineBase) Brpop(args ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Keys  ...
-func (p *multiKeyPipelineBase) Keys(pattern string) (*response, error) {
+//Keys  see redis command
+func (p *multiKeyPipelineBase) Keys(pattern string) (*Response, error) {
 	err := p.client.keys(pattern)
 	if err != nil {
 		return nil, err
@@ -449,8 +451,8 @@ func (p *multiKeyPipelineBase) Keys(pattern string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Mget  ...
-func (p *multiKeyPipelineBase) Mget(keys ...string) (*response, error) {
+//MGet  see redis command
+func (p *multiKeyPipelineBase) MGet(keys ...string) (*Response, error) {
 	err := p.client.mget(keys...)
 	if err != nil {
 		return nil, err
@@ -458,26 +460,26 @@ func (p *multiKeyPipelineBase) Mget(keys ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Mset  ...
-func (p *multiKeyPipelineBase) Mset(keysvalues ...string) (*response, error) {
-	err := p.client.mset(keysvalues...)
+//MSet  see redis command
+func (p *multiKeyPipelineBase) MSet(kvs ...string) (*Response, error) {
+	err := p.client.mset(kvs...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(StringBuilder), nil
 }
 
-//Msetnx  ...
-func (p *multiKeyPipelineBase) Msetnx(keysvalues ...string) (*response, error) {
-	err := p.client.msetnx(keysvalues...)
+//MSetNx  see redis command
+func (p *multiKeyPipelineBase) MSetNx(kvs ...string) (*Response, error) {
+	err := p.client.msetnx(kvs...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Rename  ...
-func (p *multiKeyPipelineBase) Rename(oldkey, newkey string) (*response, error) {
+//Rename  see redis command
+func (p *multiKeyPipelineBase) Rename(oldkey, newkey string) (*Response, error) {
 	err := p.client.rename(oldkey, newkey)
 	if err != nil {
 		return nil, err
@@ -485,8 +487,8 @@ func (p *multiKeyPipelineBase) Rename(oldkey, newkey string) (*response, error) 
 	return p.getResponse(StringBuilder), nil
 }
 
-//Renamenx  ...
-func (p *multiKeyPipelineBase) Renamenx(oldkey, newkey string) (*response, error) {
+//RenameNx  see redis command
+func (p *multiKeyPipelineBase) RenameNx(oldkey, newkey string) (*Response, error) {
 	err := p.client.renamenx(oldkey, newkey)
 	if err != nil {
 		return nil, err
@@ -494,17 +496,17 @@ func (p *multiKeyPipelineBase) Renamenx(oldkey, newkey string) (*response, error
 	return p.getResponse(Int64Builder), nil
 }
 
-//Rpoplpush  ...
-func (p *multiKeyPipelineBase) Rpoplpush(srckey, dstkey string) (*response, error) {
-	err := p.client.rpopLpush(srckey, dstkey)
+//RPopLPush  see redis command
+func (p *multiKeyPipelineBase) RPopLPush(srcKey, destKey string) (*Response, error) {
+	err := p.client.rpopLpush(srcKey, destKey)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(StringBuilder), nil
 }
 
-//Sdiff  ...
-func (p *multiKeyPipelineBase) Sdiff(keys ...string) (*response, error) {
+//SDiff  see redis command
+func (p *multiKeyPipelineBase) SDiff(keys ...string) (*Response, error) {
 	err := p.client.sdiff(keys...)
 	if err != nil {
 		return nil, err
@@ -512,17 +514,17 @@ func (p *multiKeyPipelineBase) Sdiff(keys ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Sdiffstore  ...
-func (p *multiKeyPipelineBase) Sdiffstore(dstkey string, keys ...string) (*response, error) {
-	err := p.client.sdiffstore(dstkey, keys...)
+//SDiffStore  see redis command
+func (p *multiKeyPipelineBase) SDiffStore(destKey string, keys ...string) (*Response, error) {
+	err := p.client.sdiffstore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Sinter  ...
-func (p *multiKeyPipelineBase) Sinter(keys ...string) (*response, error) {
+//SInter  see redis command
+func (p *multiKeyPipelineBase) SInter(keys ...string) (*Response, error) {
 	err := p.client.sinter(keys...)
 	if err != nil {
 		return nil, err
@@ -530,35 +532,35 @@ func (p *multiKeyPipelineBase) Sinter(keys ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Sinterstore  ...
-func (p *multiKeyPipelineBase) Sinterstore(dstkey string, keys ...string) (*response, error) {
-	err := p.client.sinterstore(dstkey, keys...)
+//SInterStore  see redis command
+func (p *multiKeyPipelineBase) SInterStore(destKey string, keys ...string) (*Response, error) {
+	err := p.client.sinterstore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Smove  ...
-func (p *multiKeyPipelineBase) Smove(srckey, dstkey, member string) (*response, error) {
-	err := p.client.smove(srckey, dstkey, member)
+//SMove  see redis command
+func (p *multiKeyPipelineBase) SMove(srcKey, destKey, member string) (*Response, error) {
+	err := p.client.smove(srcKey, destKey, member)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//SortMulti  ...
-func (p *multiKeyPipelineBase) SortStore(key string, dstkey string, sortingParameters ...SortingParams) (*response, error) {
-	err := p.client.sortMulti(key, dstkey, sortingParameters...)
+//SortMulti  see redis command
+func (p *multiKeyPipelineBase) SortStore(key string, destKey string, sortingParameters ...SortingParams) (*Response, error) {
+	err := p.client.sortMulti(key, destKey, sortingParameters...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Sunion  ...
-func (p *multiKeyPipelineBase) Sunion(keys ...string) (*response, error) {
+//SUnion  see redis command
+func (p *multiKeyPipelineBase) SUnion(keys ...string) (*Response, error) {
 	err := p.client.sunion(keys...)
 	if err != nil {
 		return nil, err
@@ -566,17 +568,17 @@ func (p *multiKeyPipelineBase) Sunion(keys ...string) (*response, error) {
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Sunionstore  ...
-func (p *multiKeyPipelineBase) Sunionstore(dstkey string, keys ...string) (*response, error) {
-	err := p.client.sunionstore(dstkey, keys...)
+//SUnionStore  see redis command
+func (p *multiKeyPipelineBase) SUnionStore(destKey string, keys ...string) (*Response, error) {
+	err := p.client.sunionstore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Watch  ...
-func (p *multiKeyPipelineBase) Watch(keys ...string) (*response, error) {
+//Watch  see redis command
+func (p *multiKeyPipelineBase) Watch(keys ...string) (*Response, error) {
 	err := p.client.watch(keys...)
 	if err != nil {
 		return nil, err
@@ -584,44 +586,44 @@ func (p *multiKeyPipelineBase) Watch(keys ...string) (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Zinterstore  ...
-func (p *multiKeyPipelineBase) Zinterstore(dstkey string, sets ...string) (*response, error) {
-	err := p.client.zinterstore(dstkey, sets...)
+//ZInterStore  see redis command
+func (p *multiKeyPipelineBase) ZInterStore(destKey string, sets ...string) (*Response, error) {
+	err := p.client.zinterstore(destKey, sets...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//ZinterstoreWithParams  ...
-func (p *multiKeyPipelineBase) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) (*response, error) {
-	err := p.client.zinterstoreWithParams(dstkey, params, sets...)
+//ZInterStoreWithParams  see redis command
+func (p *multiKeyPipelineBase) ZInterStoreWithParams(destKey string, params ZParams, sets ...string) (*Response, error) {
+	err := p.client.zinterstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Zunionstore  ...
-func (p *multiKeyPipelineBase) Zunionstore(dstkey string, sets ...string) (*response, error) {
-	err := p.client.zunionstore(dstkey, sets...)
+//ZUnionStore  see redis command
+func (p *multiKeyPipelineBase) ZUnionStore(destKey string, sets ...string) (*Response, error) {
+	err := p.client.zunionstore(destKey, sets...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//ZunionstoreWithParams  ...
-func (p *multiKeyPipelineBase) ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (*response, error) {
-	err := p.client.zunionstoreWithParams(dstkey, params, sets...)
+//ZUnionStoreWithParams  see redis command
+func (p *multiKeyPipelineBase) ZUnionStoreWithParams(destKey string, params ZParams, sets ...string) (*Response, error) {
+	err := p.client.zunionstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(Int64Builder), nil
 }
 
-//Brpoplpush  ...
-func (p *multiKeyPipelineBase) Brpoplpush(source, destination string, timeout int) (*response, error) {
+//BRPopLPush  see redis command
+func (p *multiKeyPipelineBase) BRPopLPush(source, destination string, timeout int) (*Response, error) {
 	err := p.client.brpoplpush(source, destination, timeout)
 	if err != nil {
 		return nil, err
@@ -629,8 +631,8 @@ func (p *multiKeyPipelineBase) Brpoplpush(source, destination string, timeout in
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//Publish  ...
-func (p *multiKeyPipelineBase) Publish(channel, message string) (*response, error) {
+//Publish  see redis command
+func (p *multiKeyPipelineBase) Publish(channel, message string) (*Response, error) {
 	err := p.client.publish(channel, message)
 	if err != nil {
 		return nil, err
@@ -638,8 +640,8 @@ func (p *multiKeyPipelineBase) Publish(channel, message string) (*response, erro
 	return p.getResponse(Int64Builder), nil
 }
 
-//RandomKey  ...
-func (p *multiKeyPipelineBase) RandomKey() (*response, error) {
+//RandomKey  see redis command
+func (p *multiKeyPipelineBase) RandomKey() (*Response, error) {
 	err := p.client.randomKey()
 	if err != nil {
 		return nil, err
@@ -647,8 +649,8 @@ func (p *multiKeyPipelineBase) RandomKey() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//Bitop  ...
-func (p *multiKeyPipelineBase) Bitop(op BitOP, destKey string, srcKeys ...string) (*response, error) {
+//BitOp  see redis command
+func (p *multiKeyPipelineBase) BitOp(op BitOP, destKey string, srcKeys ...string) (*Response, error) {
 	err := p.client.bitop(op, destKey, srcKeys...)
 	if err != nil {
 		return nil, err
@@ -656,17 +658,17 @@ func (p *multiKeyPipelineBase) Bitop(op BitOP, destKey string, srcKeys ...string
 	return p.getResponse(Int64Builder), nil
 }
 
-//Pfmerge  ...
-func (p *multiKeyPipelineBase) Pfmerge(destkey string, sourcekeys ...string) (*response, error) {
-	err := p.client.pfmerge(destkey, sourcekeys...)
+//PfMerge  see redis command
+func (p *multiKeyPipelineBase) PfMerge(destKey string, srcKeys ...string) (*Response, error) {
+	err := p.client.pfmerge(destKey, srcKeys...)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(StringBuilder), nil
 }
 
-//Pfcount  ...
-func (p *multiKeyPipelineBase) Pfcount(keys ...string) (*response, error) {
+//PfCount  see redis command
+func (p *multiKeyPipelineBase) PfCount(keys ...string) (*Response, error) {
 	err := p.client.pfcount(keys...)
 	if err != nil {
 		return nil, err
@@ -678,8 +680,8 @@ func (p *multiKeyPipelineBase) Pfcount(keys ...string) (*response, error) {
 
 //<editor-fold desc="cluster pipeline">
 
-//ClusterNodes ...
-func (p *multiKeyPipelineBase) ClusterNodes() (*response, error) {
+//ClusterNodes see redis command
+func (p *multiKeyPipelineBase) ClusterNodes() (*Response, error) {
 	err := p.client.clusterNodes()
 	if err != nil {
 		return nil, err
@@ -687,8 +689,8 @@ func (p *multiKeyPipelineBase) ClusterNodes() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterMeet  ...
-func (p *multiKeyPipelineBase) ClusterMeet(ip string, port int) (*response, error) {
+//ClusterMeet  see redis command
+func (p *multiKeyPipelineBase) ClusterMeet(ip string, port int) (*Response, error) {
 	err := p.client.clusterMeet(ip, port)
 	if err != nil {
 		return nil, err
@@ -696,8 +698,8 @@ func (p *multiKeyPipelineBase) ClusterMeet(ip string, port int) (*response, erro
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterAddSlots  ...
-func (p *multiKeyPipelineBase) ClusterAddSlots(slots ...int) (*response, error) {
+//ClusterAddSlots  see redis command
+func (p *multiKeyPipelineBase) ClusterAddSlots(slots ...int) (*Response, error) {
 	err := p.client.clusterAddSlots(slots...)
 	if err != nil {
 		return nil, err
@@ -705,8 +707,8 @@ func (p *multiKeyPipelineBase) ClusterAddSlots(slots ...int) (*response, error) 
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterDelSlots  ...
-func (p *multiKeyPipelineBase) ClusterDelSlots(slots ...int) (*response, error) {
+//ClusterDelSlots  see redis command
+func (p *multiKeyPipelineBase) ClusterDelSlots(slots ...int) (*Response, error) {
 	err := p.client.clusterDelSlots(slots...)
 	if err != nil {
 		return nil, err
@@ -714,8 +716,8 @@ func (p *multiKeyPipelineBase) ClusterDelSlots(slots ...int) (*response, error) 
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterInfo  ...
-func (p *multiKeyPipelineBase) ClusterInfo() (*response, error) {
+//ClusterInfo  see redis command
+func (p *multiKeyPipelineBase) ClusterInfo() (*Response, error) {
 	err := p.client.clusterInfo()
 	if err != nil {
 		return nil, err
@@ -723,8 +725,8 @@ func (p *multiKeyPipelineBase) ClusterInfo() (*response, error) {
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterGetKeysInSlot  ...
-func (p *multiKeyPipelineBase) ClusterGetKeysInSlot(slot int, count int) (*response, error) {
+//ClusterGetKeysInSlot  see redis command
+func (p *multiKeyPipelineBase) ClusterGetKeysInSlot(slot int, count int) (*Response, error) {
 	err := p.client.clusterGetKeysInSlot(slot, count)
 	if err != nil {
 		return nil, err
@@ -732,27 +734,27 @@ func (p *multiKeyPipelineBase) ClusterGetKeysInSlot(slot int, count int) (*respo
 	return p.getResponse(StringArrayBuilder), nil
 }
 
-//ClusterSetSlotNode  ...
-func (p *multiKeyPipelineBase) ClusterSetSlotNode(slot int, nodeId string) (*response, error) {
-	err := p.client.clusterSetSlotNode(slot, nodeId)
+//ClusterSetSlotNode  see redis command
+func (p *multiKeyPipelineBase) ClusterSetSlotNode(slot int, nodeID string) (*Response, error) {
+	err := p.client.clusterSetSlotNode(slot, nodeID)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterSetSlotMigrating  ...
-func (p *multiKeyPipelineBase) ClusterSetSlotMigrating(slot int, nodeId string) (*response, error) {
-	err := p.client.clusterSetSlotMigrating(slot, nodeId)
+//ClusterSetSlotMigrating  see redis command
+func (p *multiKeyPipelineBase) ClusterSetSlotMigrating(slot int, nodeID string) (*Response, error) {
+	err := p.client.clusterSetSlotMigrating(slot, nodeID)
 	if err != nil {
 		return nil, err
 	}
 	return p.getResponse(StringBuilder), nil
 }
 
-//ClusterSetSlotImporting  ...
-func (p *multiKeyPipelineBase) ClusterSetSlotImporting(slot int, nodeId string) (*response, error) {
-	err := p.client.clusterSetSlotImporting(slot, nodeId)
+//ClusterSetSlotImporting  see redis command
+func (p *multiKeyPipelineBase) ClusterSetSlotImporting(slot int, nodeID string) (*Response, error) {
+	err := p.client.clusterSetSlotImporting(slot, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -763,8 +765,8 @@ func (p *multiKeyPipelineBase) ClusterSetSlotImporting(slot int, nodeId string) 
 
 //<editor-fold desc="scripting pipeline">
 
-//Eval ...
-func (p *multiKeyPipelineBase) Eval(script string, keyCount int, params ...string) (*response, error) {
+//Eval see redis command
+func (p *multiKeyPipelineBase) Eval(script string, keyCount int, params ...string) (*Response, error) {
 	err := p.getClient(script).eval(script, keyCount, params...)
 	if err != nil {
 		return nil, err
@@ -772,8 +774,8 @@ func (p *multiKeyPipelineBase) Eval(script string, keyCount int, params ...strin
 	return p.getResponse(StringBuilder), nil
 }
 
-//Evalsha  ...
-func (p *multiKeyPipelineBase) Evalsha(sha1 string, keyCount int, params ...string) (*response, error) {
+//EvalSha  see redis command
+func (p *multiKeyPipelineBase) EvalSha(sha1 string, keyCount int, params ...string) (*Response, error) {
 	err := p.getClient(sha1).evalsha(sha1, keyCount, params...)
 	if err != nil {
 		return nil, err

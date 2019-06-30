@@ -38,7 +38,7 @@ func TestRedis_ClusterDelSlots(t *testing.T) {
 func TestRedis_ClusterFailover(t *testing.T) {
 	redis := NewRedis(option1)
 	defer redis.Close()
-	slots, err := redis.ClusterFailover()
+	slots, err := redis.ClusterFailOver()
 	assert.NotNil(t, err)
 	assert.Equal(t, "", slots)
 }
@@ -83,8 +83,8 @@ func TestRedis_ClusterNodes(t *testing.T) {
 	assert.NotEmpty(t, s)
 	//t.Log(s)
 
-	nodeId := s[:strings.Index(s, " ")]
-	redis.ClusterSlaves(nodeId)
+	nodeID := s[:strings.Index(s, " ")]
+	redis.ClusterSlaves(nodeID)
 	//assert.Nil(t, err)
 	//assert.NotEmpty(t, slaves)
 }

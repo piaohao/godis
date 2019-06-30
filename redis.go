@@ -1,4 +1,3 @@
-// godis
 package godis
 
 import (
@@ -19,15 +18,15 @@ type Option struct {
 // Redis redis client tool
 type Redis struct {
 	client      *client
-	pipeline    *pipeline
-	transaction *transaction
+	pipeline    *Pipeline
+	transaction *Transaction
 	dataSource  *Pool
 	activeTime  time.Time
 
 	mu sync.RWMutex
 }
 
-// constructor for creating new redis
+//NewRedis constructor for creating new redis
 func NewRedis(option *Option) *Redis {
 	client := newClient(option)
 	return &Redis{client: client}
@@ -48,9 +47,8 @@ func (r *Redis) Close() error {
 	if r.dataSource != nil {
 		if r.client.broken {
 			return r.dataSource.returnBrokenResourceObject(r)
-		} else {
-			return r.dataSource.returnResourceObject(r)
 		}
+		return r.dataSource.returnResourceObject(r)
 
 	}
 	if r.client != nil {
@@ -108,7 +106,7 @@ func (r *Redis) Set(key, value string) (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-// Set the string value as value of the key. The string can't be longer than 1073741824 bytes (1 GB).
+//SetWithParamsAndTime Set the string value as value of the key. The string can't be longer than 1073741824 bytes (1 GB).
 // param nxxx NX|XX, NX -- Only set the key if it does not already exist. XX -- Only set the key if it already exist.
 // param expx EX|PX, expire time units: EX = seconds; PX = milliseconds
 // param time expire time in the units of <code>expx</code>
@@ -141,7 +139,7 @@ func (r *Redis) Get(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Return the type of the value stored at key in form of a string. The type can be one of "none",
+//Type Return the type of the value stored at key in form of a string. The type can be one of "none",
 //"string", "list", "set". "none" is returned if the key does not exist. Time complexity: O(1)
 //param key
 //return Status code reply, specifically: "none" if the key does not exist "string" if the key
@@ -160,7 +158,7 @@ func (r *Redis) Type(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Set a timeout on the specified key. After the timeout the key will be automatically deleted by
+//Expire Set a timeout on the specified key. After the timeout the key will be automatically deleted by
 //the server. A key with an associated timeout is said to be volatile in Redis terminology.
 //
 //Voltile keys are stored on disk like the other keys, the timeout is persistent too like all the
@@ -172,10 +170,6 @@ func (r *Redis) Type(key string) (string, error) {
 //set. It is also possible to undo the expire at all turning the key into a normal key using the
 //{@link #persist(String) PERSIST} command.
 //
-//Time complexity: O(1)
-//@see <a href="http://code.google.com/p/redis/wiki/ExpireCommand">ExpireCommand</a>
-//param key
-//param seconds
 //return Integer reply, specifically: 1: the timeout was set. 0: the timeout was not set since
 //        the key already has an associated timeout (this may happen only in Redis versions &lt;
 //        2.1.3, Redis &gt;= 2.1.3 will happily update the timeout), or the key does not exist.
@@ -191,7 +185,7 @@ func (r *Redis) Expire(key string, seconds int) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//EXPIREAT works exctly like {@link #expire(String, int) EXPIRE} but instead to get the number of
+//ExpireAt EXPIREAT works exctly like {@link #expire(String, int) EXPIRE} but instead to get the number of
 //seconds representing the Time To Live of the key as a second argument (that is a relative way
 //of specifying the TTL), it takes an absolute one in the form of a UNIX timestamp (Number of
 //seconds elapsed since 1 Gen 1970).
@@ -220,14 +214,14 @@ func (r *Redis) ExpireAt(key string, unixtime int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//The TTL command returns the remaining time to live in seconds of a key that has an
+//TTL The TTL command returns the remaining time to live in seconds of a key that has an
 //{@link #expire(String, int) EXPIRE} set. This introspection capability allows a Redis client to
 //check how many seconds a given key will continue to be part of the dataset.
 //return Integer reply, returns the remaining time to live in seconds of a key that has an
 //        EXPIRE. In Redis 2.6 or older, if the Key does not exists or does not have an
 //        associated expire, -1 is returned. In Redis 2.8 or newer, if the Key does not have an
 //        associated expire, -1 is returned or if the Key does not exists, -2 is returned.
-func (r *Redis) Ttl(key string) (int64, error) {
+func (r *Redis) TTL(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -239,7 +233,7 @@ func (r *Redis) Ttl(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// Pttl Like TTL this command returns the remaining time to live of a key that has an expire set,
+// PTTL Like TTL this command returns the remaining time to live of a key that has an expire set,
 // with the sole difference that TTL returns the amount of remaining time in seconds while PTTL returns it in milliseconds.
 //In Redis 2.6 or older the command returns -1 if the key does not exist or if the key exist but has no associated expire.
 //Starting with Redis 2.8 the return value in case of error changed:
@@ -247,7 +241,7 @@ func (r *Redis) Ttl(key string) (int64, error) {
 //The command returns -1 if the key exists but has no associated expire.
 //
 //Integer reply: TTL in milliseconds, or a negative value in order to signal an error (see the description above).
-func (r *Redis) Pttl(key string) (int64, error) {
+func (r *Redis) PTTL(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -259,7 +253,7 @@ func (r *Redis) Pttl(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// Setrange Overwrites part of the string stored at key, starting at the specified offset,
+// SetRange Overwrites part of the string stored at key, starting at the specified offset,
 // for the entire length of value. If the offset is larger than the current length of the string at key,
 // the string is padded with zero-bytes to make offset fit. Non-existing keys are considered as empty strings,
 // so this command will make sure it holds a string large enough to be able to set value at offset.
@@ -276,7 +270,7 @@ func (r *Redis) Pttl(key string) (int64, error) {
 //
 // Return value
 // Integer reply: the length of the string after it was modified by the command.
-func (r *Redis) Setrange(key string, offset int64, value string) (int64, error) {
+func (r *Redis) SetRange(key string, offset int64, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -288,7 +282,7 @@ func (r *Redis) Setrange(key string, offset int64, value string) (int64, error) 
 	return r.client.getIntegerReply()
 }
 
-// Getrange Warning: this command was renamed to GETRANGE, it is called SUBSTR in Redis versions <= 2.0.
+// GetRange Warning: this command was renamed to GETRANGE, it is called SUBSTR in Redis versions <= 2.0.
 // Returns the substring of the string value stored at key,
 // determined by the offsets start and end (both are inclusive).
 // Negative offsets can be used in order to provide an offset starting from the end of the string.
@@ -298,7 +292,7 @@ func (r *Redis) Setrange(key string, offset int64, value string) (int64, error) 
 //
 // Return value
 // Bulk string reply
-func (r *Redis) Getrange(key string, startOffset, endOffset int64) (string, error) {
+func (r *Redis) GetRange(key string, startOffset, endOffset int64) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -310,7 +304,7 @@ func (r *Redis) Getrange(key string, startOffset, endOffset int64) (string, erro
 	return r.client.getBulkReply()
 }
 
-//GETSET is an atomic set this value and return the old value command. Set key to the string
+//GetSet GETSET is an atomic set this value and return the old value command. Set key to the string
 //value and return the old value stored at key. The string can't be longer than 1073741824 bytes (1 GB).
 //
 //return Bulk reply
@@ -326,11 +320,11 @@ func (r *Redis) GetSet(key, value string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//SETNX works exactly like {@link #set(String, String) SET} with the only difference that if the
+//SetNx SETNX works exactly like {@link #set(String, String) SET} with the only difference that if the
 //key already exists no operation is performed. SETNX actually means "SET if Not eXists".
 //
 //return Integer reply, specifically: 1 if the key was set 0 if the key was not set
-func (r *Redis) Setnx(key, value string) (int64, error) {
+func (r *Redis) SetNx(key, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -342,11 +336,11 @@ func (r *Redis) Setnx(key, value string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//The command is exactly equivalent to the following group of commands:
+//SetEx The command is exactly equivalent to the following group of commands:
 //{@link #set(String, String) SET} + {@link #expire(String, int) EXPIRE}. The operation is atomic.
 //
 //return Status code reply
-func (r *Redis) Setex(key string, seconds int, value string) (string, error) {
+func (r *Redis) SetEx(key string, seconds int, value string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -358,7 +352,7 @@ func (r *Redis) Setex(key string, seconds int, value string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//IDECRBY work just like {@link #decr(String) INCR} but instead to decrement by 1 the decrement
+//DecrBy work just like {@link #decr(String) INCR} but instead to decrement by 1 the decrement
 //is integer.
 //
 //INCR commands are limited to 64 bit signed integers.
@@ -380,7 +374,7 @@ func (r *Redis) DecrBy(key string, decrement int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Decrement the number stored at key by one. If the key does not exist or contains a value of a
+//Decr Decrement the number stored at key by one. If the key does not exist or contains a value of a
 //wrong type, set the key to the value of "0" before to perform the decrement operation.
 //
 //INCR commands are limited to 64 bit signed integers.
@@ -402,7 +396,7 @@ func (r *Redis) Decr(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//INCRBY work just like {@link #incr(String) INCR} but instead to increment by 1 the increment is integer.
+//IncrBy work just like {@link #incr(String) INCR} but instead to increment by 1 the increment is integer.
 //
 //INCR commands are limited to 64 bit signed integers.
 //
@@ -423,7 +417,7 @@ func (r *Redis) IncrBy(key string, increment int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//INCRBYFLOAT commands are limited to double precision floating point values.
+//IncrByFloat commands are limited to double precision floating point values.
 //
 //Note: this is actually a string operation, that is, in Redis there are not "double" types.
 //Simply the string stored at the key is parsed as a base double precision floating point value,
@@ -443,7 +437,7 @@ func (r *Redis) IncrByFloat(key string, increment float64) (float64, error) {
 	return StringToFloat64Reply(r.client.getBulkReply())
 }
 
-//Increment the number stored at key by one. If the key does not exist or contains a value of a
+//Incr Increment the number stored at key by one. If the key does not exist or contains a value of a
 //wrong type, set the key to the value of "0" before to perform the increment operation.
 //
 //INCR commands are limited to 64 bit signed integers.
@@ -465,7 +459,7 @@ func (r *Redis) Incr(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//If the key already exists and is a string, this command appends the provided value at the end
+//Append If the key already exists and is a string, this command appends the provided value at the end
 //of the string. If the key does not exist it is created and set as an empty string, so APPEND
 //will be very similar to SET in this special case.
 //
@@ -486,7 +480,7 @@ func (r *Redis) Append(key, value string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return a subset of the string from offset start to offset end (both offsets are inclusive).
+//SubStr Return a subset of the string from offset start to offset end (both offsets are inclusive).
 //Negative offsets can be used in order to provide an offset starting from the end of the string.
 //So -1 means the last char, -2 the penultimate and so forth.
 //
@@ -498,7 +492,7 @@ func (r *Redis) Append(key, value string) (int64, error) {
 //is actually an O(1) command.
 //
 //return Bulk reply
-func (r *Redis) Substr(key string, start, end int) (string, error) {
+func (r *Redis) SubStr(key string, start, end int) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -510,13 +504,13 @@ func (r *Redis) Substr(key string, start, end int) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Set the specified hash field to the specified value.
+//HSet Set the specified hash field to the specified value.
 //
 //If key does not exist, a new key holding a hash is created.
 //
 //return If the field already exists, and the HSET just produced an update of the value, 0 is
 //        returned, otherwise if a new field is created 1 is returned.
-func (r *Redis) Hset(key, field, value string) (int64, error) {
+func (r *Redis) HSet(key, field, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -528,12 +522,12 @@ func (r *Redis) Hset(key, field, value string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//If key holds a hash, retrieve the value associated to the specified field.
+//HGet If key holds a hash, retrieve the value associated to the specified field.
 //
 //If the field is not found or the key does not exist, a special 'nil' value is returned.
 //
 //return Bulk reply
-func (r *Redis) Hget(key, field string) (string, error) {
+func (r *Redis) HGet(key, field string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -545,10 +539,10 @@ func (r *Redis) Hget(key, field string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Set the specified hash field to the specified value if the field not exists.
+//HSetNx Set the specified hash field to the specified value if the field not exists.
 //
 //return If the field already exists, 0 is returned, otherwise if a new field is created 1 is returned.
-func (r *Redis) Hsetnx(key, field, value string) (int64, error) {
+func (r *Redis) HSetNx(key, field, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -560,12 +554,12 @@ func (r *Redis) Hsetnx(key, field, value string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Set the respective fields to the respective values. HMSET replaces old values with new values.
+//HMSet Set the respective fields to the respective values. HMSET replaces old values with new values.
 //
 //If key does not exist, a new key holding a hash is created.
 //
 //return Return OK or Exception if hash is empty
-func (r *Redis) Hmset(key string, hash map[string]string) (string, error) {
+func (r *Redis) HMSet(key string, hash map[string]string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -577,14 +571,14 @@ func (r *Redis) Hmset(key string, hash map[string]string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Retrieve the values associated to the specified fields.
+//HMGet Retrieve the values associated to the specified fields.
 //
 //If some of the specified fields do not exist, nil values are returned. Non existing keys are
 //considered like empty hashes.
 //
 //return Multi Bulk Reply specifically a list of all the values associated with the specified
 //        fields, in the same order of the request.
-func (r *Redis) Hmget(key string, fields ...string) ([]string, error) {
+func (r *Redis) HMGet(key string, fields ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -596,7 +590,7 @@ func (r *Redis) Hmget(key string, fields ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Increment the number stored at field in the hash at key by value. If key does not exist, a new
+//HIncrBy Increment the number stored at field in the hash at key by value. If key does not exist, a new
 //key holding a hash is created. If field does not exist or holds a string, the value is set to 0
 //before applying the operation. Since the value argument is signed you can use this command to
 //perform both increments and decrements.
@@ -604,7 +598,7 @@ func (r *Redis) Hmget(key string, fields ...string) ([]string, error) {
 //The range of values supported by HINCRBY is limited to 64 bit signed integers.
 //
 //return Integer reply The new value at field after the increment operation.
-func (r *Redis) HincrBy(key, field string, value int64) (int64, error) {
+func (r *Redis) HIncrBy(key, field string, value int64) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -616,7 +610,7 @@ func (r *Redis) HincrBy(key, field string, value int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Increment the number stored at field in the hash at key by a double precision floating point
+//HIncrByFloat Increment the number stored at field in the hash at key by a double precision floating point
 //value. If key does not exist, a new key holding a hash is created. If field does not exist or
 //holds a string, the value is set to 0 before applying the operation. Since the value argument
 //is signed you can use this command to perform both increments and decrements.
@@ -626,7 +620,7 @@ func (r *Redis) HincrBy(key, field string, value int64) (int64, error) {
 //
 //return Double precision floating point reply The new value at field after the increment
 //        operation.
-func (r *Redis) HincrByFloat(key, field string, value float64) (float64, error) {
+func (r *Redis) HIncrByFloat(key, field string, value float64) (float64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -638,11 +632,11 @@ func (r *Redis) HincrByFloat(key, field string, value float64) (float64, error) 
 	return StringToFloat64Reply(r.client.getBulkReply())
 }
 
-//Test for existence of a specified field in a hash.
+//HExists Test for existence of a specified field in a hash.
 //
 //return Return 1 if the hash stored at key contains the specified field. Return 0 if the key is
 //        not found or the field is not present.
-func (r *Redis) Hexists(key, field string) (bool, error) {
+func (r *Redis) HExists(key, field string) (bool, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return false, err
@@ -654,11 +648,11 @@ func (r *Redis) Hexists(key, field string) (bool, error) {
 	return Int64ToBoolReply(r.client.getIntegerReply())
 }
 
-//Remove the specified field from an hash stored at key.
+//HDel Remove the specified field from an hash stored at key.
 //
 //return If the field was present in the hash it is deleted and 1 is returned, otherwise 0 is
 //        returned and no operation is performed.
-func (r *Redis) Hdel(key string, fields ...string) (int64, error) {
+func (r *Redis) HDel(key string, fields ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -670,11 +664,11 @@ func (r *Redis) Hdel(key string, fields ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the number of items in a hash.
+//HLen Return the number of items in a hash.
 //
 //return The number of entries (fields) contained in the hash stored at key. If the specified
 //        key does not exist, 0 is returned assuming an empty hash.
-func (r *Redis) Hlen(key string) (int64, error) {
+func (r *Redis) HLen(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -686,10 +680,10 @@ func (r *Redis) Hlen(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return all the fields in a hash.
+//HKeys Return all the fields in a hash.
 //
 //return All the fields names contained into a hash.
-func (r *Redis) Hkeys(key string) ([]string, error) {
+func (r *Redis) HKeys(key string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -701,10 +695,10 @@ func (r *Redis) Hkeys(key string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Return all the values in a hash.
+//HVals Return all the values in a hash.
 //
 //return All the fields values contained into a hash.
-func (r *Redis) Hvals(key string) ([]string, error) {
+func (r *Redis) HVals(key string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -716,10 +710,10 @@ func (r *Redis) Hvals(key string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Return all the fields and associated values in a hash.
+//HGetAll Return all the fields and associated values in a hash.
 //
 //return All the fields and values contained into a hash.
-func (r *Redis) HgetAll(key string) (map[string]string, error) {
+func (r *Redis) HGetAll(key string) (map[string]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -731,13 +725,13 @@ func (r *Redis) HgetAll(key string) (map[string]string, error) {
 	return StringArrayToMapReply(r.client.getMultiBulkReply())
 }
 
-//Add the string value to the head (LPUSH) or tail (RPUSH) of the list stored at key. If the key
+//RPush Add the string value to the head (LPUSH) or tail (RPUSH) of the list stored at key. If the key
 //does not exist an empty list is created just before the append operation. If the key exists but
 //is not a List an error is returned.
 //
 //return Integer reply, specifically, the number of elements inside the list after the push
 //        operation.
-func (r *Redis) Rpush(key string, strings ...string) (int64, error) {
+func (r *Redis) RPush(key string, strings ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -749,13 +743,13 @@ func (r *Redis) Rpush(key string, strings ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Add the string value to the head (LPUSH) or tail (RPUSH) of the list stored at key. If the key
+//LPush Add the string value to the head (LPUSH) or tail (RPUSH) of the list stored at key. If the key
 //does not exist an empty list is created just before the append operation. If the key exists but
 //is not a List an error is returned.
 //
 //return Integer reply, specifically, the number of elements inside the list after the push
 //        operation.
-func (r *Redis) Lpush(key string, strings ...string) (int64, error) {
+func (r *Redis) LPush(key string, strings ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -767,12 +761,12 @@ func (r *Redis) Lpush(key string, strings ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the length of the list stored at the specified key. If the key does not exist zero is
+//LLen Return the length of the list stored at the specified key. If the key does not exist zero is
 //returned (the same behaviour as for empty lists). If the value stored at key is not a list an
 //error is returned.
 //
 //return The length of the list.
-func (r *Redis) Llen(key string) (int64, error) {
+func (r *Redis) LLen(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -784,7 +778,7 @@ func (r *Redis) Llen(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the specified elements of the list stored at the specified key. Start and end are
+//LRange Return the specified elements of the list stored at the specified key. Start and end are
 //zero-based indexes. 0 is the first element of the list (the list head), 1 the next element and
 //so on.
 //
@@ -807,7 +801,7 @@ func (r *Redis) Llen(key string) (int64, error) {
 //just like the last element of the list.
 //
 //return Multi bulk reply, specifically a list of elements in the specified range.
-func (r *Redis) Lrange(key string, start, stop int64) ([]string, error) {
+func (r *Redis) LRange(key string, start, stop int64) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -819,7 +813,7 @@ func (r *Redis) Lrange(key string, start, stop int64) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Trim an existing list so that it will contain only the specified range of elements specified.
+//LTrim Trim an existing list so that it will contain only the specified range of elements specified.
 //Start and end are zero-based indexes. 0 is the first element of the list (the list head), 1 the
 //next element and so on.
 //
@@ -843,7 +837,7 @@ func (r *Redis) Lrange(key string, start, stop int64) ([]string, error) {
 //one element is removed from the tail of the list.
 //
 //return Status code reply
-func (r *Redis) Ltrim(key string, start, stop int64) (string, error) {
+func (r *Redis) LTrim(key string, start, stop int64) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -855,7 +849,7 @@ func (r *Redis) Ltrim(key string, start, stop int64) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Return the specified element of the list stored at the specified key. 0 is the first element, 1
+//LIndex Return the specified element of the list stored at the specified key. 0 is the first element, 1
 //the second and so on. Negative indexes are supported, for example -1 is the last element, -2
 //the penultimate and so on.
 //
@@ -863,7 +857,7 @@ func (r *Redis) Ltrim(key string, start, stop int64) (string, error) {
 //range a 'nil' reply is returned.
 //
 //return Bulk reply, specifically the requested element
-func (r *Redis) Lindex(key string, index int64) (string, error) {
+func (r *Redis) LIndex(key string, index int64) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -875,7 +869,7 @@ func (r *Redis) Lindex(key string, index int64) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Set a new value as the element at index position of the List at key.
+//LSet Set a new value as the element at index position of the List at key.
 //
 //Out of range indexes will generate an error.
 //
@@ -884,7 +878,7 @@ func (r *Redis) Lindex(key string, index int64) (string, error) {
 //and so forth.
 //
 //return Status code reply
-func (r *Redis) Lset(key string, index int64, value string) (string, error) {
+func (r *Redis) LSet(key string, index int64, value string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -896,7 +890,7 @@ func (r *Redis) Lset(key string, index int64, value string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Remove the first count occurrences of the value element from the list. If count is zero all the
+//LRem Remove the first count occurrences of the value element from the list. If count is zero all the
 //elements are removed. If count is negative elements are removed from tail to head, instead to
 //go from head to tail that is the normal behaviour. So for example LREM with count -2 and hello
 //as value to remove against the list (a,b,c,hello,x,hello,hello) will lave the list
@@ -905,7 +899,7 @@ func (r *Redis) Lset(key string, index int64, value string) (string, error) {
 //lists by LREM, so LREM against non existing keys will always return 0.
 //
 //return Integer Reply, specifically: The number of removed elements if the operation succeeded
-func (r *Redis) Lrem(key string, count int64, value string) (int64, error) {
+func (r *Redis) LRem(key string, count int64, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -917,14 +911,14 @@ func (r *Redis) Lrem(key string, count int64, value string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Atomically return and remove the first (LPOP) or last (RPOP) element of the list. For example
+//LPop Atomically return and remove the first (LPOP) or last (RPOP) element of the list. For example
 //if the list contains the elements "a","b","c" LPOP will return "a" and the list will become
 //"b","c".
 //
 //If the key does not exist or the list is already empty the special value 'nil' is returned.
 //
 //return Bulk reply
-func (r *Redis) Lpop(key string) (string, error) {
+func (r *Redis) LPop(key string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -936,14 +930,14 @@ func (r *Redis) Lpop(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Atomically return and remove the first (LPOP) or last (RPOP) element of the list. For example
+//RPop Atomically return and remove the first (LPOP) or last (RPOP) element of the list. For example
 //if the list contains the elements "a","b","c" RPOP will return "c" and the list will become
 //"a","b".
 //
 //If the key does not exist or the list is already empty the special value 'nil' is returned.
 //
 //return Bulk reply
-func (r *Redis) Rpop(key string) (string, error) {
+func (r *Redis) RPop(key string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -955,13 +949,13 @@ func (r *Redis) Rpop(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Add the specified member to the set value stored at key. If member is already a member of the
+//SAdd Add the specified member to the set value stored at key. If member is already a member of the
 //set no operation is performed. If key does not exist a new set with the specified member as
 //sole member is created. If the key exists but does not hold a set value an error is returned.
 //
 //return Integer reply, specifically: 1 if the new element was added 0 if the element was
 //        already a member of the set
-func (r *Redis) Sadd(key string, members ...string) (int64, error) {
+func (r *Redis) SAdd(key string, members ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -973,11 +967,10 @@ func (r *Redis) Sadd(key string, members ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return all the members (elements) of the set value stored at key. This is just syntax glue for
-//{@link #sinter(String...) SINTER}.
+//SMembers Return all the members (elements) of the set value stored at key.
 //
 //return Multi bulk reply
-func (r *Redis) Smembers(key string) ([]string, error) {
+func (r *Redis) SMembers(key string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -989,12 +982,12 @@ func (r *Redis) Smembers(key string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Remove the specified member from the set value stored at key. If member was not a member of the
+//SRem Remove the specified member from the set value stored at key. If member was not a member of the
 //set no operation is performed. If key does not hold a set value an error is returned.
 //
 //return Integer reply, specifically: 1 if the new element was removed 0 if the new element was
 //        not a member of the set
-func (r *Redis) Srem(key string, members ...string) (int64, error) {
+func (r *Redis) SRem(key string, members ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1006,14 +999,14 @@ func (r *Redis) Srem(key string, members ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Remove a random element from a Set returning it as return value. If the Set is empty or the key
+//SPop Remove a random element from a Set returning it as return value. If the Set is empty or the key
 //does not exist, a nil object is returned.
 //
 //The {@link #srandmember(String)} command does a similar work but the returned element is not
 //removed from the Set.
 //
 //return Bulk reply
-func (r *Redis) Spop(key string) (string, error) {
+func (r *Redis) SPop(key string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -1025,9 +1018,9 @@ func (r *Redis) Spop(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-// remove multi random element
-// see Spop(key string)
-func (r *Redis) SpopBatch(key string, count int64) ([]string, error) {
+//SPopBatch remove multi random element
+// see SPop(key string)
+func (r *Redis) SPopBatch(key string, count int64) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1039,11 +1032,11 @@ func (r *Redis) SpopBatch(key string, count int64) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Return the set cardinality (number of elements). If the key does not exist 0 is returned, like
+//SCard Return the set cardinality (number of elements). If the key does not exist 0 is returned, like
 //for empty sets.
 //return Integer reply, specifically: the cardinality (number of elements) of the set as an
 //        integer.
-func (r *Redis) Scard(key string) (int64, error) {
+func (r *Redis) SCard(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1055,11 +1048,11 @@ func (r *Redis) Scard(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return 1 if member is a member of the set stored at key, otherwise 0 is returned.
+//SIsMember Return 1 if member is a member of the set stored at key, otherwise 0 is returned.
 //
 //return Integer reply, specifically: 1 if the element is a member of the set 0 if the element
 //        is not a member of the set OR if the key does not exist
-func (r *Redis) Sismember(key, member string) (bool, error) {
+func (r *Redis) SIsMember(key, member string) (bool, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return false, err
@@ -1071,7 +1064,7 @@ func (r *Redis) Sismember(key, member string) (bool, error) {
 	return Int64ToBoolReply(r.client.getIntegerReply())
 }
 
-//Return the members of a set resulting from the intersection of all the sets hold at the
+//SInter Return the members of a set resulting from the intersection of all the sets hold at the
 //specified keys. Like in {@link #lrange(String, long, long) LRANGE} the result is sent to the
 //client as a multi-bulk reply (see the protocol specification for more information). If just a
 //single key is specified, then this command produces the same result as
@@ -1081,7 +1074,7 @@ func (r *Redis) Sismember(key, member string) (bool, error) {
 //is returned (since the intersection with an empty set always is an empty set).
 //
 //return Multi bulk reply, specifically the list of common elements.
-func (r *Redis) Sinter(keys ...string) ([]string, error) {
+func (r *Redis) SInter(keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1093,23 +1086,23 @@ func (r *Redis) Sinter(keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//This commnad works exactly like {@link #sinter(String...) SINTER} but instead of being returned
-//the resulting set is sotred as dstkey.
+//SInterStore This commnad works exactly like {@link #sinter(String...) SINTER} but instead of being returned
+//the resulting set is sotred as destKey.
 //
 //return Status code reply
-func (r *Redis) Sinterstore(dstkey string, keys ...string) (int64, error) {
+func (r *Redis) SInterStore(destKey string, keys ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.sinterstore(dstkey, keys...)
+	err = r.client.sinterstore(destKey, keys...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Return the members of a set resulting from the union of all the sets hold at the specified
+//SUnion Return the members of a set resulting from the union of all the sets hold at the specified
 //keys. Like in {@link #lrange(String, long, long) LRANGE} the result is sent to the client as a
 //multi-bulk reply (see the protocol specification for more information). If just a single key is
 //specified, then this command produces the same result as {@link #smembers(String) SMEMBERS}.
@@ -1117,7 +1110,7 @@ func (r *Redis) Sinterstore(dstkey string, keys ...string) (int64, error) {
 //Non existing keys are considered like empty sets.
 //
 //return Multi bulk reply, specifically the list of common elements.
-func (r *Redis) Sunion(keys ...string) ([]string, error) {
+func (r *Redis) SUnion(keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1129,23 +1122,23 @@ func (r *Redis) Sunion(keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//This command works exactly like {@link #sunion(String...) SUNION} but instead of being returned
-//the resulting set is stored as dstkey. Any existing value in dstkey will be over-written.
+//SUnionStore This command works exactly like {@link #sunion(String...) SUNION} but instead of being returned
+//the resulting set is stored as destKey. Any existing value in destKey will be over-written.
 //
 //return Status code reply
-func (r *Redis) Sunionstore(dstkey string, keys ...string) (int64, error) {
+func (r *Redis) SUnionStore(destKey string, keys ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.sunionstore(dstkey, keys...)
+	err = r.client.sunionstore(destKey, keys...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Return the difference between the Set stored at key1 and all the Sets key2, ..., keyN
+//SDiff Return the difference between the Set stored at key1 and all the Sets key2, ..., keyN
 //
 //<b>Example:</b>
 //<pre>
@@ -1158,7 +1151,7 @@ func (r *Redis) Sunionstore(dstkey string, keys ...string) (int64, error) {
 //
 //return Return the members of a set resulting from the difference between the first set
 //        provided and all the successive sets.
-func (r *Redis) Sdiff(keys ...string) ([]string, error) {
+func (r *Redis) SDiff(keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1170,28 +1163,28 @@ func (r *Redis) Sdiff(keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//This command works exactly like {@link #sdiff(String...) SDIFF} but instead of being returned
-//the resulting set is stored in dstkey.
+//SDiffStore This command works exactly like {@link #sdiff(String...) SDIFF} but instead of being returned
+//the resulting set is stored in destKey.
 //return Status code reply
-func (r *Redis) Sdiffstore(dstkey string, keys ...string) (int64, error) {
+func (r *Redis) SDiffStore(destKey string, keys ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.sdiffstore(dstkey, keys...)
+	err = r.client.sdiffstore(destKey, keys...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Return a random element from a Set, without removing the element. If the Set is empty or the
+//SRandMember Return a random element from a Set, without removing the element. If the Set is empty or the
 //key does not exist, a nil object is returned.
 //
 //The SPOP command does a similar work but the returned element is popped (removed) from the Set.
 //
 //return Bulk reply
-func (r *Redis) Srandmember(key string) (string, error) {
+func (r *Redis) SRandMember(key string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -1203,7 +1196,7 @@ func (r *Redis) Srandmember(key string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Add the specified member having the specifeid score to the sorted set stored at key. If member
+//ZAdd Add the specified member having the specifeid score to the sorted set stored at key. If member
 //is already a member of the sorted set the score is updated, and the element reinserted in the
 //right position to ensure sorting. If key does not exist a new sorted set with the specified
 //member as sole member is crated. If the key exists but does not hold a sorted set value an
@@ -1213,19 +1206,19 @@ func (r *Redis) Srandmember(key string) (string, error) {
 //
 //return Integer reply, specifically: 1 if the new element was added 0 if the element was
 //        already a member of the sorted set and the score was updated
-func (r *Redis) Zadd(key string, score float64, member string, mparams ...*ZAddParams) (int64, error) {
+func (r *Redis) ZAdd(key string, score float64, member string, params ...*ZAddParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.zadd(key, score, member)
+	err = r.client.zadd(key, score, member, params...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Returns the specified range of elements in the sorted set stored at key.
+//ZRange Returns the specified range of elements in the sorted set stored at key.
 // The elements are considered to be ordered from the lowest to the highest score.
 // Lexicographical order is used for elements with equal score.
 //See ZREVRANGE when you need the elements ordered from highest to lowest score
@@ -1243,7 +1236,7 @@ func (r *Redis) Zadd(key string, score float64, member string, mparams ...*ZAddP
 // Client libraries are free to return a more appropriate data type (suggestion: an array with (value, score) arrays/tuples).
 //Return value
 //Array reply: list of elements in the specified range (optionally with their scores, in case the WITHSCORES option is given).
-func (r *Redis) Zrange(key string, start, stop int64) ([]string, error) {
+func (r *Redis) ZRange(key string, start, stop int64) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1255,13 +1248,13 @@ func (r *Redis) Zrange(key string, start, stop int64) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Remove the specified member from the sorted set value stored at key. If member was not a member
+//ZRem Remove the specified member from the sorted set value stored at key. If member was not a member
 //of the set no operation is performed. If key does not not hold a set value an error is
 //returned.
 //
 //return Integer reply, specifically: 1 if the new element was removed 0 if the new element was
 //        not a member of the set
-func (r *Redis) Zrem(key string, members ...string) (int64, error) {
+func (r *Redis) ZRem(key string, members ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1273,7 +1266,7 @@ func (r *Redis) Zrem(key string, members ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//If member already exists in the sorted set adds the increment to its score and updates the
+//ZIncrBy If member already exists in the sorted set adds the increment to its score and updates the
 //position of the element in the sorted set accordingly. If member does not already exist in the
 //sorted set it is added with increment as score (that is, like if the previous score was
 //virtually zero). If key does not exist a new sorted set with the specified member as sole
@@ -1285,7 +1278,7 @@ func (r *Redis) Zrem(key string, members ...string) (int64, error) {
 //For an introduction to sorted sets check the Introduction to Redis data types page.
 //
 //return The new score
-func (r *Redis) Zincrby(key string, increment float64, member string, params ...*ZAddParams) (float64, error) {
+func (r *Redis) ZIncrBy(key string, increment float64, member string, params ...*ZAddParams) (float64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1297,7 +1290,7 @@ func (r *Redis) Zincrby(key string, increment float64, member string, params ...
 	return StringToFloat64Reply(r.client.getBulkReply())
 }
 
-//Return the rank (or index) or member in the sorted set at key, with scores being ordered from
+//ZRank Return the rank (or index) or member in the sorted set at key, with scores being ordered from
 //low to high.
 //
 //When the given member does not exist in the sorted set, the special value 'nil' is returned.
@@ -1305,7 +1298,7 @@ func (r *Redis) Zincrby(key string, increment float64, member string, params ...
 //
 //return Integer reply or a nil bulk reply, specifically: the rank of the element as an integer
 //        reply if the element exists. A nil bulk reply if there is no such element.
-func (r *Redis) Zrank(key, member string) (int64, error) {
+func (r *Redis) ZRank(key, member string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1317,7 +1310,7 @@ func (r *Redis) Zrank(key, member string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the rank (or index) or member in the sorted set at key, with scores being ordered from
+//ZRevRank Return the rank (or index) or member in the sorted set at key, with scores being ordered from
 //high to low.
 //
 //When the given member does not exist in the sorted set, the special value 'nil' is returned.
@@ -1325,7 +1318,7 @@ func (r *Redis) Zrank(key, member string) (int64, error) {
 //
 //return Integer reply or a nil bulk reply, specifically: the rank of the element as an integer
 //        reply if the element exists. A nil bulk reply if there is no such element.
-func (r *Redis) Zrevrank(key, member string) (int64, error) {
+func (r *Redis) ZRevRank(key, member string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1337,13 +1330,13 @@ func (r *Redis) Zrevrank(key, member string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Returns the specified range of elements in the sorted set stored at key.
+//ZRevRange Returns the specified range of elements in the sorted set stored at key.
 // The elements are considered to be ordered from the highest to the lowest score.
 // Descending lexicographical order is used for elements with equal score.
 //Apart from the reversed ordering, ZREVRANGE is similar to ZRANGE.
 //Return value
 //Array reply: list of elements in the specified range (optionally with their scores).
-func (r *Redis) Zrevrange(key string, start, stop int64) ([]string, error) {
+func (r *Redis) ZRevRange(key string, start, stop int64) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1355,11 +1348,11 @@ func (r *Redis) Zrevrange(key string, start, stop int64) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Return the sorted set cardinality (number of elements). If the key does not exist 0 is
+//ZCard Return the sorted set cardinality (number of elements). If the key does not exist 0 is
 //returned, like for empty sorted sets.
 //
 //return the cardinality (number of elements) of the set as an integer.
-func (r *Redis) Zcard(key string) (int64, error) {
+func (r *Redis) ZCard(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1371,12 +1364,12 @@ func (r *Redis) Zcard(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the score of the specified element of the sorted set at key. If the specified element
+//ZScore Return the score of the specified element of the sorted set at key. If the specified element
 //does not exist in the sorted set, or the key does not exist at all, a special 'nil' value is
 //returned.
 //
 //return the score
-func (r *Redis) Zscore(key, member string) (float64, error) {
+func (r *Redis) ZScore(key, member string) (float64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1388,7 +1381,7 @@ func (r *Redis) Zscore(key, member string) (float64, error) {
 	return StringToFloat64Reply(r.client.getBulkReply())
 }
 
-//Marks the given keys to be watched for conditional execution of a transaction.
+//Watch Marks the given keys to be watched for conditional execution of a transaction.
 //
 //Return value
 //Simple string reply: always OK.
@@ -1423,7 +1416,7 @@ func (r *Redis) Sort(key string, sortingParameters ...SortingParams) ([]string, 
 	return r.client.getMultiBulkReply()
 }
 
-// Zcount Returns the number of elements in the sorted set at key with a score between min and max.
+// ZCount Returns the number of elements in the sorted set at key with a score between min and max.
 // The min and max arguments have the same semantic as described for ZRANGEBYSCORE.
 // Note: the command has a complexity of just O(log(N))
 // because it uses elements ranks (see ZRANK) to get an idea of the range.
@@ -1431,7 +1424,7 @@ func (r *Redis) Sort(key string, sortingParameters ...SortingParams) ([]string, 
 //
 // Return value
 // Integer reply: the number of elements in the specified score range.
-func (r *Redis) Zcount(key, min, max string) (int64, error) {
+func (r *Redis) ZCount(key, min, max string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1443,7 +1436,7 @@ func (r *Redis) Zcount(key, min, max string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Return the all the elements in the sorted set at key with a score between min and max
+//ZRangeByScore Return the all the elements in the sorted set at key with a score between min and max
 //(including elements with score equal to min or max).
 //
 //The elements having the same score are returned sorted lexicographically as ASCII strings (this
@@ -1477,7 +1470,7 @@ func (r *Redis) Zcount(key, min, max string) (int64, error) {
 //param min a double or Double.MIN_VALUE for "-inf"
 //param max a double or Double.MAX_VALUE for "+inf"
 //return Multi bulk reply specifically a list of elements in the specified score range.
-func (r *Redis) ZrangeByScore(key, min, max string) ([]string, error) {
+func (r *Redis) ZRangeByScore(key, min, max string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1489,7 +1482,7 @@ func (r *Redis) ZrangeByScore(key, min, max string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Return the all the elements in the sorted set at key with a score between min and max
+//ZRangeByScoreWithScores Return the all the elements in the sorted set at key with a score between min and max
 //(including elements with score equal to min or max).
 //
 //The elements having the same score are returned sorted lexicographically as ASCII strings (this
@@ -1521,7 +1514,7 @@ func (r *Redis) ZrangeByScore(key, min, max string) ([]string, error) {
 //Will return all the values with score &gt; 5 and &lt; 10 (5 and 10 excluded).
 //
 //return Multi bulk reply specifically a list of elements in the specified score range.
-func (r *Redis) ZrangeByScoreWithScores(key, min, max string) ([]Tuple, error) {
+func (r *Redis) ZRangeByScoreWithScores(key, min, max string) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1533,7 +1526,7 @@ func (r *Redis) ZrangeByScoreWithScores(key, min, max string) ([]Tuple, error) {
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-// ZrevrangeByScore Returns all the elements in the sorted set at key with a score between max and min
+// ZRevRangeByScore Returns all the elements in the sorted set at key with a score between max and min
 // (including elements with score equal to max or min). In contrary to the default ordering of sorted sets,
 // for this command the elements are considered to be ordered from high to low scores.
 // The elements having the same score are returned in reverse lexicographical order.
@@ -1541,7 +1534,7 @@ func (r *Redis) ZrangeByScoreWithScores(key, min, max string) ([]Tuple, error) {
 //
 // Return value
 // Array reply: list of elements in the specified score range (optionally with their scores).
-func (r *Redis) ZrevrangeByScore(key, max, min string) ([]string, error) {
+func (r *Redis) ZRevRangeByScore(key, max, min string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1553,8 +1546,8 @@ func (r *Redis) ZrevrangeByScore(key, max, min string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-// see ZrevrangeByScore(key, max, min string)
-func (r *Redis) ZrevrangeByScoreWithScores(key, max, min string) ([]Tuple, error) {
+//ZRevRangeByScoreWithScores see ZRevRangeByScore(key, max, min string)
+func (r *Redis) ZRevRangeByScoreWithScores(key, max, min string) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1566,12 +1559,12 @@ func (r *Redis) ZrevrangeByScoreWithScores(key, max, min string) ([]Tuple, error
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-//Remove all elements in the sorted set at key with rank between start and end. Start and end are
+//ZRemRangeByRank Remove all elements in the sorted set at key with rank between start and end. Start and end are
 //0-based with rank 0 being the element with the lowest score. Both start and end can be negative
 //numbers, where they indicate offsets starting at the element with the highest rank. For
 //example: -1 is the element with the highest score, -2 the element with the second highest score
 //and so forth.
-func (r *Redis) ZremrangeByRank(key string, start, stop int64) (int64, error) {
+func (r *Redis) ZRemRangeByRank(key string, start, stop int64) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1583,11 +1576,11 @@ func (r *Redis) ZremrangeByRank(key string, start, stop int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// Strlen Returns the length of the string value stored at key.
+// StrLen Returns the length of the string value stored at key.
 // An error is returned when key holds a non-string value.
 // Return value
 // Integer reply: the length of the string at key, or 0 when key does not exist.
-func (r *Redis) Strlen(key string) (int64, error) {
+func (r *Redis) StrLen(key string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1599,12 +1592,12 @@ func (r *Redis) Strlen(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// Lpushx Inserts value at the head of the list stored at key,
+// LPushX Inserts value at the head of the list stored at key,
 // only if key already exists and holds a list. In contrary to LPUSH,
 // no operation will be performed when key does not yet exist.
 // Return value
 // Integer reply: the length of the list after the push operation.
-func (r *Redis) Lpushx(key string, string ...string) (int64, error) {
+func (r *Redis) LPushX(key string, string ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1616,7 +1609,7 @@ func (r *Redis) Lpushx(key string, string ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Undo a {@link #expire(String, int) expire} at turning the expire key into a normal key.
+//Persist Undo a {@link #expire(String, int) expire} at turning the expire key into a normal key.
 //
 //return Integer reply, specifically: 1: the key is now persist. 0: the key is not persist (only
 //        happens when key not set).
@@ -1632,13 +1625,13 @@ func (r *Redis) Persist(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// Rpushx Inserts value at the tail of the list stored at key,
+// RPushX Inserts value at the tail of the list stored at key,
 // only if key already exists and holds a list. In contrary to RPUSH,
 // no operation will be performed when key does not yet exist.
 //
 // Return value
 // Integer reply: the length of the list after the push operation.
-func (r *Redis) Rpushx(key string, string ...string) (int64, error) {
+func (r *Redis) RPushX(key string, string ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1666,7 +1659,7 @@ func (r *Redis) Echo(string string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-// see SetWithParamsAndTime(key, value, nxxx, expx string, time int64)
+//SetWithParams see SetWithParamsAndTime(key, value, nxxx, expx string, time int64)
 func (r *Redis) SetWithParams(key, value, nxxx string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -1679,14 +1672,14 @@ func (r *Redis) SetWithParams(key, value, nxxx string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//This command works exactly like EXPIRE but the time to live of the key is specified in milliseconds instead of seconds.
+//PExpire This command works exactly like EXPIRE but the time to live of the key is specified in milliseconds instead of seconds.
 //
 //Return value
 //Integer reply, specifically:
 //
 //1 if the timeout was set.
 //0 if key does not exist.
-func (r *Redis) Pexpire(key string, milliseconds int64) (int64, error) {
+func (r *Redis) PExpire(key string, milliseconds int64) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1698,7 +1691,7 @@ func (r *Redis) Pexpire(key string, milliseconds int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//PEXPIREAT has the same effect and semantic as EXPIREAT,
+//PExpireAt has the same effect and semantic as EXPIREAT,
 // but the Unix time at which the key will expire is specified in milliseconds instead of seconds.
 //
 //Return value
@@ -1706,7 +1699,7 @@ func (r *Redis) Pexpire(key string, milliseconds int64) (int64, error) {
 //
 //1 if the timeout was set.
 //0 if key does not exist.
-func (r *Redis) PexpireAt(key string, millisecondsTimestamp int64) (int64, error) {
+func (r *Redis) PExpireAt(key string, millisecondsTimestamp int64) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1718,18 +1711,18 @@ func (r *Redis) PexpireAt(key string, millisecondsTimestamp int64) (int64, error
 	return r.client.getIntegerReply()
 }
 
-// see Setbit(key string, offset int64, value string)
-func (r *Redis) SetbitWithBool(key string, offset int64, value bool) (bool, error) {
+//SetBitWithBool see SetBit(key string, offset int64, value string)
+func (r *Redis) SetBitWithBool(key string, offset int64, value bool) (bool, error) {
 	var valueByte []byte
 	if value {
-		valueByte = BytesTrue
+		valueByte = bytesTrue
 	} else {
-		valueByte = BytesFalse
+		valueByte = bytesFalse
 	}
-	return r.Setbit(key, offset, string(valueByte))
+	return r.SetBit(key, offset, string(valueByte))
 }
 
-//Sets or clears the bit at offset in the string value stored at key.
+//SetBit Sets or clears the bit at offset in the string value stored at key.
 //
 //The bit is either set or cleared depending on value, which can be either 0 or 1.
 // When key does not exist, a new string value is created.
@@ -1749,7 +1742,7 @@ func (r *Redis) SetbitWithBool(key string, offset int64, value bool) (bool, erro
 //
 //Return value
 //Integer reply: the original bit value stored at offset.
-func (r *Redis) Setbit(key string, offset int64, value string) (bool, error) {
+func (r *Redis) SetBit(key string, offset int64, value string) (bool, error) {
 	err := r.client.setbit(key, offset, value)
 	if err != nil {
 		return false, err
@@ -1757,7 +1750,7 @@ func (r *Redis) Setbit(key string, offset int64, value string) (bool, error) {
 	return Int64ToBoolReply(r.client.getIntegerReply())
 }
 
-//Returns the bit value at offset in the string value stored at key.
+//GetBit Returns the bit value at offset in the string value stored at key.
 //
 //When offset is beyond the string length,
 // the string is assumed to be a contiguous space with 0 bits.
@@ -1766,7 +1759,7 @@ func (r *Redis) Setbit(key string, offset int64, value string) (bool, error) {
 //
 //Return value
 //Integer reply: the bit value stored at offset.
-func (r *Redis) Getbit(key string, offset int64) (bool, error) {
+func (r *Redis) GetBit(key string, offset int64) (bool, error) {
 	err := r.client.getbit(key, offset)
 	if err != nil {
 		return false, err
@@ -1774,8 +1767,8 @@ func (r *Redis) Getbit(key string, offset int64) (bool, error) {
 	return Int64ToBoolReply(r.client.getIntegerReply())
 }
 
-// PSETEX works exactly like SETEX with the sole difference that the expire time is specified in milliseconds instead of seconds.
-func (r *Redis) Psetex(key string, milliseconds int64, value string) (string, error) {
+// PSetEx works exactly like SETEX with the sole difference that the expire time is specified in milliseconds instead of seconds.
+func (r *Redis) PSetEx(key string, milliseconds int64, value string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -1787,8 +1780,8 @@ func (r *Redis) Psetex(key string, milliseconds int64, value string) (string, er
 	return r.client.getBulkReply()
 }
 
-// see Srandmember(key string)
-func (r *Redis) SrandmemberBatch(key string, count int) ([]string, error) {
+//SRandMemberBatch see SRandMember(key string)
+func (r *Redis) SRandMemberBatch(key string, count int) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1800,8 +1793,8 @@ func (r *Redis) SrandmemberBatch(key string, count int) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//see Zadd(key string, score float64, member string, mparams ...ZAddParams)
-func (r *Redis) ZaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) (int64, error) {
+//ZAddByMap see ZAdd(key string, score float64, member string, mparams ...ZAddParams)
+func (r *Redis) ZAddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1813,8 +1806,8 @@ func (r *Redis) ZaddByMap(key string, scoreMembers map[string]float64, params ..
 	return r.client.getIntegerReply()
 }
 
-//see Zrange()
-func (r *Redis) ZrangeWithScores(key string, start, end int64) ([]Tuple, error) {
+//ZRangeWithScores see ZRange()
+func (r *Redis) ZRangeWithScores(key string, start, end int64) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1826,8 +1819,8 @@ func (r *Redis) ZrangeWithScores(key string, start, end int64) ([]Tuple, error) 
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-//see Zrevrange()
-func (r *Redis) ZrevrangeWithScores(key string, start, end int64) ([]Tuple, error) {
+//ZRevRangeWithScores see ZRevRange()
+func (r *Redis) ZRevRangeWithScores(key string, start, end int64) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1839,8 +1832,8 @@ func (r *Redis) ZrevrangeWithScores(key string, start, end int64) ([]Tuple, erro
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-//see Zrange()
-func (r *Redis) ZrangeByScoreBatch(key, min, max string, offset, count int) ([]string, error) {
+//ZRangeByScoreBatch see ZRange()
+func (r *Redis) ZRangeByScoreBatch(key, min, max string, offset, count int) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1852,8 +1845,8 @@ func (r *Redis) ZrangeByScoreBatch(key, min, max string, offset, count int) ([]s
 	return r.client.getMultiBulkReply()
 }
 
-//see Zrange()
-func (r *Redis) ZrangeByScoreWithScoresBatch(key, min, max string, offset, count int) ([]Tuple, error) {
+//ZRangeByScoreWithScoresBatch see ZRange()
+func (r *Redis) ZRangeByScoreWithScoresBatch(key, min, max string, offset, count int) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1865,8 +1858,8 @@ func (r *Redis) ZrangeByScoreWithScoresBatch(key, min, max string, offset, count
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-//see Zrevrange()
-func (r *Redis) ZrevrangeByScoreWithScoresBatch(key, max, min string, offset, count int) ([]Tuple, error) {
+//ZRevRangeByScoreWithScoresBatch see ZRevRange()
+func (r *Redis) ZRevRangeByScoreWithScoresBatch(key, max, min string, offset, count int) ([]Tuple, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1878,13 +1871,13 @@ func (r *Redis) ZrevrangeByScoreWithScoresBatch(key, max, min string, offset, co
 	return StringArrToTupleReply(r.client.getMultiBulkReply())
 }
 
-//Removes all elements in the sorted set stored at key with a score between min and max (inclusive).
+//ZRemRangeByScore Removes all elements in the sorted set stored at key with a score between min and max (inclusive).
 //
 //Since version 2.1.6, min and max can be exclusive, following the syntax of ZRANGEBYSCORE.
 //
 //Return value
 //Integer reply: the number of elements removed.
-func (r *Redis) ZremrangeByScore(key, start, end string) (int64, error) {
+func (r *Redis) ZRemRangeByScore(key, start, end string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1896,7 +1889,7 @@ func (r *Redis) ZremrangeByScore(key, start, end string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//When all the elements in a sorted set are inserted with the same score,
+//ZLexCount When all the elements in a sorted set are inserted with the same score,
 // in order to force lexicographical ordering,
 // this command returns the number of elements in the sorted set at key with a value between min and max.
 //
@@ -1904,7 +1897,7 @@ func (r *Redis) ZremrangeByScore(key, start, end string) (int64, error) {
 //
 //Return value
 //Integer reply: the number of elements in the specified score range.
-func (r *Redis) Zlexcount(key, min, max string) (int64, error) {
+func (r *Redis) ZLexCount(key, min, max string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -1916,7 +1909,7 @@ func (r *Redis) Zlexcount(key, min, max string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//When all the elements in a sorted set are inserted with the same score,
+//ZRangeByLex When all the elements in a sorted set are inserted with the same score,
 // in order to force lexicographical ordering,
 // this command returns all the elements in the sorted set at key with a value between min and max.
 //
@@ -1932,7 +1925,7 @@ func (r *Redis) Zlexcount(key, min, max string) (int64, error) {
 // for offset elements before getting to the elements to return, which can add up to O(N) time complexity.
 //Return value
 //Array reply: list of elements in the specified score range.
-func (r *Redis) ZrangeByLex(key, min, max string) ([]string, error) {
+func (r *Redis) ZRangeByLex(key, min, max string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1944,8 +1937,8 @@ func (r *Redis) ZrangeByLex(key, min, max string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//see ZrangeByLex()
-func (r *Redis) ZrangeByLexBatch(key, min, max string, offset, count int) ([]string, error) {
+//ZRangeByLexBatch see ZRangeByLex()
+func (r *Redis) ZRangeByLexBatch(key, min, max string, offset, count int) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1957,7 +1950,7 @@ func (r *Redis) ZrangeByLexBatch(key, min, max string, offset, count int) ([]str
 	return r.client.getMultiBulkReply()
 }
 
-//When all the elements in a sorted set are inserted with the same score,
+//ZRevRangeByLex When all the elements in a sorted set are inserted with the same score,
 // in order to force lexicographical ordering,
 // this command returns all the elements in the sorted set at key with a value between max and min.
 //
@@ -1965,7 +1958,7 @@ func (r *Redis) ZrangeByLexBatch(key, min, max string, offset, count int) ([]str
 //
 //Return value
 //Array reply: list of elements in the specified score range.
-func (r *Redis) ZrevrangeByLex(key, max, min string) ([]string, error) {
+func (r *Redis) ZRevRangeByLex(key, max, min string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1977,8 +1970,8 @@ func (r *Redis) ZrevrangeByLex(key, max, min string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-// see ZrevrangeByLex()
-func (r *Redis) ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]string, error) {
+//ZRevRangeByLexBatch see ZRevRangeByLex()
+func (r *Redis) ZRevRangeByLexBatch(key, max, min string, offset, count int) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -1990,7 +1983,7 @@ func (r *Redis) ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]
 	return r.client.getMultiBulkReply()
 }
 
-//When all the elements in a sorted set are inserted with the same score,
+//ZRemRangeByLex When all the elements in a sorted set are inserted with the same score,
 // in order to force lexicographical ordering,
 // this command removes all elements in the sorted set stored at key
 // between the lexicographical range specified by min and max.
@@ -2001,7 +1994,7 @@ func (r *Redis) ZrevrangeByLexBatch(key, max, min string, offset, count int) ([]
 //
 //Return value
 //Integer reply: the number of elements removed.
-func (r *Redis) ZremrangeByLex(key, min, max string) (int64, error) {
+func (r *Redis) ZRemRangeByLex(key, min, max string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2013,13 +2006,13 @@ func (r *Redis) ZremrangeByLex(key, min, max string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Inserts value in the list stored at key either before or after the reference value pivot.
+//LInsert Inserts value in the list stored at key either before or after the reference value pivot.
 //When key does not exist, it is considered an empty list and no operation is performed.
 //An error is returned when key exists but does not hold a list value.
 //
 //Return value
 //Integer reply: the length of the list after the insert operation, or -1 when the value pivot was not found.
-func (r *Redis) Linsert(key string, where ListOption, pivot, value string) (int64, error) {
+func (r *Redis) LInsert(key string, where ListOption, pivot, value string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2053,7 +2046,7 @@ func (r *Redis) Move(key string, dbIndex int) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Count the number of set bits (population counting) in a string.
+//BitCount Count the number of set bits (population counting) in a string.
 //
 //By default all the bytes contained in the string are examined.
 // It is possible to specify the counting operation only in an interval passing the additional arguments start and end.
@@ -2066,7 +2059,7 @@ func (r *Redis) Move(key string, dbIndex int) (int64, error) {
 //Return value
 //Integer reply
 //The number of bits set to 1.
-func (r *Redis) Bitcount(key string) (int64, error) {
+func (r *Redis) BitCount(key string) (int64, error) {
 	err := r.client.bitcount(key)
 	if err != nil {
 		return 0, err
@@ -2074,8 +2067,8 @@ func (r *Redis) Bitcount(key string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-// see Bitcount()
-func (r *Redis) BitcountRange(key string, start, end int64) (int64, error) {
+//BitCountRange see BitCount()
+func (r *Redis) BitCountRange(key string, start, end int64) (int64, error) {
 	err := r.client.bitcountRange(key, start, end)
 	if err != nil {
 		return 0, err
@@ -2083,8 +2076,8 @@ func (r *Redis) BitcountRange(key string, start, end int64) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Bitpos Return the position of the first bit set to 1 or 0 in a string.
-func (r *Redis) Bitpos(key string, value bool, params ...BitPosParams) (int64, error) {
+//BitPos Return the position of the first bit set to 1 or 0 in a string.
+func (r *Redis) BitPos(key string, value bool, params ...BitPosParams) (int64, error) {
 	err := r.client.bitpos(key, value, params...)
 	if err != nil {
 		return 0, err
@@ -2092,8 +2085,8 @@ func (r *Redis) Bitpos(key string, value bool, params ...BitPosParams) (int64, e
 	return r.client.getIntegerReply()
 }
 
-//Hscan scan keys of hash , see scan
-func (r *Redis) Hscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
+//HScan scan keys of hash , see scan
+func (r *Redis) HScan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2105,8 +2098,8 @@ func (r *Redis) Hscan(key, cursor string, params ...*ScanParams) (*ScanResult, e
 	return ObjectArrToScanResultReply(r.client.getObjectMultiBulkReply())
 }
 
-//Sscan scan keys of set,see scan
-func (r *Redis) Sscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
+//SScan scan keys of set,see scan
+func (r *Redis) SScan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2118,8 +2111,8 @@ func (r *Redis) Sscan(key, cursor string, params ...*ScanParams) (*ScanResult, e
 	return ObjectArrToScanResultReply(r.client.getObjectMultiBulkReply())
 }
 
-//Zscan scan keys of zset,see scan
-func (r *Redis) Zscan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
+//ZScan scan keys of zset,see scan
+func (r *Redis) ZScan(key, cursor string, params ...*ScanParams) (*ScanResult, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2131,8 +2124,12 @@ func (r *Redis) Zscan(key, cursor string, params ...*ScanParams) (*ScanResult, e
 	return ObjectArrToScanResultReply(r.client.getObjectMultiBulkReply())
 }
 
-//Pfadd ...
-func (r *Redis) Pfadd(key string, elements ...string) (int64, error) {
+//PfAdd  Adds all the element arguments to the HyperLogLog data structure stored at the variable name specified as first argument.
+//Return value
+//Integer reply, specifically:
+//
+//1 if at least 1 HyperLogLog internal register was altered. 0 otherwise.
+func (r *Redis) PfAdd(key string, elements ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2144,8 +2141,8 @@ func (r *Redis) Pfadd(key string, elements ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Geoadd add geo point
-func (r *Redis) Geoadd(key string, longitude, latitude float64, member string) (int64, error) {
+//GeoAdd add geo point
+func (r *Redis) GeoAdd(key string, longitude, latitude float64, member string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2157,12 +2154,12 @@ func (r *Redis) Geoadd(key string, longitude, latitude float64, member string) (
 	return r.client.getIntegerReply()
 }
 
-//GeoaddByMap add geo point by map
+//GeoAddByMap add geo point by map
 // Return value
 //Integer reply, specifically:
 //The number of elements added to the sorted set,
 // not including elements already existing for which the score was updated.
-func (r *Redis) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) (int64, error) {
+func (r *Redis) GeoAddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2174,8 +2171,8 @@ func (r *Redis) GeoaddByMap(key string, memberCoordinateMap map[string]GeoCoordi
 	return r.client.getIntegerReply()
 }
 
-//Geodist calculate distance of geo points
-func (r *Redis) Geodist(key, member1, member2 string, unit ...GeoUnit) (float64, error) {
+//GeoDist calculate distance of geo points
+func (r *Redis) GeoDist(key, member1, member2 string, unit ...GeoUnit) (float64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2187,8 +2184,8 @@ func (r *Redis) Geodist(key, member1, member2 string, unit ...GeoUnit) (float64,
 	return StringToFloat64Reply(r.client.getBulkReply())
 }
 
-//Geohash get geo point hash
-func (r *Redis) Geohash(key string, members ...string) ([]string, error) {
+//GeoHash get geo point hash
+func (r *Redis) GeoHash(key string, members ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2200,8 +2197,8 @@ func (r *Redis) Geohash(key string, members ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Geopos get geo points
-func (r *Redis) Geopos(key string, members ...string) ([]*GeoCoordinate, error) {
+//GeoPos get geo points
+func (r *Redis) GeoPos(key string, members ...string) ([]*GeoCoordinate, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2213,8 +2210,8 @@ func (r *Redis) Geopos(key string, members ...string) ([]*GeoCoordinate, error) 
 	return ObjectArrToGeoCoordinateReply(r.client.getObjectMultiBulkReply())
 }
 
-//Georadius get members in certain rage
-func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
+//GeoRadius get members in certain range
+func (r *Redis) GeoRadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2226,8 +2223,8 @@ func (r *Redis) Georadius(key string, longitude, latitude, radius float64, unit 
 	return ObjectArrToGeoRadiusResponseReply(r.client.getObjectMultiBulkReply())
 }
 
-//GeoradiusByMember ...
-func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
+//GeoRadiusByMember get members in certain range
+func (r *Redis) GeoRadiusByMember(key, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) ([]GeoRadiusResponse, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2239,9 +2236,9 @@ func (r *Redis) GeoradiusByMember(key, member string, radius float64, unit GeoUn
 	return ObjectArrToGeoRadiusResponseReply(r.client.getObjectMultiBulkReply())
 }
 
-//Bitfield The command treats a Redis string as a array of bits,
+//BitField The command treats a Redis string as a array of bits,
 // and is capable of addressing specific integer fields of varying bit widths and arbitrary non (necessary) aligned offset.
-func (r *Redis) Bitfield(key string, arguments ...string) ([]int64, error) {
+func (r *Redis) BitField(key string, arguments ...string) ([]int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2257,7 +2254,7 @@ func (r *Redis) Bitfield(key string, arguments ...string) ([]int64, error) {
 
 //<editor-fold desc="multikeycommands">
 
-//Returns all the keys matching the glob-style pattern as space separated strings. For example if
+//Keys Returns all the keys matching the glob-style pattern as space separated strings. For example if
 //you have in the database the keys "foo" and "foobar" the command "KEYS foo*" will return
 //"foo foobar".
 //
@@ -2292,7 +2289,7 @@ func (r *Redis) Keys(pattern string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Remove the specified keys. If a given key does not exist no operation is performed for this
+//Del Remove the specified keys. If a given key does not exist no operation is performed for this
 //key. The command returns the number of keys removed.
 //param keys
 //return Integer reply, specifically: an integer greater than 0 if one or more keys were removed
@@ -2309,7 +2306,7 @@ func (r *Redis) Del(key ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Test if the specified key exists. The command returns the number of keys existed
+//Exists Test if the specified key exists. The command returns the number of keys existed
 //param keys
 //return Integer reply, specifically: an integer greater than 0 if one or more keys were removed
 //        0 if none of the specified key existed
@@ -2325,43 +2322,43 @@ func (r *Redis) Exists(keys ...string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//Atomically renames the key oldkey to newkey. If the source and destination name are the same an
-//error is returned. If newkey already exists it is overwritten.
+//Rename Atomically renames the key oldKey to newKey. If the source and destination name are the same an
+//error is returned. If newKey already exists it is overwritten.
 //
 //return Status code repy
-func (r *Redis) Rename(oldkey, newkey string) (string, error) {
+func (r *Redis) Rename(oldKey, newKey string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.rename(oldkey, newkey)
+	err = r.client.rename(oldKey, newKey)
 	if err != nil {
 		return "", err
 	}
 	return r.client.getStatusCodeReply()
 }
 
-//Rename oldkey into newkey but fails if the destination key newkey already exists.
+//RenameNx Rename oldKey into newKey but fails if the destination key newKey already exists.
 //
 //return Integer reply, specifically: 1 if the key was renamed 0 if the target key already exist
-func (r *Redis) Renamenx(oldkey, newkey string) (int64, error) {
+func (r *Redis) RenameNx(oldKey, newKey string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.renamenx(oldkey, newkey)
+	err = r.client.renamenx(oldKey, newKey)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Get the values of all the specified keys. If one or more keys dont exist or is not of type
+//MGet Get the values of all the specified keys. If one or more keys dont exist or is not of type
 //String, a 'nil' value is returned instead of the value of the specified key, but the operation
 //never fails.
 //
 //return Multi bulk reply
-func (r *Redis) Mget(keys ...string) ([]string, error) {
+func (r *Redis) MGet(keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2373,7 +2370,7 @@ func (r *Redis) Mget(keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Set the the respective keys to the respective values. MSET will replace old values with new
+//MSet Set the the respective keys to the respective values. MSET will replace old values with new
 //values, while {@link #msetnx(String...) MSETNX} will not perform any operation at all even if
 //just a single key already exists.
 //
@@ -2385,19 +2382,19 @@ func (r *Redis) Mget(keys ...string) ([]string, error) {
 //are modified, another client talking to Redis can either see the changes to both A and B at
 //once, or no modification at all.
 //return Status code reply Basically +OK as MSET can't fail
-func (r *Redis) Mset(keysvalues ...string) (string, error) {
+func (r *Redis) MSet(kvs ...string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.mset(keysvalues...)
+	err = r.client.mset(kvs...)
 	if err != nil {
 		return "", err
 	}
 	return r.client.getBulkReply()
 }
 
-//Set the the respective keys to the respective values. {@link #mset(String...) MSET} will
+//MSetNx Set the the respective keys to the respective values. {@link #mset(String...) MSET} will
 //replace old values with new values, while MSETNX will not perform any operation at all even if
 //just a single key already exists.
 //
@@ -2410,41 +2407,41 @@ func (r *Redis) Mset(keysvalues ...string) (string, error) {
 //once, or no modification at all.
 //return Integer reply, specifically: 1 if the all the keys were set 0 if no key was set (at
 //        least one key already existed)
-func (r *Redis) Msetnx(keysvalues ...string) (int64, error) {
+func (r *Redis) MSetNx(kvs ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.msetnx(keysvalues...)
+	err = r.client.msetnx(kvs...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Atomically return and remove the last (tail) element of the srckey list, and push the element
-//as the first (head) element of the dstkey list. For example if the source list contains the
+//RPopLPush Atomically return and remove the last (tail) element of the srcKey list, and push the element
+//as the first (head) element of the destKey list. For example if the source list contains the
 //elements "a","b","c" and the destination list contains the elements "foo","bar" after an
 //RPOPLPUSH command the content of the two lists will be "a","b" and "c","foo","bar".
 //
 //If the key does not exist or the list is already empty the special value 'nil' is returned. If
-//the srckey and dstkey are the same the operation is equivalent to removing the last element
+//the srcKey and destKey are the same the operation is equivalent to removing the last element
 //from the list and pusing it as first element of the list, so it's a "list rotation" command.
 //
 //return Bulk reply
-func (r *Redis) Rpoplpush(srckey, dstkey string) (string, error) {
+func (r *Redis) RPopLPush(srcKey, destKey string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.rpopLpush(srckey, dstkey)
+	err = r.client.rpopLpush(srcKey, destKey)
 	if err != nil {
 		return "", err
 	}
 	return r.client.getBulkReply()
 }
 
-//Move the specifided member from the set at srckey to the set at dstkey. This operation is
+//SMove Move the specifided member from the set at srcKey to the set at destKey. This operation is
 //atomic, in every given moment the element will appear to be in the source or destination set
 //for accessing clients.
 //
@@ -2457,20 +2454,20 @@ func (r *Redis) Rpoplpush(srckey, dstkey string) (string, error) {
 //
 //return Integer reply, specifically: 1 if the element was moved 0 if the element was not found
 //        on the first set and no operation was performed
-func (r *Redis) Smove(srckey, dstkey, member string) (int64, error) {
+func (r *Redis) SMove(srcKey, destKey, member string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.smove(srckey, dstkey, member)
+	err = r.client.smove(srcKey, destKey, member)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Creates a union or intersection of N sorted sets given by keys k1 through kN, and stores it at
-//dstkey. It is mandatory to provide the number of input keys N, before passing the input keys
+//ZUnionStore Creates a union or intersection of N sorted sets given by keys k1 through kN, and stores it at
+//destKey. It is mandatory to provide the number of input keys N, before passing the input keys
 //and the other (optional) arguments.
 //
 //As the terms imply, the {@link #zinterstore(String, String...) ZINTERSTORE} command requires an
@@ -2488,21 +2485,21 @@ func (r *Redis) Smove(srckey, dstkey, member string) (int64, error) {
 //resulting set will contain the minimum or maximum score of an element across the inputs where
 //it exists.
 //
-//return Integer reply, specifically the number of elements in the sorted set at dstkey
-func (r *Redis) Zunionstore(dstkey string, sets ...string) (int64, error) {
+//return Integer reply, specifically the number of elements in the sorted set at destKey
+func (r *Redis) ZUnionStore(destKey string, sets ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.zunionstore(dstkey, sets...)
+	err = r.client.zunionstore(destKey, sets...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Creates a union or intersection of N sorted sets given by keys k1 through kN, and stores it at
-//dstkey. It is mandatory to provide the number of input keys N, before passing the input keys
+//ZInterStore Creates a union or intersection of N sorted sets given by keys k1 through kN, and stores it at
+//destKey. It is mandatory to provide the number of input keys N, before passing the input keys
 //and the other (optional) arguments.
 //
 //As the terms imply, the {@link #zinterstore(String, String...) ZINTERSTORE} command requires an
@@ -2520,21 +2517,21 @@ func (r *Redis) Zunionstore(dstkey string, sets ...string) (int64, error) {
 //resulting set will contain the minimum or maximum score of an element across the inputs where
 //it exists.
 //
-//return Integer reply, specifically the number of elements in the sorted set at dstkey
-func (r *Redis) Zinterstore(dstkey string, sets ...string) (int64, error) {
+//return Integer reply, specifically the number of elements in the sorted set at destKey
+func (r *Redis) ZInterStore(destKey string, sets ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.zinterstore(dstkey, sets...)
+	err = r.client.zinterstore(destKey, sets...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//BlpopTimout ...
-func (r *Redis) BlpopTimout(timeout int, keys ...string) ([]string, error) {
+//BLPopTimeout ...
+func (r *Redis) BLPopTimeout(timeout int, keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2546,8 +2543,8 @@ func (r *Redis) BlpopTimout(timeout int, keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//BrpopTimout ...
-func (r *Redis) BrpopTimout(timeout int, keys ...string) ([]string, error) {
+//BRPopTimeout ...
+func (r *Redis) BRPopTimeout(timeout int, keys ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2559,7 +2556,7 @@ func (r *Redis) BrpopTimout(timeout int, keys ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//BLPOP (and BRPOP) is a blocking list pop primitive. You can see this commands as blocking
+//BLPop BLPOP (and BRPOP) is a blocking list pop primitive. You can see this commands as blocking
 //versions of LPOP and RPOP able to block if the specified keys don't exist or contain empty
 //lists.
 //
@@ -2615,7 +2612,7 @@ func (r *Redis) BrpopTimout(timeout int, keys ...string) ([]string, error) {
 //        When a non-zero timeout is specified, and the BLPOP operation timed out, the return
 //        value is a nil multi bulk reply. Most client values will return false or nil
 //        accordingly to the programming language used.
-func (r *Redis) Blpop(args ...string) ([]string, error) {
+func (r *Redis) BLPop(args ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2627,8 +2624,8 @@ func (r *Redis) Blpop(args ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//Brpop ...
-func (r *Redis) Brpop(args ...string) ([]string, error) {
+//BRPop see blpop
+func (r *Redis) BRPop(args ...string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -2640,13 +2637,13 @@ func (r *Redis) Brpop(args ...string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//SortMulti ...
-func (r *Redis) SortStore(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
+//SortStore sort old sets or list,then store the result to a new set or list
+func (r *Redis) SortStore(key, destKey string, sortingParameters ...SortingParams) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.sortMulti(key, dstkey, sortingParameters...)
+	err = r.client.sortMulti(key, destKey, sortingParameters...)
 	if err != nil {
 		return 0, err
 	}
@@ -2667,34 +2664,34 @@ func (r *Redis) Unwatch() (string, error) {
 	return r.client.getBulkReply()
 }
 
-//ZinterstoreWithParams ...
-func (r *Redis) ZinterstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
+//ZInterStoreWithParams ...
+func (r *Redis) ZInterStoreWithParams(destKey string, params ZParams, sets ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.zinterstoreWithParams(dstkey, params, sets...)
+	err = r.client.zinterstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//ZunionstoreWithParams ...
-func (r *Redis) ZunionstoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
+//ZUnionStoreWithParams ...
+func (r *Redis) ZUnionStoreWithParams(destKey string, params ZParams, sets ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
 	}
-	err = r.client.zunionstoreWithParams(dstkey, params, sets...)
+	err = r.client.zunionstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return 0, err
 	}
 	return r.client.getIntegerReply()
 }
 
-//Brpoplpush ...
-func (r *Redis) Brpoplpush(source, destination string, timeout int) (string, error) {
+//BRPopLPush ...
+func (r *Redis) BRPopLPush(source, destination string, timeout int) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -2733,8 +2730,8 @@ func (r *Redis) Subscribe(redisPubSub *RedisPubSub, channels ...string) error {
 	return nil
 }
 
-//Psubscribe ...
-func (r *Redis) Psubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
+//PSubscribe ...
+func (r *Redis) PSubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return err
@@ -2764,8 +2761,8 @@ func (r *Redis) RandomKey() (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Bitop ...
-func (r *Redis) Bitop(op BitOP, destKey string, srcKeys ...string) (int64, error) {
+//BitOp ...
+func (r *Redis) BitOp(op BitOP, destKey string, srcKeys ...string) (int64, error) {
 	err := r.client.bitop(op, destKey, srcKeys...)
 	if err != nil {
 		return 0, err
@@ -2786,7 +2783,7 @@ func (r *Redis) Scan(cursor string, params ...*ScanParams) (*ScanResult, error) 
 	return ObjectArrToScanResultReply(r.client.getObjectMultiBulkReply())
 }
 
-//Pfmerge Merge multiple HyperLogLog values into an unique value that will approximate the cardinality
+//PfMerge Merge multiple HyperLogLog values into an unique value that will approximate the cardinality
 // of the union of the observed Sets of the source HyperLogLog structures.
 //
 //The computed merged HyperLogLog is set to the destination variable,
@@ -2794,7 +2791,7 @@ func (r *Redis) Scan(cursor string, params ...*ScanParams) (*ScanResult, error) 
 //
 //Return value
 //Simple string reply: The command just returns OK.
-func (r *Redis) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
+func (r *Redis) PfMerge(destkey string, sourcekeys ...string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -2806,8 +2803,14 @@ func (r *Redis) Pfmerge(destkey string, sourcekeys ...string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-///Pfcount ...
-func (r *Redis) Pfcount(keys ...string) (int64, error) {
+// PfCount When called with a single key, returns the approximated cardinality computed by
+// the HyperLogLog data structure stored at the specified variable,
+// which is 0 if the variable does not exist.
+//Return value
+//Integer reply, specifically:
+//
+//The approximated number of unique elements observed via PFADD.
+func (r *Redis) PfCount(keys ...string) (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return 0, err
@@ -2823,7 +2826,9 @@ func (r *Redis) Pfcount(keys ...string) (int64, error) {
 
 //<editor-fold desc="advancedcommands">
 
-//ConfigGet ...
+//ConfigGet The CONFIG GET command is used to read the configuration parameters of a running Redis server.
+// Not all the configuration parameters are supported in Redis 2.4,
+// while Redis 2.6 can read the whole configuration of a server using this command.
 func (r *Redis) ConfigGet(pattern string) ([]string, error) {
 	err := r.client.configGet(pattern)
 	if err != nil {
@@ -2832,7 +2837,9 @@ func (r *Redis) ConfigGet(pattern string) ([]string, error) {
 	return r.client.getMultiBulkReply()
 }
 
-//ConfigSet ...
+//ConfigSet The CONFIG SET command is used in order to reconfigure the server at run time
+// without the need to restart Redis.
+// You can change both trivial parameters or switch from one to another persistence option using this command.
 func (r *Redis) ConfigSet(parameter, value string) (string, error) {
 	err := r.client.configSet(parameter, value)
 	if err != nil {
@@ -2841,8 +2848,9 @@ func (r *Redis) ConfigSet(parameter, value string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//SlowlogReset ...
-func (r *Redis) SlowlogReset() (string, error) {
+//SlowLogReset You can reset the slow log using the SLOWLOG RESET command.
+// Once deleted the information is lost forever.
+func (r *Redis) SlowLogReset() (string, error) {
 	err := r.client.slowlogReset()
 	if err != nil {
 		return "", err
@@ -2850,8 +2858,8 @@ func (r *Redis) SlowlogReset() (string, error) {
 	return r.client.getBulkReply()
 }
 
-//SlowlogLen ...
-func (r *Redis) SlowlogLen() (int64, error) {
+//SlowLogLen it is possible to get just the length of the slow log using the command SLOWLOG LEN.
+func (r *Redis) SlowLogLen() (int64, error) {
 	err := r.client.slowlogLen()
 	if err != nil {
 		return 0, err
@@ -2859,21 +2867,24 @@ func (r *Redis) SlowlogLen() (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//SlowlogGet ...
-func (r *Redis) SlowlogGet(entries ...int64) ([]Slowlog, error) {
+//SlowLogGet The Redis Slow Log is a system to log queries that exceeded a specified execution time.
+// The execution time does not include I/O operations like talking with the client,
+// sending the reply and so forth, but just the time needed to actually execute the command
+// (this is the only stage of command execution where the thread is blocked and can not serve other requests in the meantime).
+func (r *Redis) SlowLogGet(entries ...int64) ([]SlowLog, error) {
 	err := r.client.slowlogGet(entries...)
 	if err != nil {
 		return nil, err
 	}
 	reply, err := r.client.getObjectMultiBulkReply()
-	result := make([]Slowlog, 0)
+	result := make([]SlowLog, 0)
 	for _, re := range reply {
 		item := re.([]interface{})
 		args := make([]string, 0)
 		for _, a := range item[3].([]interface{}) {
 			args = append(args, string(a.([]byte)))
 		}
-		result = append(result, Slowlog{
+		result = append(result, SlowLog{
 			id:            item[0].(int64),
 			timeStamp:     item[1].(int64),
 			executionTime: item[2].(int64),
@@ -2883,8 +2894,9 @@ func (r *Redis) SlowlogGet(entries ...int64) ([]Slowlog, error) {
 	return result, err
 }
 
-//objectRefcount ...
-func (r *Redis) ObjectRefcount(str string) (int64, error) {
+//ObjectRefCount returns the number of references of the value associated with the specified key.
+// This command is mainly useful for debugging.
+func (r *Redis) ObjectRefCount(str string) (int64, error) {
 	err := r.client.objectRefcount(str)
 	if err != nil {
 		return 0, err
@@ -2892,7 +2904,7 @@ func (r *Redis) ObjectRefcount(str string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//ObjectEncoding ...
+//ObjectEncoding returns the kind of internal representation used in order to store the value associated with a key.
 func (r *Redis) ObjectEncoding(str string) (string, error) {
 	err := r.client.objectEncoding(str)
 	if err != nil {
@@ -2901,8 +2913,12 @@ func (r *Redis) ObjectEncoding(str string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//ObjectIdletime ...
-func (r *Redis) ObjectIdletime(str string) (int64, error) {
+//ObjectIdleTime returns the number of seconds since the object stored at the specified key is idle
+// (not requested by read or write operations).
+// While the value is returned in seconds the actual resolution of this timer is 10 seconds,
+// but may vary in future implementations.
+// This subcommand is available when maxmemory-policy is set to an LRU policy or noeviction.
+func (r *Redis) ObjectIdleTime(str string) (int64, error) {
 	err := r.client.objectIdletime(str)
 	if err != nil {
 		return 0, err
@@ -2945,10 +2961,10 @@ func (r *Redis) EvalByKeyArgs(script string, keys []string, args []string) (inte
 	return ObjectToEvalResult(r.client.getOne())
 }
 
-//Evalsha Evaluates a script cached on the server side by its SHA1 digest.
+//EvalSha Evaluates a script cached on the server side by its SHA1 digest.
 // Scripts are cached on the server side using the SCRIPT LOAD command.
 // The command is otherwise identical to EVAL.
-func (r *Redis) Evalsha(sha1 string, keyCount int, params ...string) (interface{}, error) {
+func (r *Redis) EvalSha(sha1 string, keyCount int, params ...string) (interface{}, error) {
 	err := r.client.evalsha(sha1, keyCount, params...)
 	if err != nil {
 		return 0, err
@@ -2956,7 +2972,12 @@ func (r *Redis) Evalsha(sha1 string, keyCount int, params ...string) (interface{
 	return ObjectToEvalResult(r.client.getOne())
 }
 
-//ScriptExists ...
+//ScriptExists Returns information about the existence of the scripts in the script cache.
+//Return value
+//Array reply The command returns an array of integers
+// that correspond to the specified SHA1 digest arguments.
+// For every corresponding SHA1 digest of a script that actually exists in the script cache,
+// an 1 is returned, otherwise 0 is returned.
 func (r *Redis) ScriptExists(sha1 ...string) ([]bool, error) {
 	err := r.client.scriptExists(sha1...)
 	if err != nil {
@@ -2973,7 +2994,12 @@ func (r *Redis) ScriptExists(sha1 ...string) ([]bool, error) {
 	return arr, nil
 }
 
-//ScriptLoad ...
+//ScriptLoad Load a script into the scripts cache, without executing it.
+// After the specified command is loaded into the script cache
+// it will be callable using EVALSHA with the correct SHA1 digest of the script,
+// exactly like after the first successful invocation of EVAL.
+//Return value
+//Bulk string reply This command returns the SHA1 digest of the script added into the script cache.
 func (r *Redis) ScriptLoad(script string) (string, error) {
 	err := r.client.scriptLoad(script)
 	if err != nil {
@@ -3003,7 +3029,8 @@ func (r *Redis) Quit() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Ping ...
+//Ping send ping command to redis server
+// if the sever is running well,then it will return PONG.
 func (r *Redis) Ping() (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3016,7 +3043,7 @@ func (r *Redis) Ping() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Select ...
+//Select send select command to change current db,normally redis server has 16 db [0,15]
 func (r *Redis) Select(index int) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3029,7 +3056,7 @@ func (r *Redis) Select(index int) (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//FlushDB ...
+//FlushDB it will clear whole keys in current db
 func (r *Redis) FlushDB() (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3042,7 +3069,7 @@ func (r *Redis) FlushDB() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//DbSize ...
+//DbSize return key count of current db
 func (r *Redis) DbSize() (int64, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3055,7 +3082,7 @@ func (r *Redis) DbSize() (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//FlushAll ...
+//FlushAll it will clear whole keys in whole db
 func (r *Redis) FlushAll() (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3068,7 +3095,7 @@ func (r *Redis) FlushAll() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Auth ...
+//Auth when server is set password,then you need to auth password.
 func (r *Redis) Auth(password string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
@@ -3090,8 +3117,8 @@ func (r *Redis) Save() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Bgsave ...
-func (r *Redis) Bgsave() (string, error) {
+//BgSave ...
+func (r *Redis) BgSave() (string, error) {
 	err := r.client.bgsave()
 	if err != nil {
 		return "", err
@@ -3099,8 +3126,8 @@ func (r *Redis) Bgsave() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Bgrewriteaof ...
-func (r *Redis) Bgrewriteaof() (string, error) {
+//BgRewriteAof ...
+func (r *Redis) BgRewriteAof() (string, error) {
 	err := r.client.bgrewriteaof()
 	if err != nil {
 		return "", err
@@ -3108,8 +3135,8 @@ func (r *Redis) Bgrewriteaof() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Lastsave ...
-func (r *Redis) Lastsave() (int64, error) {
+//LastSave ...
+func (r *Redis) LastSave() (int64, error) {
 	err := r.client.lastsave()
 	if err != nil {
 		return 0, err
@@ -3135,8 +3162,8 @@ func (r *Redis) Info(section ...string) (string, error) {
 	return r.client.getBulkReply()
 }
 
-//Slaveof ...
-func (r *Redis) Slaveof(host string, port int) (string, error) {
+//SlaveOf ...
+func (r *Redis) SlaveOf(host string, port int) (string, error) {
 	err := r.client.slaveof(host, port)
 	if err != nil {
 		return "", err
@@ -3144,8 +3171,8 @@ func (r *Redis) Slaveof(host string, port int) (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//SlaveofNoOne ...
-func (r *Redis) SlaveofNoOne() (string, error) {
+//SlaveOfNoOne ...
+func (r *Redis) SlaveOfNoOne() (string, error) {
 	err := r.client.slaveofNoOne()
 	if err != nil {
 		return "", err
@@ -3171,7 +3198,7 @@ func (r *Redis) ConfigResetStat() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-// Syncrhonous replication of Redis as described here: http://antirez.com/news/66 Since Java
+//WaitReplicas Syncrhonous replication of Redis as described here: http://antirez.com/news/66 Since Java
 // Object class has implemented "wait" method, we cannot use it, so I had to change the name of
 // the method. Sorry :S
 func (r *Redis) WaitReplicas(replicas int, timeout int64) (int64, error) {
@@ -3271,12 +3298,12 @@ func (r *Redis) ClusterGetKeysInSlot(slot int, count int) ([]string, error) {
 }
 
 //ClusterSetSlotNode ...
-func (r *Redis) ClusterSetSlotNode(slot int, nodeId string) (string, error) {
+func (r *Redis) ClusterSetSlotNode(slot int, nodeID string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.clusterSetSlotNode(slot, nodeId)
+	err = r.client.clusterSetSlotNode(slot, nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -3284,12 +3311,12 @@ func (r *Redis) ClusterSetSlotNode(slot int, nodeId string) (string, error) {
 }
 
 //ClusterSetSlotMigrating ...
-func (r *Redis) ClusterSetSlotMigrating(slot int, nodeId string) (string, error) {
+func (r *Redis) ClusterSetSlotMigrating(slot int, nodeID string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.clusterSetSlotMigrating(slot, nodeId)
+	err = r.client.clusterSetSlotMigrating(slot, nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -3297,12 +3324,12 @@ func (r *Redis) ClusterSetSlotMigrating(slot int, nodeId string) (string, error)
 }
 
 //ClusterSetSlotImporting ...
-func (r *Redis) ClusterSetSlotImporting(slot int, nodeId string) (string, error) {
+func (r *Redis) ClusterSetSlotImporting(slot int, nodeID string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.clusterSetSlotImporting(slot, nodeId)
+	err = r.client.clusterSetSlotImporting(slot, nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -3323,12 +3350,12 @@ func (r *Redis) ClusterSetSlotStable(slot int) (string, error) {
 }
 
 //ClusterForget ...
-func (r *Redis) ClusterForget(nodeId string) (string, error) {
+func (r *Redis) ClusterForget(nodeID string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.clusterForget(nodeId)
+	err = r.client.clusterForget(nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -3388,12 +3415,12 @@ func (r *Redis) ClusterSaveConfig() (string, error) {
 }
 
 //ClusterReplicate ...
-func (r *Redis) ClusterReplicate(nodeId string) (string, error) {
+func (r *Redis) ClusterReplicate(nodeID string) (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
 	}
-	err = r.client.clusterReplicate(nodeId)
+	err = r.client.clusterReplicate(nodeID)
 	if err != nil {
 		return "", err
 	}
@@ -3401,21 +3428,21 @@ func (r *Redis) ClusterReplicate(nodeId string) (string, error) {
 }
 
 //ClusterSlaves ...
-func (r *Redis) ClusterSlaves(nodeId string) ([]string, error) {
+func (r *Redis) ClusterSlaves(nodeID string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
 	}
-	err = r.client.clusterSlaves(nodeId)
+	err = r.client.clusterSlaves(nodeID)
 	if err != nil {
 		return nil, err
 	}
 	return r.client.getMultiBulkReply()
 }
 
-//ClusterFailover This command, that can only be sent to a Redis Cluster replica node,
+//ClusterFailOver This command, that can only be sent to a Redis Cluster replica node,
 // forces the replica to start a manual failover of its master instance.
-func (r *Redis) ClusterFailover() (string, error) {
+func (r *Redis) ClusterFailOver() (string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return "", err
@@ -3453,7 +3480,7 @@ func (r *Redis) ClusterReset(resetType Reset) (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-//Enables read queries for a connection to a Redis Cluster replica node.
+//Readonly Enables read queries for a connection to a Redis Cluster replica node.
 //Normally replica nodes will redirect clients to the authoritative master for the hash slot involved in a given command,
 // however clients can use replicas in order to scale reads using the READONLY command.
 //
@@ -3479,7 +3506,7 @@ func (r *Redis) Readonly() (string, error) {
 
 //<editor-fold desc="sentinelcommands">
 
-//<pre>
+//SentinelMasters example:
 //redis 127.0.0.1:26381&gt; sentinel masters
 //1)  1) "name"
 //    2) "mymaster"
@@ -3505,8 +3532,6 @@ func (r *Redis) Readonly() (string, error) {
 //   22) "2"
 //   23) "quorum"
 //   24) "2"
-//</pre>
-//return
 func (r *Redis) SentinelMasters() ([]map[string]string, error) {
 	err := r.client.sentinelMasters()
 	if err != nil {
@@ -3515,12 +3540,10 @@ func (r *Redis) SentinelMasters() ([]map[string]string, error) {
 	return ObjectArrToMapArrayReply(r.client.getObjectMultiBulkReply())
 }
 
-//<pre>
+//SentinelGetMasterAddrByName example:
 //redis 127.0.0.1:26381&gt; sentinel get-master-addr-by-name mymaster
 //1) "127.0.0.1"
 //2) "6379"
-//</pre>
-//param masterName
 //return two elements list of strings : host and port.
 func (r *Redis) SentinelGetMasterAddrByName(masterName string) ([]string, error) {
 	err := r.client.sentinelGetMasterAddrByName(masterName)
@@ -3542,12 +3565,9 @@ func (r *Redis) SentinelGetMasterAddrByName(masterName string) ([]string, error)
 	return addrs, err
 }
 
-//<pre>
+//SentinelReset example:
 //redis 127.0.0.1:26381&gt; sentinel reset mymaster
 //(integer) 1
-//</pre>
-//param pattern
-//return
 func (r *Redis) SentinelReset(pattern string) (int64, error) {
 	err := r.client.sentinelReset(pattern)
 	if err != nil {
@@ -3556,7 +3576,7 @@ func (r *Redis) SentinelReset(pattern string) (int64, error) {
 	return r.client.getIntegerReply()
 }
 
-//<pre>
+//SentinelSlaves example:
 //redis 127.0.0.1:26381&gt; sentinel slaves mymaster
 //1)  1) "name"
 //    2) "127.0.0.1:6380"
@@ -3586,9 +3606,6 @@ func (r *Redis) SentinelReset(pattern string) (int64, error) {
 //   26) "6379"
 //   27) "slave-priority"
 //   28) "100"
-//</pre>
-//param masterName
-//return
 func (r *Redis) SentinelSlaves(masterName string) ([]map[string]string, error) {
 	err := r.client.sentinelSlaves(masterName)
 	if err != nil {
@@ -3637,8 +3654,8 @@ func (r *Redis) SentinelSet(masterName string, parameterMap map[string]string) (
 
 //<editor-fold desc="other commands">
 
-// PubsubChannels ...
-func (r *Redis) PubsubChannels(pattern string) ([]string, error) {
+// PubSubChannels ...
+func (r *Redis) PubSubChannels(pattern string) ([]string, error) {
 	err := r.checkIsInMultiOrPipeline()
 	if err != nil {
 		return nil, err
@@ -3663,8 +3680,8 @@ func (r *Redis) Asking() (string, error) {
 	return r.client.getStatusCodeReply()
 }
 
-// get transaction of redis client ,when use transaction mode, you need to invoke this first
-func (r *Redis) Multi() (*transaction, error) {
+//Multi get transaction of redis client ,when use transaction mode, you need to invoke this first
+func (r *Redis) Multi() (*Transaction, error) {
 	err := r.client.multi()
 	if err != nil {
 		return nil, err
@@ -3672,8 +3689,8 @@ func (r *Redis) Multi() (*transaction, error) {
 	return newTransaction(r.client), nil
 }
 
-// get pipeline of redis client ,when use pipeline mode, you need to invoke this first
-func (r *Redis) Pipelined() *pipeline {
+//Pipelined get pipeline of redis client ,when use pipeline mode, you need to invoke this first
+func (r *Redis) Pipelined() *Pipeline {
 	return newPipeline(r.client)
 }
 

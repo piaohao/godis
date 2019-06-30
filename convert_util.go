@@ -2,7 +2,6 @@ package godis
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -11,9 +10,9 @@ import (
 //BoolToByteArray convert bool to byte array
 func BoolToByteArray(a bool) []byte {
 	if a {
-		return BytesTrue
+		return bytesTrue
 	}
-	return BytesFalse
+	return bytesFalse
 }
 
 //IntToByteArray convert int to byte array
@@ -113,7 +112,7 @@ func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	return reply == 1, nil
 }
 
-//ByteToStringReply convert byte array reply to string reply
+//ByteArrToStringReply convert byte array reply to string reply
 func ByteArrToStringReply(reply []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
@@ -366,9 +365,12 @@ type Builder interface {
 }
 
 var (
-	StringBuilder      = newStringBuilder()      //convert interface to string
-	Int64Builder       = newInt64Builder()       //convert interface to int64
-	StringArrayBuilder = newStringArrayBuilder() //convert interface to string array
+	//StringBuilder convert interface to string
+	StringBuilder = newStringBuilder()
+	//Int64Builder convert interface to int64
+	Int64Builder = newInt64Builder()
+	//StringArrayBuilder convert interface to string array
+	StringArrayBuilder = newStringArrayBuilder()
 )
 
 type stringBuilder struct {
@@ -388,7 +390,7 @@ func (b *stringBuilder) build(data interface{}) (interface{}, error) {
 	case error:
 		return nil, data.(error)
 	}
-	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
+	return nil, fmt.Errorf("unexpected type:%T", data)
 }
 
 type int64Builder struct {
@@ -408,7 +410,7 @@ func (b *int64Builder) build(data interface{}) (interface{}, error) {
 	case error:
 		return nil, data.(error)
 	}
-	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
+	return nil, fmt.Errorf("unexpected type:%T", data)
 }
 
 type stringArrayBuilder struct {
@@ -436,5 +438,5 @@ func (b *stringArrayBuilder) build(data interface{}) (interface{}, error) {
 	case error:
 		return nil, data.(error)
 	}
-	return nil, errors.New(fmt.Sprintf("unexpected type:%T", data))
+	return nil, fmt.Errorf("unexpected type:%T", data)
 }

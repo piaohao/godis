@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	//ErrClosed when pool is closed,continue operate pool will return this error
 	ErrClosed = errors.New("pool is closed")
 )
 

@@ -17,22 +17,25 @@ func NewZAddParams() *ZAddParams {
 	return &ZAddParams{params: make(map[string]string)}
 }
 
+//XX set XX parameter
 func (p *ZAddParams) XX() *ZAddParams {
 	p.params["XX"] = "XX"
 	return p
 }
 
+//NX set NX parameter
 func (p *ZAddParams) NX() *ZAddParams {
 	p.params["NX"] = "NX"
 	return p
 }
 
+//CH set CH parameter
 func (p *ZAddParams) CH() *ZAddParams {
 	p.params["CH"] = "CH"
 	return p
 }
 
-//GetByteParams ...
+//GetByteParams get all params
 func (p *ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
 	arr := make([][]byte, 0)
 	arr = append(arr, key)
@@ -51,83 +54,92 @@ func (p *ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
 	return arr
 }
 
-//Contains ...
+//Contains return params map contains the key
 func (p *ZAddParams) Contains(key string) bool {
 	_, ok := p.params[key]
 	return ok
 }
 
-//BitPosParams
+//BitPosParams bitpos params
 type BitPosParams struct {
 	params [][]byte
 }
 
-//SortingParams
+//SortingParams sort params
 type SortingParams struct {
 	params [][]byte
 }
 
+//NewSortingParams create new sort params instance
 func NewSortingParams() *SortingParams {
 	return &SortingParams{params: make([][]byte, 0)}
 }
 
+//GetParams get all sort params
 func (p *SortingParams) GetParams() [][]byte {
 	return p.params
 }
 
+//By set by param with pattern
 func (p *SortingParams) By(pattern string) *SortingParams {
-	p.params = append(p.params, KeywordBy.GetRaw())
+	p.params = append(p.params, keywordBy.GetRaw())
 	p.params = append(p.params, []byte(pattern))
 	return p
 }
 
+//NoSort set by param with nosort
 func (p *SortingParams) NoSort() *SortingParams {
-	p.params = append(p.params, KeywordBy.GetRaw())
-	p.params = append(p.params, KeywordNosort.GetRaw())
+	p.params = append(p.params, keywordBy.GetRaw())
+	p.params = append(p.params, keywordNosort.GetRaw())
 	return p
 }
 
+//Desc set desc param,then sort elements in descending order
 func (p *SortingParams) Desc() *SortingParams {
-	p.params = append(p.params, KeywordDesc.GetRaw())
+	p.params = append(p.params, keywordDesc.GetRaw())
 	return p
 }
 
+//Asc set asc param,then sort elements in ascending order
 func (p *SortingParams) Asc() *SortingParams {
-	p.params = append(p.params, KeywordAsc.GetRaw())
+	p.params = append(p.params, keywordAsc.GetRaw())
 	return p
 }
 
+//Limit limit the sort result
 func (p *SortingParams) Limit(start, count int) *SortingParams {
-	p.params = append(p.params, KeywordLimit.GetRaw())
+	p.params = append(p.params, keywordLimit.GetRaw())
 	p.params = append(p.params, IntToByteArray(start))
 	p.params = append(p.params, IntToByteArray(count))
 	return p
 }
 
+//Alpha sort elements in alpha order
 func (p *SortingParams) Alpha() *SortingParams {
-	p.params = append(p.params, KeywordAlpha.GetRaw())
+	p.params = append(p.params, keywordAlpha.GetRaw())
 	return p
 }
 
+//Get set get param with patterns
 func (p *SortingParams) Get(patterns ...string) *SortingParams {
 	for _, pattern := range patterns {
-		p.params = append(p.params, KeywordGet.GetRaw())
+		p.params = append(p.params, keywordGet.GetRaw())
 		p.params = append(p.params, []byte(pattern))
 	}
 	return p
 }
 
-//ScanParams
+//ScanParams scan,hscan,sscan,zscan params
 type ScanParams struct {
 	params map[*keyword][]byte
 }
 
-//NewScanParams ...
+//NewScanParams create scan params instance
 func NewScanParams() *ScanParams {
 	return &ScanParams{params: make(map[*keyword][]byte)}
 }
 
-//GetParams ...
+//GetParams get all scan params
 func (s ScanParams) GetParams() [][]byte {
 	arr := make([][]byte, 0)
 	for k, v := range s.params {
@@ -137,96 +149,105 @@ func (s ScanParams) GetParams() [][]byte {
 	return arr
 }
 
-//Match ...
+//Match get the match param value
 func (s ScanParams) Match() string {
-	if v, ok := s.params[KeywordMatch]; !ok {
-		return ""
-	} else {
+	if v, ok := s.params[keywordMatch]; ok {
 		return string(v)
 	}
+	return ""
 }
 
-//Count ...
+//Count get the count param value
 func (s ScanParams) Count() int {
-	if v, ok := s.params[KeywordCount]; !ok {
-		return 0
-	} else {
+	if v, ok := s.params[keywordCount]; ok {
 		return int(ByteArrayToInt64(v))
 	}
+	return 0
 }
 
-//ListOption ...
+//ListOption  list option
 type ListOption struct {
 	Name string // name  ...
 }
 
-//GetRaw ...
+//GetRaw get the option name byte array
 func (l ListOption) GetRaw() []byte {
 	return []byte(l.Name)
 }
 
-//NewListOption ...
+//NewListOption create new list option instance
 func newListOption(name string) ListOption {
 	return ListOption{name}
 }
 
 var (
-	ListoptionBefore = newListOption("BEFORE")
-	ListoptionAfter  = newListOption("AFTER")
+	//ListOptionBefore insert an new element before designated element
+	ListOptionBefore = newListOption("BEFORE")
+	//ListOptionAfter insert an new element after designated element
+	ListOptionAfter = newListOption("AFTER")
 )
 
-//GeoUnit
+//GeoUnit geo unit,m|mi|km|ft
 type GeoUnit struct {
-	Name string // name ...
+	Name string // name of geo unit
 }
 
-//GetRaw ...
+//GetRaw get the name byte array
 func (g GeoUnit) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-//NewGeoUnit ...
+//NewGeoUnit create a new geounit instance
 func newGeoUnit(name string) GeoUnit {
 	return GeoUnit{name}
 }
 
 var (
-	GeounitMi = newGeoUnit("mi")
-	GeounitM  = newGeoUnit("m")
-	GeounitKm = newGeoUnit("km")
-	GeounitFt = newGeoUnit("ft")
+	//GeoUnitMi calculate distance use mi unit
+	GeoUnitMi = newGeoUnit("mi")
+	//GeoUnitM calculate distance use m unit
+	GeoUnitM = newGeoUnit("m")
+	//GeoUnitKm calculate distance use km unit
+	GeoUnitKm = newGeoUnit("km")
+	//GeoUnitFt calculate distance use ft unit
+	GeoUnitFt = newGeoUnit("ft")
 )
 
-//GeoRadiusParam
+//GeoRadiusParam geo radius param
 type GeoRadiusParam struct {
 	params map[string]string
 }
 
-//NewGeoRadiusParam constructor
+//NewGeoRadiusParam create a new geo radius param instance
 func NewGeoRadiusParam() *GeoRadiusParam {
 	return &GeoRadiusParam{params: make(map[string]string)}
 }
 
+//WithCoord fill the geo result with coordinate
 func (p *GeoRadiusParam) WithCoord() *GeoRadiusParam {
 	p.params["withcoord"] = "withcoord"
 	return p
 }
 
+//WithDist fill the geo result with distance
 func (p *GeoRadiusParam) WithDist() *GeoRadiusParam {
 	p.params["withdist"] = "withdist"
 	return p
 }
 
+//SortAscending sort th geo result in ascending order
 func (p *GeoRadiusParam) SortAscending() *GeoRadiusParam {
 	p.params["asc"] = "asc"
 	return p
 }
 
+//SortDescending sort the geo result in descending order
 func (p *GeoRadiusParam) SortDescending() *GeoRadiusParam {
 	p.params["desc"] = "desc"
 	return p
 }
 
+//Count fill the geo result with count
 func (p *GeoRadiusParam) Count(count int) *GeoRadiusParam {
 	if count > 0 {
 		p.params["count"] = strconv.Itoa(count)
@@ -234,48 +255,48 @@ func (p *GeoRadiusParam) Count(count int) *GeoRadiusParam {
 	return p
 }
 
-//GetParams ...
-func (g GeoRadiusParam) GetParams(args [][]byte) [][]byte {
+//GetParams  get geo param byte array
+func (p *GeoRadiusParam) GetParams(args [][]byte) [][]byte {
 	arr := make([][]byte, 0)
 	for _, a := range args {
 		arr = append(arr, a)
 	}
 
-	if g.Contains("withcoord") {
+	if p.Contains("withcoord") {
 		arr = append(arr, []byte("withcoord"))
 	}
-	if g.Contains("withdist") {
+	if p.Contains("withdist") {
 		arr = append(arr, []byte("withdist"))
 	}
 
-	if g.Contains("count") {
+	if p.Contains("count") {
 		arr = append(arr, []byte("count"))
-		count, _ := strconv.Atoi(g.params["count"])
+		count, _ := strconv.Atoi(p.params["count"])
 		arr = append(arr, IntToByteArray(count))
 	}
 
-	if g.Contains("asc") {
+	if p.Contains("asc") {
 		arr = append(arr, []byte("asc"))
-	} else if g.Contains("desc") {
+	} else if p.Contains("desc") {
 		arr = append(arr, []byte("desc"))
 	}
 
 	return arr
 }
 
-//Contains ...
-func (g GeoRadiusParam) Contains(key string) bool {
-	_, ok := g.params[key]
+//Contains test geo param contains the key
+func (p *GeoRadiusParam) Contains(key string) bool {
+	_, ok := p.params[key]
 	return ok
 }
 
-//Tuple ...
+//Tuple zset tuple
 type Tuple struct {
 	element []byte
 	score   float64
 }
 
-//GeoRadiusResponse ...
+//GeoRadiusResponse geo radius response
 type GeoRadiusResponse struct {
 	member     []byte
 	distance   float64
@@ -286,59 +307,62 @@ func newGeoRadiusResponse(member []byte) *GeoRadiusResponse {
 	return &GeoRadiusResponse{member: member}
 }
 
-//GeoCoordinate ...
+//GeoCoordinate geo coordinate struct
 type GeoCoordinate struct {
 	longitude float64
 	latitude  float64
 }
 
-//ScanResult ...
+//ScanResult scan result struct
 type ScanResult struct {
 	Cursor  string
 	Results []string
 }
 
-//ZParams ...
+//ZParams zset operation params
 type ZParams struct {
-	Name   string //name  ...
+	Name   string //zset param name
 	params [][]byte
 }
 
-//GetRaw ...
-func (g ZParams) GetRaw() []byte {
+//GetRaw get param name byte array
+func (g *ZParams) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-//GetParams ...
-func (g ZParams) GetParams() [][]byte {
+//GetParams get params byte array
+func (g *ZParams) GetParams() [][]byte {
 	return g.params
 }
 
-//NewZParams ...
-func NewZParams(name string) ZParams {
-	return ZParams{Name: name}
+//newZParams create a new zparams instance
+func newZParams(name string) *ZParams {
+	return &ZParams{Name: name}
 }
 
 var (
-	ZparamsSum = NewZParams("SUM")
-	ZparamsMin = NewZParams("MIN")
-	ZparamsMax = NewZParams("MAX")
+	//ZParamsSum aggregate result with sum operation
+	ZParamsSum = newZParams("SUM")
+	//ZParamsMin aggregate result with min operation
+	ZParamsMin = newZParams("MIN")
+	//ZParamsMax aggregate result with max operation
+	ZParamsMax = newZParams("MAX")
 )
 
-//RedisPubSub ...
+//RedisPubSub redis pubsub struct
 type RedisPubSub struct {
 	subscribedChannels int
 	redis              *Redis
-	OnMessage          func(channel, message string)
-	OnPMessage         func(pattern string, channel, message string)
-	OnSubscribe        func(channel string, subscribedChannels int)
-	OnUnsubscribe      func(channel string, subscribedChannels int)
-	OnPUnsubscribe     func(pattern string, subscribedChannels int)
-	OnPSubscribe       func(pattern string, subscribedChannels int)
-	OnPong             func(channel string)
+	OnMessage          func(channel, message string)                 //receive message
+	OnPMessage         func(pattern string, channel, message string) //receive pattern message
+	OnSubscribe        func(channel string, subscribedChannels int)  //listen subscribe event
+	OnUnSubscribe      func(channel string, subscribedChannels int)  //listen unsubscribe event
+	OnPUnSubscribe     func(pattern string, subscribedChannels int)  //listen pattern unsubscribe event
+	OnPSubscribe       func(pattern string, subscribedChannels int)  //listen pattern subscribe event
+	OnPong             func(channel string)                          //listen heart beat event
 }
 
-//Subscribe ...
+//Subscribe subscribe some channels
 func (r *RedisPubSub) Subscribe(channels ...string) error {
 	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
@@ -354,8 +378,8 @@ func (r *RedisPubSub) Subscribe(channels ...string) error {
 	return nil
 }
 
-//Unsubscribe ...
-func (r *RedisPubSub) Unsubscribe(channels ...string) error {
+//UnSubscribe unsubscribe some channels
+func (r *RedisPubSub) UnSubscribe(channels ...string) error {
 	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -370,8 +394,8 @@ func (r *RedisPubSub) Unsubscribe(channels ...string) error {
 	return nil
 }
 
-//Psubscribe ...
-func (r *RedisPubSub) Psubscribe(channels ...string) error {
+//PSubscribe subscribe some pattern channels
+func (r *RedisPubSub) PSubscribe(channels ...string) error {
 	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -386,8 +410,8 @@ func (r *RedisPubSub) Psubscribe(channels ...string) error {
 	return nil
 }
 
-//Punsubscribe ...
-func (r *RedisPubSub) Punsubscribe(channels ...string) error {
+//PUnSubscribe unsubscribe some pattern channels
+func (r *RedisPubSub) PUnSubscribe(channels ...string) error {
 	if r.redis.client == nil {
 		return errors.New("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -440,22 +464,22 @@ func (r *RedisPubSub) process(redis *Redis) error {
 		}
 		respUpper := strings.ToUpper(string(reply[0].([]byte)))
 		switch respUpper {
-		case KeywordSubscribe.Name:
+		case keywordSubscribe.Name:
 			r.processSubscribe(reply)
-		case KeywordUnsubscribe.Name:
+		case keywordUnsubscribe.Name:
 			r.processUnSubscribe(reply)
-		case KeywordMessage.Name:
+		case keywordMessage.Name:
 			r.processMessage(reply)
-		case KeywordPmessage.Name:
+		case keywordPmessage.Name:
 			r.processPmessage(reply)
-		case KeywordPsubscribe.Name:
+		case keywordPsubscribe.Name:
 			r.processPsubscribe(reply)
-		case CmdPunsubscribe.Name:
+		case cmdPunsubscribe.Name:
 			r.processPunsubcribe(reply)
-		case KeywordPong.Name:
+		case keywordPong.Name:
 			r.processPong(reply)
 		default:
-			return errors.New(fmt.Sprintf("Unknown message type: %v", reply))
+			return fmt.Errorf("unknown message type: %v", reply)
 		}
 		if !r.isSubscribed() {
 			break
@@ -485,7 +509,7 @@ func (r *RedisPubSub) processUnSubscribe(reply []interface{}) {
 	if bChannel != nil {
 		strChannel = string(bChannel)
 	}
-	r.OnUnsubscribe(strChannel, r.subscribedChannels)
+	r.OnUnSubscribe(strChannel, r.subscribedChannels)
 }
 
 func (r *RedisPubSub) processMessage(reply []interface{}) {
@@ -538,7 +562,7 @@ func (r *RedisPubSub) processPunsubcribe(reply []interface{}) {
 	if bPattern != nil {
 		strPattern = string(bPattern)
 	}
-	r.OnPUnsubscribe(strPattern, r.subscribedChannels)
+	r.OnPUnSubscribe(strPattern, r.subscribedChannels)
 }
 
 func (r *RedisPubSub) processPong(reply []interface{}) {
@@ -550,69 +574,77 @@ func (r *RedisPubSub) processPong(reply []interface{}) {
 	r.OnPong(strPattern)
 }
 
-//BitOP ...
+//BitOP bit operation struct
 type BitOP struct {
-	Name string //name  ...
+	Name string //name if bit operation
 }
 
-//GetRaw ...
+//GetRaw get the name byte array
 func (g BitOP) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-//NewBitOP ...
-func NewBitOP(name string) BitOP {
+//NewBitOP
+func newBitOP(name string) BitOP {
 	return BitOP{name}
 }
 
 var (
-	BitopAnd = NewBitOP("AND")
-	BitopOr  = NewBitOP("OR")
-	BitopXor = NewBitOP("XOR")
-	BitopNot = NewBitOP("NOT")
+	//BitOpAnd 'and' bit operation,&
+	BitOpAnd = newBitOP("AND")
+	//BitOpOr 'or' bit operation,|
+	BitOpOr = newBitOP("OR")
+	//BitOpXor 'xor' bit operation,X xor Y -> (X || Y) && !(X && Y)
+	BitOpXor = newBitOP("XOR")
+	//BitOpNot 'not' bit operation,^
+	BitOpNot = newBitOP("NOT")
 )
 
-//Slowlog ...
-type Slowlog struct {
+//SlowLog redis slow log struct
+type SlowLog struct {
 	id            int64
 	timeStamp     int64
 	executionTime int64
 	args          []string
 }
 
-//DebugParams ...
+//DebugParams debug params
 type DebugParams struct {
 	command []string
 }
 
+//NewDebugParamsSegfault create debug prams with segfault
 func NewDebugParamsSegfault() *DebugParams {
 	return &DebugParams{command: []string{"SEGFAULT"}}
 }
 
+//NewDebugParamsObject create debug paramas with key
 func NewDebugParamsObject(key string) *DebugParams {
 	return &DebugParams{command: []string{"OBJECT", key}}
 }
 
+//NewDebugParamsReload create debug params with reload
 func NewDebugParamsReload() *DebugParams {
 	return &DebugParams{command: []string{"RELOAD"}}
 }
 
-//Reset ...
+//Reset reset struct
 type Reset struct {
-	Name string //name  ...
+	Name string //name of reset
 }
 
-//GetRaw ...
-func (g Reset) GetRaw() []byte {
+//GetRaw get the name byte array
+func (g *Reset) GetRaw() []byte {
 	return []byte(g.Name)
 }
 
-//NewReset ...
-func NewReset(name string) Reset {
-	return Reset{name}
+func newReset(name string) *Reset {
+	return &Reset{name}
 }
 
 var (
-	ResetSoft = NewReset("SOFT")
-	ResetHard = NewReset("HARD")
+	//ResetSoft soft reset
+	ResetSoft = newReset("SOFT")
+	//ResetHard hard reset
+	ResetHard = newReset("HARD")
 )

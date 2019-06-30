@@ -11,41 +11,21 @@ import (
 )
 
 func TestRedisCluster_Lock(t *testing.T) {
-	//os.Remove("count.txt")
 	count := 0
 	var group sync.WaitGroup
 	locker := NewClusterLocker(clusterOption, nil)
 	ch := make(chan bool, 4)
 	total := 10000
-	var timeoutCount int32 = 0
+	timeoutCount := int32(0)
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
-		//println(i)
 		go func() {
 			defer group.Done()
 			lock, err := locker.TryLock("lock")
 			if err == nil {
 				if lock != nil {
 					count++
-					/*file, _ := os.OpenFile(
-						"count.txt",
-						os.O_RDWR|os.O_CREATE,
-						0664,
-					)
-					arr, err := ioutil.ReadFile("count.txt")
-					if err != nil {
-						fmt.Printf("%v\n", err)
-					}
-					oldNum := 0
-					if string(arr) != "" {
-						oldNum, _ = strconv.Atoi(string(arr))
-					}
-					file.WriteString(strconv.Itoa(oldNum + 1))
-					file.Close()
-					if chCount := len(locker.ch); chCount > 0 {
-						fmt.Printf("locker ch:%d\n", chCount)
-					}*/
 					locker.UnLock(lock)
 				} else {
 					atomic.AddInt32(&timeoutCount, 1)
@@ -67,7 +47,7 @@ func TestRedis_Lock(t *testing.T) {
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	total := 10000
-	var timeoutCount int32 = 0
+	timeoutCount := int32(0)
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
@@ -99,7 +79,7 @@ func TestRedis_Lock_Exception(t *testing.T) {
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	total := 20
-	var timeoutCount int32 = 0
+	timeoutCount := int32(0)
 	for i := 0; i < total; i++ {
 		group.Add(1)
 		ch <- true
@@ -131,7 +111,7 @@ func TestRedis_Lock_Exception(t *testing.T) {
 	assert.Equal(t, total, realCount, "want %d,but %d", total, realCount)
 }
 
-func _BenchmarkRedis_Lock(b *testing.B) {
+func _BenchmarkRedisLock(b *testing.B) {
 	locker := NewLocker(option, &LockOption{Timeout: 3 * time.Second})
 	count := 0
 	for i := 0; i < 100; i++ {
@@ -150,7 +130,7 @@ func _BenchmarkRedis_Lock(b *testing.B) {
 }
 
 //ignore this case,cause race data
-func _TestRedis_NoLock(t *testing.T) {
+func _TestRedisNoLock(t *testing.T) {
 	count := 0
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
@@ -169,7 +149,7 @@ func _TestRedis_NoLock(t *testing.T) {
 
 func TestCluster_Set(t *testing.T) {
 	cluster := NewRedisCluster(clusterOption)
-	var count int32 = 0
+	count := int32(0)
 	var group sync.WaitGroup
 	ch := make(chan bool, 8)
 	for i := 0; i < 100000; i++ {
