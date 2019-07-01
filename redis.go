@@ -1851,7 +1851,7 @@ func (r *Redis) ZRangeByScoreWithScoresBatch(key, min, max string, offset, count
 	if err != nil {
 		return nil, err
 	}
-	err = r.client.zrangeByScoreBatch(key, min, max, offset, count)
+	err = r.client.zrangeByScoreWithScoreBatch(key, min, max, offset, count)
 	if err != nil {
 		return nil, err
 	}
@@ -1864,7 +1864,7 @@ func (r *Redis) ZRevRangeByScoreWithScoresBatch(key, max, min string, offset, co
 	if err != nil {
 		return nil, err
 	}
-	err = r.client.zrevrangeByScoreBatch(key, max, min, offset, count)
+	err = r.client.zrevrangeByScoreWithScoreBatch(key, max, min, offset, count)
 	if err != nil {
 		return nil, err
 	}
@@ -2741,7 +2741,7 @@ func (r *Redis) PSubscribe(redisPubSub *RedisPubSub, patterns ...string) error {
 	if err != nil {
 		return err
 	}
-	err = redisPubSub.proceed(r, patterns...)
+	err = redisPubSub.proceedWithPatterns(r, patterns...)
 	if err != nil {
 		return err
 	}

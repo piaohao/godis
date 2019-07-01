@@ -139,7 +139,7 @@ func (c *client) rename(oldKey, newKey string) error {
 }
 
 func (c *client) renamenx(oldKey, newKey string) error {
-	return c.sendCommand(cmdRenamenx, []byte(oldKey), []byte(newKey))
+	return c.sendCommand(cmdRenameNx, []byte(oldKey), []byte(newKey))
 }
 
 func (c *client) expire(key string, seconds int) error {
@@ -147,15 +147,15 @@ func (c *client) expire(key string, seconds int) error {
 }
 
 func (c *client) expireAt(key string, unixTime int64) error {
-	return c.sendCommand(cmdExpireat, []byte(key), Int64ToByteArray(unixTime))
+	return c.sendCommand(cmdExpireAt, []byte(key), Int64ToByteArray(unixTime))
 }
 
 func (c *client) pexpire(key string, milliseconds int64) error {
-	return c.sendCommand(cmdPexpire, []byte(key), Int64ToByteArray(milliseconds))
+	return c.sendCommand(cmdPExpire, []byte(key), Int64ToByteArray(milliseconds))
 }
 
 func (c *client) pexpireAt(key string, unixTime int64) error {
-	return c.sendCommand(cmdPexpireat, []byte(key), Int64ToByteArray(unixTime))
+	return c.sendCommand(cmdPExpireAt, []byte(key), Int64ToByteArray(unixTime))
 }
 
 func (c *client) ttl(key string) error {
@@ -163,7 +163,7 @@ func (c *client) ttl(key string) error {
 }
 
 func (c *client) pttl(key string) error {
-	return c.sendCommand(cmdPttl, []byte(key))
+	return c.sendCommand(cmdPTTL, []byte(key))
 }
 
 func (c *client) move(key string, dbIndex int) error {
@@ -171,35 +171,35 @@ func (c *client) move(key string, dbIndex int) error {
 }
 
 func (c *client) getSet(key, value string) error {
-	return c.sendCommand(cmdGetset, []byte(key), []byte(value))
+	return c.sendCommand(cmdGetSet, []byte(key), []byte(value))
 }
 
 func (c *client) mget(keys ...string) error {
-	return c.sendCommand(cmdMget, StringArrayToByteArray(keys)...)
+	return c.sendCommand(cmdMGet, StringArrayToByteArray(keys)...)
 }
 
 func (c *client) setnx(key, value string) error {
-	return c.sendCommand(cmdSetnx, []byte(key), []byte(value))
+	return c.sendCommand(cmdSetNx, []byte(key), []byte(value))
 }
 
 func (c *client) setex(key string, seconds int, value string) error {
-	return c.sendCommand(cmdSetex, []byte(key), IntToByteArray(seconds), []byte(value))
+	return c.sendCommand(cmdSetEx, []byte(key), IntToByteArray(seconds), []byte(value))
 }
 
 func (c *client) psetex(key string, milliseconds int64, value string) error {
-	return c.sendCommand(cmdSetex, []byte(key), Int64ToByteArray(milliseconds), []byte(value))
+	return c.sendCommand(cmdSetEx, []byte(key), Int64ToByteArray(milliseconds), []byte(value))
 }
 
 func (c *client) mset(keysvalues ...string) error {
-	return c.sendCommand(cmdMset, StringArrayToByteArray(keysvalues)...)
+	return c.sendCommand(cmdMSet, StringArrayToByteArray(keysvalues)...)
 }
 
 func (c *client) msetnx(keysvalues ...string) error {
-	return c.sendCommand(cmdMsetnx, StringArrayToByteArray(keysvalues)...)
+	return c.sendCommand(cmdMSetNx, StringArrayToByteArray(keysvalues)...)
 }
 
 func (c *client) decrBy(key string, decrement int64) error {
-	return c.sendCommand(cmdDecrby, []byte(key), Int64ToByteArray(decrement))
+	return c.sendCommand(cmdDecrBy, []byte(key), Int64ToByteArray(decrement))
 }
 
 func (c *client) decr(key string) error {
@@ -207,7 +207,7 @@ func (c *client) decr(key string) error {
 }
 
 func (c *client) incrBy(key string, increment int64) error {
-	return c.sendCommand(cmdIncrby, []byte(key), Int64ToByteArray(increment))
+	return c.sendCommand(cmdIncrBy, []byte(key), Int64ToByteArray(increment))
 }
 
 func (c *client) incr(key string) error {
@@ -223,15 +223,15 @@ func (c *client) substr(key string, start, end int) error {
 }
 
 func (c *client) hset(key, field, value string) error {
-	return c.sendCommand(cmdHset, []byte(key), []byte(field), []byte(value))
+	return c.sendCommand(cmdHSet, []byte(key), []byte(field), []byte(value))
 }
 
 func (c *client) hget(key, field string) error {
-	return c.sendCommand(cmdHget, []byte(key), []byte(field))
+	return c.sendCommand(cmdHGet, []byte(key), []byte(field))
 }
 
 func (c *client) hsetnx(key, field, value string) error {
-	return c.sendCommand(cmdHsetnx, []byte(key), []byte(field), []byte(value))
+	return c.sendCommand(cmdHSetNx, []byte(key), []byte(field), []byte(value))
 }
 
 func (c *client) hmset(key string, hash map[string]string) error {
@@ -241,55 +241,55 @@ func (c *client) hmset(key string, hash map[string]string) error {
 		params = append(params, []byte(k))
 		params = append(params, []byte(v))
 	}
-	return c.sendCommand(cmdHmset, params...)
+	return c.sendCommand(cmdHMSet, params...)
 }
 
 func (c *client) hmget(key string, fields ...string) error {
-	return c.sendCommand(cmdHmget, StringStringArrayToByteArray(key, fields)...)
+	return c.sendCommand(cmdHMGet, StringStringArrayToByteArray(key, fields)...)
 }
 
 func (c *client) hincrBy(key, field string, increment int64) error {
-	return c.sendCommand(cmdHincrby, []byte(key), []byte(field), Int64ToByteArray(increment))
+	return c.sendCommand(cmdHIncrBy, []byte(key), []byte(field), Int64ToByteArray(increment))
 }
 
 func (c *client) hexists(key, field string) error {
-	return c.sendCommand(cmdHexists, []byte(key), []byte(field))
+	return c.sendCommand(cmdHExists, []byte(key), []byte(field))
 }
 
 func (c *client) hdel(key string, fields ...string) error {
-	return c.sendCommand(cmdHdel, StringStringArrayToByteArray(key, fields)...)
+	return c.sendCommand(cmdHDel, StringStringArrayToByteArray(key, fields)...)
 }
 
 func (c *client) hlen(key string) error {
-	return c.sendCommand(cmdHlen, []byte(key))
+	return c.sendCommand(cmdHLen, []byte(key))
 }
 
 func (c *client) hkeys(key string) error {
-	return c.sendCommand(cmdHkeys, []byte(key))
+	return c.sendCommand(cmdHKeys, []byte(key))
 }
 
 func (c *client) hvals(key string) error {
-	return c.sendCommand(cmdHvals, []byte(key))
+	return c.sendCommand(cmdHVals, []byte(key))
 }
 
 func (c *client) hgetAll(key string) error {
-	return c.sendCommand(cmdHgetall, []byte(key))
+	return c.sendCommand(cmdHGetAll, []byte(key))
 }
 
 func (c *client) rpush(key string, fields ...string) error {
-	return c.sendCommand(cmdRpush, StringStringArrayToByteArray(key, fields)...)
+	return c.sendCommand(cmdRPush, StringStringArrayToByteArray(key, fields)...)
 }
 
 func (c *client) lpush(key string, fields ...string) error {
-	return c.sendCommand(cmdRpush, StringStringArrayToByteArray(key, fields)...)
+	return c.sendCommand(cmdRPush, StringStringArrayToByteArray(key, fields)...)
 }
 
 func (c *client) llen(key string) error {
-	return c.sendCommand(cmdLlen, []byte(key))
+	return c.sendCommand(cmdLLen, []byte(key))
 }
 
 func (c *client) lrange(key string, start, end int64) error {
-	return c.sendCommand(cmdLrange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+	return c.sendCommand(cmdLRange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
 
 func (c *client) ltrim(key string, start, end int64) error {
@@ -297,97 +297,97 @@ func (c *client) ltrim(key string, start, end int64) error {
 }
 
 func (c *client) lindex(key string, index int64) error {
-	return c.sendCommand(cmdLindex, []byte(key), Int64ToByteArray(index))
+	return c.sendCommand(cmdLIndex, []byte(key), Int64ToByteArray(index))
 }
 
 func (c *client) lset(key string, index int64, value string) error {
-	return c.sendCommand(cmdLset, []byte(key), Int64ToByteArray(index), []byte(value))
+	return c.sendCommand(cmdLSet, []byte(key), Int64ToByteArray(index), []byte(value))
 }
 
 func (c *client) lrem(key string, count int64, value string) error {
-	return c.sendCommand(cmdLrem, []byte(key), Int64ToByteArray(count), []byte(value))
+	return c.sendCommand(cmdLRem, []byte(key), Int64ToByteArray(count), []byte(value))
 }
 
 func (c *client) lpop(key string) error {
-	return c.sendCommand(cmdLpop, []byte(key))
+	return c.sendCommand(cmdLPop, []byte(key))
 }
 
 func (c *client) rpop(key string) error {
-	return c.sendCommand(cmdRpop, []byte(key))
+	return c.sendCommand(cmdRPop, []byte(key))
 }
 
 func (c *client) rpopLpush(srckey, dstkey string) error {
-	return c.sendCommand(cmdRpoplpush, []byte(srckey), []byte(dstkey))
+	return c.sendCommand(cmdRPopLPush, []byte(srckey), []byte(dstkey))
 }
 
 func (c *client) sadd(key string, members ...string) error {
-	return c.sendCommand(cmdSadd, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(cmdSAdd, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) smembers(key string) error {
-	return c.sendCommand(cmdSmembers, []byte(key))
+	return c.sendCommand(cmdSMembers, []byte(key))
 }
 
 func (c *client) srem(key string, members ...string) error {
-	return c.sendCommand(cmdSrem, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(cmdSRem, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) spop(key string) error {
-	return c.sendCommand(cmdSpop, []byte(key))
+	return c.sendCommand(cmdSPop, []byte(key))
 }
 
 func (c *client) spopBatch(key string, count int64) error {
-	return c.sendCommand(cmdSpop, []byte(key), Int64ToByteArray(count))
+	return c.sendCommand(cmdSPop, []byte(key), Int64ToByteArray(count))
 }
 
 func (c *client) smove(srckey, dstkey, member string) error {
-	return c.sendCommand(cmdSmove, []byte(srckey), []byte(dstkey), []byte(member))
+	return c.sendCommand(cmdSMove, []byte(srckey), []byte(dstkey), []byte(member))
 }
 
 func (c *client) scard(key string) error {
-	return c.sendCommand(cmdScard, []byte(key))
+	return c.sendCommand(cmdSCard, []byte(key))
 }
 
 func (c *client) sismember(key, member string) error {
-	return c.sendCommand(cmdSismember, []byte(key), []byte(member))
+	return c.sendCommand(cmdSIsMember, []byte(key), []byte(member))
 }
 
 func (c *client) sinter(keys ...string) error {
-	return c.sendCommand(cmdSinter, StringArrayToByteArray(keys)...)
+	return c.sendCommand(cmdSInter, StringArrayToByteArray(keys)...)
 }
 
 func (c *client) sinterstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSinterstore, StringStringArrayToByteArray(dstkey, keys)...)
+	return c.sendCommand(cmdSInterStore, StringStringArrayToByteArray(dstkey, keys)...)
 }
 
 func (c *client) sunion(keys ...string) error {
-	return c.sendCommand(cmdSunion, StringArrayToByteArray(keys)...)
+	return c.sendCommand(cmdSUnion, StringArrayToByteArray(keys)...)
 }
 
 func (c *client) sunionstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSunionstore, StringStringArrayToByteArray(dstkey, keys)...)
+	return c.sendCommand(cmdSUnionStore, StringStringArrayToByteArray(dstkey, keys)...)
 }
 
 func (c *client) sdiff(keys ...string) error {
-	return c.sendCommand(cmdSdiff, StringArrayToByteArray(keys)...)
+	return c.sendCommand(cmdSDiff, StringArrayToByteArray(keys)...)
 }
 
 func (c *client) sdiffstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSdiffstore, StringStringArrayToByteArray(dstkey, keys)...)
+	return c.sendCommand(cmdSDiffStore, StringStringArrayToByteArray(dstkey, keys)...)
 }
 
 func (c *client) srandmember(key string) error {
-	return c.sendCommand(cmdSrandmember, []byte(key))
+	return c.sendCommand(cmdSRandMember, []byte(key))
 }
 
 func (c *client) zadd(key string, score float64, member string, params ...*ZAddParams) error {
 	newArr := make([][]byte, 0)
 	if len(params) == 0 {
-		return c.sendCommand(cmdZadd, []byte(key), Float64ToByteArray(score), []byte(member))
+		return c.sendCommand(cmdZAdd, []byte(key), Float64ToByteArray(score), []byte(member))
 	}
 	newArr = append(newArr, Float64ToByteArray(score))
 	newArr = append(newArr, []byte(member))
-	return c.sendCommand(cmdZadd, params[0].GetByteParams([]byte(key), newArr...)...)
+	return c.sendCommand(cmdZAdd, params[0].GetByteParams([]byte(key), newArr...)...)
 }
 
 func (c *client) zaddByMap(key string, scoreMembers map[string]float64, params ...*ZAddParams) error {
@@ -398,53 +398,53 @@ func (c *client) zaddByMap(key string, scoreMembers map[string]float64, params .
 			newArr = append(newArr, Float64ToByteArray(v))
 			newArr = append(newArr, []byte(k))
 		}
-		return c.sendCommand(cmdZadd, newArr...)
+		return c.sendCommand(cmdZAdd, newArr...)
 	}
 	for k, v := range scoreMembers {
 		newArr = append(newArr, Float64ToByteArray(v))
 		newArr = append(newArr, []byte(k))
 	}
-	return c.sendCommand(cmdZadd, params[0].GetByteParams([]byte(key), newArr...)...)
+	return c.sendCommand(cmdZAdd, params[0].GetByteParams([]byte(key), newArr...)...)
 }
 
 func (c *client) zrange(key string, start, end int64) error {
-	return c.sendCommand(cmdZrange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+	return c.sendCommand(cmdZRange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
 
 func (c *client) zrem(key string, members ...string) error {
-	return c.sendCommand(cmdZrem, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(cmdZRem, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) zincrby(key string, score float64, member string) error {
-	return c.sendCommand(cmdZincrby, []byte(key), Float64ToByteArray(score), []byte(member))
+	return c.sendCommand(cmdZIncrBy, []byte(key), Float64ToByteArray(score), []byte(member))
 }
 
 func (c *client) zrank(key, member string) error {
-	return c.sendCommand(cmdZrank, []byte(key), []byte(member))
+	return c.sendCommand(cmdZRank, []byte(key), []byte(member))
 }
 
 func (c *client) zrevrank(key, member string) error {
-	return c.sendCommand(cmdZrevrank, []byte(key), []byte(member))
+	return c.sendCommand(cmdZRevRank, []byte(key), []byte(member))
 }
 
 func (c *client) zrevrange(key string, start, end int64) error {
-	return c.sendCommand(cmdZrevrange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+	return c.sendCommand(cmdZRevRange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
 
 func (c *client) zrangeWithScores(key string, start, end int64) error {
-	return c.sendCommand(cmdZrange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end), keywordWithscores.GetRaw())
+	return c.sendCommand(cmdZRange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end), keywordWithScores.GetRaw())
 }
 
 func (c *client) zrevrangeWithScores(key string, start, end int64) error {
-	return c.sendCommand(cmdZrange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end), keywordWithscores.GetRaw())
+	return c.sendCommand(cmdZRevRange, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end), keywordWithScores.GetRaw())
 }
 
 func (c *client) zcard(key string) error {
-	return c.sendCommand(cmdZcard, []byte(key))
+	return c.sendCommand(cmdZCard, []byte(key))
 }
 
 func (c *client) zscore(key, member string) error {
-	return c.sendCommand(cmdZscore, []byte(key), []byte(member))
+	return c.sendCommand(cmdZScore, []byte(key), []byte(member))
 }
 
 func (c *client) watch(keys ...string) error {
@@ -472,39 +472,39 @@ func (c *client) sortMulti(key, dstkey string, sortingParameters ...SortingParam
 }
 
 func (c *client) blpop(args []string) error {
-	return c.sendCommand(cmdBlpop, StringArrayToByteArray(args)...)
+	return c.sendCommand(cmdBLPop, StringArrayToByteArray(args)...)
 }
 
 func (c *client) brpop(args []string) error {
-	return c.sendCommand(cmdBrpop, StringArrayToByteArray(args)...)
+	return c.sendCommand(cmdBRPop, StringArrayToByteArray(args)...)
 }
 
 func (c *client) zcount(key, min, max string) error {
-	return c.sendCommand(cmdZcount, []byte(key), []byte(min), []byte(max))
+	return c.sendCommand(cmdZCount, []byte(key), []byte(min), []byte(max))
 }
 
 func (c *client) zrangeByScore(key, min, max string) error {
-	return c.sendCommand(cmdZrangebyscore, []byte(key), []byte(min), []byte(max))
+	return c.sendCommand(cmdZRangeByScore, []byte(key), []byte(min), []byte(max))
 }
 
 func (c *client) zrangeByScoreWithScores(key, min, max string) error {
-	return c.sendCommand(cmdZrangebyscore, []byte(key), []byte(min), []byte(max), keywordWithscores.GetRaw())
+	return c.sendCommand(cmdZRangeByScore, []byte(key), []byte(min), []byte(max), keywordWithScores.GetRaw())
 }
 
 func (c *client) zrevrangeByScore(key, max, min string) error {
-	return c.sendCommand(cmdZrevrangebyscore, []byte(key), []byte(max), []byte(min))
+	return c.sendCommand(cmdZRevRangeByScore, []byte(key), []byte(max), []byte(min))
 }
 
 func (c *client) zrevrangeByScoreWithScores(key, max, min string) error {
-	return c.sendCommand(cmdZrevrangebyscore, []byte(key), []byte(max), []byte(min), keywordWithscores.GetRaw())
+	return c.sendCommand(cmdZRevRangeByScore, []byte(key), []byte(max), []byte(min), keywordWithScores.GetRaw())
 }
 
 func (c *client) zremrangeByRank(key string, start, end int64) error {
-	return c.sendCommand(cmdZremrangebyrank, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+	return c.sendCommand(cmdZRemRangeByRank, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
 
 func (c *client) zremrangeByScore(key, start, end string) error {
-	return c.sendCommand(cmdZremrangebyscore, []byte(key), []byte(start), []byte(end))
+	return c.sendCommand(cmdZRemRangeByScore, []byte(key), []byte(start), []byte(end))
 }
 
 func (c *client) zunionstore(dstkey string, sets ...string) error {
@@ -514,7 +514,7 @@ func (c *client) zunionstore(dstkey string, sets ...string) error {
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
 	}
-	return c.sendCommand(cmdZunionstore, arr...)
+	return c.sendCommand(cmdZUnionStore, arr...)
 }
 
 func (c *client) zunionstoreWithParams(dstkey string, params ZParams, sets ...string) error {
@@ -525,7 +525,7 @@ func (c *client) zunionstoreWithParams(dstkey string, params ZParams, sets ...st
 		arr = append(arr, []byte(s))
 	}
 	arr = append(arr, params.GetParams()...)
-	return c.sendCommand(cmdZunionstore, arr...)
+	return c.sendCommand(cmdZUnionStore, arr...)
 }
 
 func (c *client) zinterstore(dstkey string, sets ...string) error {
@@ -535,7 +535,7 @@ func (c *client) zinterstore(dstkey string, sets ...string) error {
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
 	}
-	return c.sendCommand(cmdZinterstore, arr...)
+	return c.sendCommand(cmdZInterStore, arr...)
 }
 
 func (c *client) zinterstoreWithParams(dstkey string, params ZParams, sets ...string) error {
@@ -546,39 +546,41 @@ func (c *client) zinterstoreWithParams(dstkey string, params ZParams, sets ...st
 		arr = append(arr, []byte(s))
 	}
 	arr = append(arr, params.GetParams()...)
-	return c.sendCommand(cmdZinterstore, arr...)
+	return c.sendCommand(cmdZInterStore, arr...)
 }
 
 func (c *client) zlexcount(key, min, max string) error {
-	return c.sendCommand(cmdZlexcount, []byte(key), []byte(min), []byte(max))
+	return c.sendCommand(cmdZLexCount, []byte(key), []byte(min), []byte(max))
 }
 
 func (c *client) zrangeByLex(key, min, max string) error {
-	return c.sendCommand(cmdZrangebylex, []byte(key), []byte(min), []byte(max))
+	return c.sendCommand(cmdZRangeByLex, []byte(key), []byte(min), []byte(max))
 }
 
 func (c *client) zrangeByLexBatch(key, min, max string, offset, count int) error {
-	return c.sendCommand(cmdZrangebylex, []byte(key), []byte(min), []byte(max), IntToByteArray(offset), IntToByteArray(count))
+	return c.sendCommand(cmdZRangeByLex, []byte(key), []byte(min), []byte(max), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count))
 }
 
 func (c *client) zrevrangeByLex(key, max, min string) error {
-	return c.sendCommand(cmdZrevrangebylex, []byte(key), []byte(max), []byte(min))
+	return c.sendCommand(cmdZRevRangeByLex, []byte(key), []byte(max), []byte(min))
 }
 
 func (c *client) zrevrangeByLexBatch(key, max, min string, offset, count int) error {
-	return c.sendCommand(cmdZrangebylex, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
+	return c.sendCommand(cmdZRevRangeByLex, []byte(key), []byte(max), []byte(min), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count))
 }
 
 func (c *client) zremrangeByLex(key, min, max string) error {
-	return c.sendCommand(cmdZremrangebylex, []byte(key), []byte(min), []byte(max))
+	return c.sendCommand(cmdZRemRangeByLex, []byte(key), []byte(min), []byte(max))
 }
 
 func (c *client) strlen(key string) error {
-	return c.sendCommand(cmdStrlen, []byte(key))
+	return c.sendCommand(cmdStrLen, []byte(key))
 }
 
 func (c *client) lpushx(key string, string ...string) error {
-	return c.sendCommand(cmdLpushx, StringStringArrayToByteArray(key, string)...)
+	return c.sendCommand(cmdLPushX, StringStringArrayToByteArray(key, string)...)
 }
 
 func (c *client) persist(key string) error {
@@ -586,7 +588,7 @@ func (c *client) persist(key string) error {
 }
 
 func (c *client) rpushx(key string, string ...string) error {
-	return c.sendCommand(cmdRpushx, StringStringArrayToByteArray(key, string)...)
+	return c.sendCommand(cmdRPushX, StringStringArrayToByteArray(key, string)...)
 }
 
 func (c *client) echo(string string) error {
@@ -594,23 +596,23 @@ func (c *client) echo(string string) error {
 }
 
 func (c *client) brpoplpush(source, destination string, timeout int) error {
-	return c.sendCommand(cmdBrpoplpush, []byte(source), []byte(destination), IntToByteArray(timeout))
+	return c.sendCommand(cmdBRPopLPush, []byte(source), []byte(destination), IntToByteArray(timeout))
 }
 
 func (c *client) setbit(key string, offset int64, value string) error {
-	return c.sendCommand(cmdSetbit, []byte(key), Int64ToByteArray(offset), []byte(value))
+	return c.sendCommand(cmdSetBit, []byte(key), Int64ToByteArray(offset), []byte(value))
 }
 
 func (c *client) getbit(key string, offset int64) error {
-	return c.sendCommand(cmdGetbit, []byte(key), Int64ToByteArray(offset))
+	return c.sendCommand(cmdGetBit, []byte(key), Int64ToByteArray(offset))
 }
 
 func (c *client) setrange(key string, offset int64, value string) error {
-	return c.sendCommand(cmdSetrange, []byte(key), Int64ToByteArray(offset), []byte(value))
+	return c.sendCommand(cmdSetRange, []byte(key), Int64ToByteArray(offset), []byte(value))
 }
 
 func (c *client) getrange(key string, startOffset, endOffset int64) error {
-	return c.sendCommand(cmdGetrange, []byte(key), Int64ToByteArray(startOffset), Int64ToByteArray(endOffset))
+	return c.sendCommand(cmdGetRange, []byte(key), Int64ToByteArray(startOffset), Int64ToByteArray(endOffset))
 }
 
 func (c *client) publish(channel, message string) error {
@@ -618,15 +620,15 @@ func (c *client) publish(channel, message string) error {
 }
 
 func (c *client) unsubscribe(channels ...string) error {
-	return c.sendCommand(cmdUnsubscribe, StringArrayToByteArray(channels)...)
+	return c.sendCommand(cmdUnSubscribe, StringArrayToByteArray(channels)...)
 }
 
 func (c *client) psubscribe(patterns ...string) error {
-	return c.sendCommand(cmdPsubscribe, StringArrayToByteArray(patterns)...)
+	return c.sendCommand(cmdPSubscribe, StringArrayToByteArray(patterns)...)
 }
 
 func (c *client) punsubscribe(patterns ...string) error {
-	return c.sendCommand(cmdPunsubscribe, StringArrayToByteArray(patterns)...)
+	return c.sendCommand(cmdPUnSubscribe, StringArrayToByteArray(patterns)...)
 }
 
 func (c *client) subscribe(channels ...string) error {
@@ -634,7 +636,7 @@ func (c *client) subscribe(channels ...string) error {
 }
 
 func (c *client) pubsub(subcommand string, args ...string) error {
-	return c.sendCommand(cmdPubsub, StringStringArrayToByteArray(subcommand, args)...)
+	return c.sendCommand(cmdPubSub, StringStringArrayToByteArray(subcommand, args)...)
 }
 
 func (c *client) configSet(parameter, value string) error {
@@ -658,7 +660,7 @@ func (c *client) evalsha(sha1 string, keyCount int, params ...string) error {
 	arr = append(arr, []byte(sha1))
 	arr = append(arr, IntToByteArray(keyCount))
 	arr = append(arr, StringArrayToByteArray(params)...)
-	return c.sendCommand(cmdEvalsha, arr...)
+	return c.sendCommand(cmdEvalSha, arr...)
 }
 
 func (c *client) scriptExists(sha1 ...string) error {
@@ -685,11 +687,11 @@ func (c *client) restore(key string, ttl int, serializedValue []byte) error {
 }
 
 func (c *client) incrByFloat(key string, increment float64) error {
-	return c.sendCommand(cmdIncrbyfloat, []byte(key), Float64ToByteArray(increment))
+	return c.sendCommand(cmdIncrByFloat, []byte(key), Float64ToByteArray(increment))
 }
 
 func (c *client) srandmemberBatch(key string, count int) error {
-	return c.sendCommand(cmdSrandmember, []byte(key), IntToByteArray(count))
+	return c.sendCommand(cmdSRandMember, []byte(key), IntToByteArray(count))
 }
 
 func (c *client) clientKill(client string) error {
@@ -697,7 +699,7 @@ func (c *client) clientKill(client string) error {
 }
 
 func (c *client) clientGetname() error {
-	return c.sendCommand(cmdClient, keywordGetname.GetRaw())
+	return c.sendCommand(cmdClient, keywordGetName.GetRaw())
 }
 
 func (c *client) clientList() error {
@@ -705,7 +707,7 @@ func (c *client) clientList() error {
 }
 
 func (c *client) clientSetname(name string) error {
-	return c.sendCommand(cmdClient, keywordSetname.GetRaw(), []byte(name))
+	return c.sendCommand(cmdClient, keywordSetName.GetRaw(), []byte(name))
 }
 
 func (c *client) time() error {
@@ -717,7 +719,7 @@ func (c *client) migrate(host string, port int, key string, destinationDb int, t
 }
 
 func (c *client) hincrByFloat(key, field string, increment float64) error {
-	return c.sendCommand(cmdHincrbyfloat, []byte(key), []byte(field), Float64ToByteArray(increment))
+	return c.sendCommand(cmdHIncrByFloat, []byte(key), []byte(field), Float64ToByteArray(increment))
 }
 
 func (c *client) waitReplicas(replicas int, timeout int64) error {
@@ -737,7 +739,7 @@ func (c *client) readonly() error {
 }
 
 func (c *client) geoadd(key string, longitude, latitude float64, member string) error {
-	return c.sendCommand(cmdGeoadd, []byte(key), Float64ToByteArray(longitude), Float64ToByteArray(latitude), []byte(member))
+	return c.sendCommand(cmdGeoAdd, []byte(key), Float64ToByteArray(longitude), Float64ToByteArray(latitude), []byte(member))
 }
 
 func (c *client) geoaddByMap(key string, memberCoordinateMap map[string]GeoCoordinate) error {
@@ -748,7 +750,7 @@ func (c *client) geoaddByMap(key string, memberCoordinateMap map[string]GeoCoord
 		arr = append(arr, Float64ToByteArray(v.latitude))
 		arr = append(arr, []byte(k))
 	}
-	return c.sendCommand(cmdGeoadd, arr...)
+	return c.sendCommand(cmdGeoAdd, arr...)
 }
 
 func (c *client) geodist(key, member1, member2 string, unit ...GeoUnit) error {
@@ -759,27 +761,27 @@ func (c *client) geodist(key, member1, member2 string, unit ...GeoUnit) error {
 	for _, u := range unit {
 		arr = append(arr, u.GetRaw())
 	}
-	return c.sendCommand(cmdGeodist, arr...)
+	return c.sendCommand(cmdGeoDist, arr...)
 }
 
 func (c *client) geohash(key string, members ...string) error {
-	return c.sendCommand(cmdGeohash, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(cmdGeoHash, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) geopos(key string, members ...string) error {
-	return c.sendCommand(cmdGeopos, StringStringArrayToByteArray(key, members)...)
+	return c.sendCommand(cmdGeoPos, StringStringArrayToByteArray(key, members)...)
 }
 
 func (c *client) flushDB() error {
-	return c.sendCommand(cmdFlushdb)
+	return c.sendCommand(cmdFlushDB)
 }
 
 func (c *client) dbSize() error {
-	return c.sendCommand(cmdDbsize)
+	return c.sendCommand(cmdDbSize)
 }
 
 func (c *client) flushAll() error {
-	return c.sendCommand(cmdFlushall)
+	return c.sendCommand(cmdFlushAll)
 }
 
 func (c *client) save() error {
@@ -787,15 +789,15 @@ func (c *client) save() error {
 }
 
 func (c *client) bgsave() error {
-	return c.sendCommand(cmdBgsave)
+	return c.sendCommand(cmdBgSave)
 }
 
 func (c *client) bgrewriteaof() error {
-	return c.sendCommand(cmdBgrewriteaof)
+	return c.sendCommand(cmdBgRewriteAof)
 }
 
 func (c *client) lastsave() error {
-	return c.sendCommand(cmdLastsave)
+	return c.sendCommand(cmdLastSave)
 }
 
 func (c *client) shutdown() error {
@@ -803,11 +805,11 @@ func (c *client) shutdown() error {
 }
 
 func (c *client) slaveof(host string, port int) error {
-	return c.sendCommand(cmdSlaveof, []byte(host), IntToByteArray(port))
+	return c.sendCommand(cmdSlaveOf, []byte(host), IntToByteArray(port))
 }
 
 func (c *client) slaveofNoOne() error {
-	return c.sendCommand(cmdSlaveof, keywordNo.GetRaw(), keywordOne.GetRaw())
+	return c.sendCommand(cmdSlaveOf, keywordNo.GetRaw(), keywordOne.GetRaw())
 }
 
 func (c *client) getDB() int {
@@ -819,27 +821,39 @@ func (c *client) debug(params DebugParams) error {
 }
 
 func (c *client) configResetStat() error {
-	return c.sendCommand(cmdConfig, keywordResetstat.GetRaw())
+	return c.sendCommand(cmdConfig, keywordResetStat.GetRaw())
 }
 
-func (c *client) zrangeByScoreBatch(key, max, min string, offset, count int) error {
-	return c.sendCommand(cmdZrangebyscore, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
+func (c *client) zrangeByScoreBatch(key, min, max string, offset, count int) error {
+	return c.sendCommand(cmdZRangeByScore, []byte(key), []byte(min), []byte(max), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count))
+}
+
+func (c *client) zrangeByScoreWithScoreBatch(key, min, max string, offset, count int) error {
+	return c.sendCommand(cmdZRangeByScore, []byte(key), []byte(min), []byte(max), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count), keywordWithScores.GetRaw())
 }
 
 func (c *client) zrevrangeByScoreBatch(key, max, min string, offset, count int) error {
-	return c.sendCommand(cmdZrevrangebyscore, []byte(key), []byte(max), []byte(min), IntToByteArray(offset), IntToByteArray(count))
+	return c.sendCommand(cmdZRevRangeByScore, []byte(key), []byte(max), []byte(min), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count))
+}
+
+func (c *client) zrevrangeByScoreWithScoreBatch(key, max, min string, offset, count int) error {
+	return c.sendCommand(cmdZRevRangeByScore, []byte(key), []byte(max), []byte(min), keywordLimit.GetRaw(),
+		IntToByteArray(offset), IntToByteArray(count), keywordWithScores.GetRaw())
 }
 
 func (c *client) linsert(key string, where ListOption, pivot, value string) error {
-	return c.sendCommand(cmdLinsert, []byte(key), where.GetRaw(), []byte(pivot), []byte(value))
+	return c.sendCommand(cmdLInsert, []byte(key), where.GetRaw(), []byte(pivot), []byte(value))
 }
 
 func (c *client) bitcount(key string) error {
-	return c.sendCommand(cmdBitcount, []byte(key))
+	return c.sendCommand(cmdBitCount, []byte(key))
 }
 
 func (c *client) bitcountRange(key string, start, end int64) error {
-	return c.sendCommand(cmdBitcount, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
+	return c.sendCommand(cmdBitCount, []byte(key), Int64ToByteArray(start), Int64ToByteArray(end))
 }
 
 func (c *client) bitpos(key string, value bool, params ...BitPosParams) error {
@@ -849,7 +863,7 @@ func (c *client) bitpos(key string, value bool, params ...BitPosParams) error {
 	for _, p := range params {
 		arr = append(arr, p.params...)
 	}
-	return c.sendCommand(cmdBitpos, arr...)
+	return c.sendCommand(cmdBitPos, arr...)
 }
 
 func (c *client) scan(cursor string, params ...*ScanParams) error {
@@ -868,7 +882,7 @@ func (c *client) hscan(key, cursor string, params ...*ScanParams) error {
 	for _, p := range params {
 		arr = append(arr, p.GetParams()...)
 	}
-	return c.sendCommand(cmdHscan, arr...)
+	return c.sendCommand(cmdHScan, arr...)
 }
 
 func (c *client) sscan(key, cursor string, params ...*ScanParams) error {
@@ -878,7 +892,7 @@ func (c *client) sscan(key, cursor string, params ...*ScanParams) error {
 	for _, p := range params {
 		arr = append(arr, p.GetParams()...)
 	}
-	return c.sendCommand(cmdSscan, arr...)
+	return c.sendCommand(cmdSScan, arr...)
 }
 
 func (c *client) zscan(key, cursor string, params ...*ScanParams) error {
@@ -888,7 +902,7 @@ func (c *client) zscan(key, cursor string, params ...*ScanParams) error {
 	for _, p := range params {
 		arr = append(arr, p.GetParams()...)
 	}
-	return c.sendCommand(cmdZscan, arr...)
+	return c.sendCommand(cmdZScan, arr...)
 }
 
 func (c *client) unwatch() error {
@@ -914,7 +928,7 @@ func (c *client) brpopTimout(timeout int, keys ...string) error {
 }
 
 func (c *client) pfadd(key string, elements ...string) error {
-	return c.sendCommand(cmdPfadd, StringStringArrayToByteArray(key, elements)...)
+	return c.sendCommand(cmdPfAdd, StringStringArrayToByteArray(key, elements)...)
 }
 
 func (c *client) georadius(key string, longitude, latitude, radius float64, unit GeoUnit, param ...*GeoRadiusParam) error {
@@ -925,9 +939,9 @@ func (c *client) georadius(key string, longitude, latitude, radius float64, unit
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
 	if len(param) == 0 {
-		return c.sendCommand(cmdGeoradius, arr...)
+		return c.sendCommand(cmdGeoRadius, arr...)
 	}
-	return c.sendCommand(cmdGeoradius, param[0].GetParams(arr)...)
+	return c.sendCommand(cmdGeoRadius, param[0].GetParams(arr)...)
 }
 
 func (c *client) georadiusByMember(key, member string, radius float64, unit GeoUnit, param ...*GeoRadiusParam) error {
@@ -937,17 +951,17 @@ func (c *client) georadiusByMember(key, member string, radius float64, unit GeoU
 	arr = append(arr, Float64ToByteArray(radius))
 	arr = append(arr, unit.GetRaw())
 	if len(param) == 0 {
-		return c.sendCommand(cmdGeoradiusbymember, arr...)
+		return c.sendCommand(cmdGeoRadiusByMember, arr...)
 	}
-	return c.sendCommand(cmdGeoradiusbymember, param[0].GetParams(arr)...)
+	return c.sendCommand(cmdGeoRadiusByMember, param[0].GetParams(arr)...)
 }
 
 func (c *client) bitfield(key string, arguments ...string) error {
-	return c.sendCommand(cmdBitfield, StringStringArrayToByteArray(key, arguments)...)
+	return c.sendCommand(cmdBitField, StringStringArrayToByteArray(key, arguments)...)
 }
 
 func (c *client) randomKey() error {
-	return c.sendCommand(cmdRandomkey)
+	return c.sendCommand(cmdRandomKey)
 }
 
 func (c *client) bitop(op BitOP, destKey string, srcKeys ...string) error {
@@ -968,23 +982,23 @@ func (c *client) bitop(op BitOP, destKey string, srcKeys ...string) error {
 	for _, s := range srcKeys {
 		arr = append(arr, []byte(s))
 	}
-	return c.sendCommand(cmdBitop, arr...)
+	return c.sendCommand(cmdBitOp, arr...)
 }
 
 func (c *client) pfmerge(destkey string, sourcekeys ...string) error {
-	return c.sendCommand(cmdPfmerge, StringStringArrayToByteArray(destkey, sourcekeys)...)
+	return c.sendCommand(cmdPfMerge, StringStringArrayToByteArray(destkey, sourcekeys)...)
 }
 
 func (c *client) pfcount(keys ...string) error {
-	return c.sendCommand(cmdPfcount, StringArrayToByteArray(keys)...)
+	return c.sendCommand(cmdPfCount, StringArrayToByteArray(keys)...)
 }
 
 func (c *client) slowlogReset() error {
-	return c.sendCommand(cmdSlowlog, keywordReset.GetRaw())
+	return c.sendCommand(cmdSlowLog, keywordReset.GetRaw())
 }
 
 func (c *client) slowlogLen() error {
-	return c.sendCommand(cmdSlowlog, keywordLen.GetRaw())
+	return c.sendCommand(cmdSlowLog, keywordLen.GetRaw())
 }
 
 func (c *client) slowlogGet(entries ...int64) error {
@@ -993,11 +1007,11 @@ func (c *client) slowlogGet(entries ...int64) error {
 	for _, e := range entries {
 		arr = append(arr, Int64ToByteArray(e))
 	}
-	return c.sendCommand(cmdSlowlog, arr...)
+	return c.sendCommand(cmdSlowLog, arr...)
 }
 
 func (c *client) objectRefcount(str string) error {
-	return c.sendCommand(cmdObject, keywordRefcount.GetRaw(), []byte(str))
+	return c.sendCommand(cmdObject, keywordRefCount.GetRaw(), []byte(str))
 }
 
 func (c *client) objectEncoding(str string) error {
@@ -1005,7 +1019,7 @@ func (c *client) objectEncoding(str string) error {
 }
 
 func (c *client) objectIdletime(str string) error {
-	return c.sendCommand(cmdObject, keywordIdletime.GetRaw(), []byte(str))
+	return c.sendCommand(cmdObject, keywordIdleTime.GetRaw(), []byte(str))
 }
 
 func (c *client) clusterNodes() error {
@@ -1018,7 +1032,7 @@ func (c *client) clusterMeet(ip string, port int) error {
 
 func (c *client) clusterAddSlots(slots ...int) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(clusterAddslots))
+	arr = append(arr, []byte(clusterAddSlots))
 	for _, s := range slots {
 		arr = append(arr, IntToByteArray(s))
 	}
@@ -1027,7 +1041,7 @@ func (c *client) clusterAddSlots(slots ...int) error {
 
 func (c *client) clusterDelSlots(slots ...int) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(clusterDelslots))
+	arr = append(arr, []byte(clusterDelSlots))
 	for _, s := range slots {
 		arr = append(arr, IntToByteArray(s))
 	}
@@ -1039,23 +1053,23 @@ func (c *client) clusterInfo() error {
 }
 
 func (c *client) clusterGetKeysInSlot(slot int, count int) error {
-	return c.sendCommand(cmdCluster, []byte(clusterGetkeysinslot), IntToByteArray(slot), IntToByteArray(count))
+	return c.sendCommand(cmdCluster, []byte(clusterGetKeysInSlot), IntToByteArray(slot), IntToByteArray(count))
 }
 
 func (c *client) clusterSetSlotNode(slot int, nodeID string) error {
-	return c.sendCommand(cmdCluster, []byte(clusterSetslotNode), IntToByteArray(slot), []byte(nodeID))
+	return c.sendCommand(cmdCluster, []byte(clusterSetSlotNode), IntToByteArray(slot), []byte(nodeID))
 }
 
 func (c *client) clusterSetSlotMigrating(slot int, nodeID string) error {
-	return c.sendCommand(cmdCluster, []byte(clusterSetslotMigrating), IntToByteArray(slot), []byte(nodeID))
+	return c.sendCommand(cmdCluster, []byte(clusterSetSlotMigrating), IntToByteArray(slot), []byte(nodeID))
 }
 
 func (c *client) clusterSetSlotImporting(slot int, nodeID string) error {
-	return c.sendCommand(cmdCluster, []byte(clusterSetslotImporting), IntToByteArray(slot), []byte(nodeID))
+	return c.sendCommand(cmdCluster, []byte(clusterSetSlotImporting), IntToByteArray(slot), []byte(nodeID))
 }
 
 func (c *client) clusterSetSlotStable(slot int) error {
-	return c.sendCommand(cmdCluster, []byte(clusterSetslotStable), IntToByteArray(slot))
+	return c.sendCommand(cmdCluster, []byte(clusterSetSlotStable), IntToByteArray(slot))
 }
 
 func (c *client) clusterForget(nodeID string) error {
@@ -1063,19 +1077,19 @@ func (c *client) clusterForget(nodeID string) error {
 }
 
 func (c *client) clusterFlushSlots() error {
-	return c.sendCommand(cmdCluster, []byte(clusterFlushslot))
+	return c.sendCommand(cmdCluster, []byte(clusterFlushSlot))
 }
 
 func (c *client) clusterKeySlot(key string) error {
-	return c.sendCommand(cmdCluster, []byte(clusterKeyslot), []byte(key))
+	return c.sendCommand(cmdCluster, []byte(clusterKeySlot), []byte(key))
 }
 
 func (c *client) clusterCountKeysInSlot(slot int) error {
-	return c.sendCommand(cmdCluster, []byte(clusterCountkeyinslot), IntToByteArray(slot))
+	return c.sendCommand(cmdCluster, []byte(clusterCountKeyInSlot), IntToByteArray(slot))
 }
 
 func (c *client) clusterSaveConfig() error {
-	return c.sendCommand(cmdCluster, []byte(clusterSaveconfig))
+	return c.sendCommand(cmdCluster, []byte(clusterSaveConfig))
 }
 
 func (c *client) clusterReplicate(nodeID string) error {
@@ -1087,7 +1101,7 @@ func (c *client) clusterSlaves(nodeID string) error {
 }
 
 func (c *client) clusterFailover() error {
-	return c.sendCommand(cmdCluster, []byte(clusterFailover))
+	return c.sendCommand(cmdCluster, []byte(clusterFailOver))
 }
 
 func (c *client) clusterSlots() error {
@@ -1115,7 +1129,7 @@ func (c *client) sentinelSlaves(masterName string) error {
 }
 
 func (c *client) sentinelFailover(masterName string) error {
-	return c.sendCommand(cmdSentinel, []byte(sentinelFailover), []byte(masterName))
+	return c.sendCommand(cmdSentinel, []byte(sentinelFailOver), []byte(masterName))
 }
 
 func (c *client) sentinelMonitor(masterName, ip string, port, quorum int) error {
@@ -1134,11 +1148,11 @@ func (c *client) sentinelSet(masterName string, parameterMap map[string]string) 
 		arr = append(arr, []byte(k))
 		arr = append(arr, []byte(v))
 	}
-	return c.sendCommandByStr(sentinelFailover, arr...)
+	return c.sendCommandByStr(sentinelFailOver, arr...)
 }
 
 func (c *client) pubsubChannels(pattern string) error {
-	return c.sendCommand(cmdPubsub, []byte(pubsubChannels), []byte(pattern))
+	return c.sendCommand(cmdPubSub, []byte(pubSubChannels), []byte(pattern))
 }
 
 func (c *client) multi() error {

@@ -163,8 +163,11 @@ func (c *connection) getIntegerReply() (int64, error) {
 	if reply == nil {
 		return 0, nil
 	}
-	resp := reply.(int64)
-	return resp, nil
+	switch reply.(type) {
+	case int64:
+		return reply.(int64), nil
+	}
+	return -1, nil
 }
 
 func (c *connection) getMultiBulkReply() ([]string, error) {

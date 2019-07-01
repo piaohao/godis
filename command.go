@@ -1,7 +1,6 @@
 package godis
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -365,7 +364,7 @@ type RedisPubSub struct {
 //Subscribe subscribe some channels
 func (r *RedisPubSub) Subscribe(channels ...string) error {
 	if r.redis.client == nil {
-		return errors.New("redisPubSub is not subscribed to a Redis instance")
+		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
 	err := r.redis.client.subscribe(channels...)
 	if err != nil {
@@ -381,7 +380,7 @@ func (r *RedisPubSub) Subscribe(channels ...string) error {
 //UnSubscribe unsubscribe some channels
 func (r *RedisPubSub) UnSubscribe(channels ...string) error {
 	if r.redis.client == nil {
-		return errors.New("redisPubSub is not subscribed to a Redis instance")
+		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
 	err := r.redis.client.unsubscribe(channels...)
 	if err != nil {
@@ -397,7 +396,7 @@ func (r *RedisPubSub) UnSubscribe(channels ...string) error {
 //PSubscribe subscribe some pattern channels
 func (r *RedisPubSub) PSubscribe(channels ...string) error {
 	if r.redis.client == nil {
-		return errors.New("redisPubSub is not subscribed to a Redis instance")
+		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
 	err := r.redis.client.psubscribe(channels...)
 	if err != nil {
@@ -413,7 +412,7 @@ func (r *RedisPubSub) PSubscribe(channels ...string) error {
 //PUnSubscribe unsubscribe some pattern channels
 func (r *RedisPubSub) PUnSubscribe(channels ...string) error {
 	if r.redis.client == nil {
-		return errors.New("redisPubSub is not subscribed to a Redis instance")
+		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
 	err := r.redis.client.punsubscribe(channels...)
 	if err != nil {
@@ -470,11 +469,11 @@ func (r *RedisPubSub) process(redis *Redis) error {
 			r.processUnSubscribe(reply)
 		case keywordMessage.Name:
 			r.processMessage(reply)
-		case keywordPmessage.Name:
+		case keywordPMessage.Name:
 			r.processPmessage(reply)
-		case keywordPsubscribe.Name:
+		case keywordPSubscribe.Name:
 			r.processPsubscribe(reply)
-		case cmdPunsubscribe.Name:
+		case cmdPUnSubscribe.Name:
 			r.processPunsubcribe(reply)
 		case keywordPong.Name:
 			r.processPong(reply)
@@ -529,7 +528,7 @@ func (r *RedisPubSub) processMessage(reply []interface{}) {
 func (r *RedisPubSub) processPmessage(reply []interface{}) {
 	bPattern := reply[1].([]byte)
 	bChannel := reply[2].([]byte)
-	bMsg := reply[31].([]byte)
+	bMsg := reply[3].([]byte)
 	strPattern := ""
 	if bPattern != nil {
 		strPattern = string(bPattern)

@@ -54,7 +54,7 @@ require github.com/piaohao/godis latest
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
-        println(string(arr))
+        println(arr)
     }
     ```
 1. use pool
@@ -76,7 +76,7 @@ require github.com/piaohao/godis latest
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
-        println(string(arr))
+        println(arr)
     }
     ```
 1. pubsub

@@ -53,7 +53,7 @@ require github.com/piaohao/godis latest
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
-        println(string(arr))
+        println(arr)
     }
     ```
 1. 使用连接池
@@ -75,7 +75,7 @@ require github.com/piaohao/godis latest
         defer redis.Close()
         redis.Set("godis", "1")
         arr, _ := redis.Get("godis")
-        println(string(arr))
+        println(arr)
     }
     ```
 1. 发布订阅

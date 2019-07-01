@@ -28,11 +28,11 @@ func TestRedis_ClusterCountKeysInSlot(t *testing.T) {
 }
 
 func TestRedis_ClusterDelSlots(t *testing.T) {
-	//redis := NewRedis(option1)
-	//defer redis.Close()
-	//slots, err := redis.ClusterDelSlots(10000)
-	//assert.Nil(t, err)
-	//assert.Equal(t, "OK", slots)
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterDelSlots(10000)
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterFailover(t *testing.T) {
@@ -44,11 +44,11 @@ func TestRedis_ClusterFailover(t *testing.T) {
 }
 
 func TestRedis_ClusterFlushSlots(t *testing.T) {
-	//redis := NewRedis(option1)
-	//defer redis.Close()
-	//slots, err := redis.ClusterFlushSlots()
-	//assert.Nil(t, err)
-	//assert.Equal(t, "OK", slots)
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterFlushSlots()
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterForget(t *testing.T) {
@@ -59,6 +59,11 @@ func TestRedis_ClusterForget(t *testing.T) {
 }
 
 func TestRedis_ClusterGetKeysInSlot(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterGetKeysInSlot(1, 1)
+	assert.NotNil(t, err)
+	assert.Empty(t, slots)
 }
 
 func TestRedis_ClusterInfo(t *testing.T) {
@@ -70,9 +75,19 @@ func TestRedis_ClusterInfo(t *testing.T) {
 }
 
 func TestRedis_ClusterKeySlot(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterKeySlot("godis")
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), slots)
 }
 
 func TestRedis_ClusterMeet(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterMeet("localhost", 8000)
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterNodes(t *testing.T) {
@@ -90,24 +105,59 @@ func TestRedis_ClusterNodes(t *testing.T) {
 }
 
 func TestRedis_ClusterReplicate(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterReplicate("godis")
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterReset(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterReset(*ResetSoft)
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSaveConfig(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterSaveConfig()
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSetSlotImporting(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterSetSlotImporting(1, "godis")
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSetSlotMigrating(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterSetSlotMigrating(1, "godis")
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSetSlotNode(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterSetSlotNode(1, "godis")
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSetSlotStable(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	slots, err := redis.ClusterSetSlotStable(1)
+	assert.NotNil(t, err)
+	assert.Equal(t, "", slots)
 }
 
 func TestRedis_ClusterSlots(t *testing.T) {

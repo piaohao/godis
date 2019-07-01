@@ -1179,6 +1179,10 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
+	arr, err = redis.ZRevRange("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
+
 	tuples, err := redis.ZRangeByScoreWithScores("godis", "2", "6.5")
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
@@ -1187,6 +1191,79 @@ func TestRedisCluster_Zadd(t *testing.T) {
 		{element: []byte("d"), score: 4},
 		{element: []byte("e"), score: 6.5},
 	}, tuples)
+
+	tuples, err = redis.ZRevRangeWithScores("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("e"), score: 6.5},
+		{element: []byte("d"), score: 4},
+		{element: []byte("c"), score: 3},
+		{element: []byte("b"), score: 2},
+	}, tuples)
+
+	arr, err = redis.ZRangeByScoreBatch("godis", "2", "6.5", 0, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"b", "c"}, arr)
+
+	tuples, err = redis.ZRangeByScoreWithScoresBatch("godis", "2", "6.5", 0, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("b"), score: 2},
+		{element: []byte("c"), score: 3},
+	}, tuples)
+
+	tuples, err = redis.ZRevRangeByScoreWithScoresBatch("godis", "6.5", "2", 0, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("e"), score: 6.5},
+		{element: []byte("d"), score: 4},
+	}, tuples)
+
+	c, err = redis.ZRemRangeByScore("godis", "2", "2.5")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c)
+
+	c, err = redis.ZLexCount("godis", "-", "+")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(3), c)
+
+	arr, err = redis.ZRangeByLex("godis", "-", "+")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"c", "d", "e"}, arr)
+
+	arr, err = redis.ZRangeByLexBatch("godis", "-", "+", 0, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"c", "d"}, arr)
+
+	arr, err = redis.ZRevRangeByLex("godis", "+", "-")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"e", "d", "c"}, arr)
+
+	arr, err = redis.ZRevRangeByLexBatch("godis", "+", "-", 0, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"e", "d"}, arr)
+
+	c, err = redis.ZRemRangeByLex("godis", "[c", "[d")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2), c)
+
+	c, err = redis.ZCard("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c) //{"e":6.5}
+
+	redis.ZAddByMap("godis", map[string]float64{"b": 2, "c": 3, "d": 4}, zaddParam)
+
+	c, err = redis.ZRank("godis", "d")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2), c)
+
+	c, err = redis.ZRevRank("godis", "d")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c)
+
+	c, err = redis.ZRank("godis", "f")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), c) //f is not in godis
 }
 
 func TestRedisCluster_Zscan(t *testing.T) {

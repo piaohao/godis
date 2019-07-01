@@ -36,6 +36,10 @@ func TestRedis_SlowlogGet(t *testing.T) {
 	defer redis.Close()
 	_, err := redis.SlowLogGet()
 	assert.Nil(t, err)
+
+	arr, err := redis.SlowLogGet(1)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, arr)
 }
 
 func TestRedis_SlowlogLen(t *testing.T) {

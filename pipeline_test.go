@@ -753,3 +753,39 @@ func Test_multiKeyPipelineBase_Zinterstore(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(3), resp4)
 }
+
+func Test_Transaction(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.Set("godis", "good")
+
+	p, err := redis.Multi()
+	assert.Nil(t, err)
+	del, err := p.Keys("*")
+	assert.Nil(t, err)
+	_, err = ToStringArrayReply(del.Get())
+	assert.NotNil(t, err)
+	p.Exec()
+	obj, err := ToStringArrayReply(del.Get())
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"godis"}, obj)
+
+	redis1 := NewRedis(option)
+	defer redis1.Close()
+
+	p, err = redis1.Multi()
+	assert.Nil(t, err)
+	del, err = p.Keys("*")
+	assert.Nil(t, err)
+	_, err = ToStringArrayReply(del.Get())
+	assert.NotNil(t, err)
+	resp, err := p.ExecGetResponse()
+	assert.Nil(t, err)
+	for _, res := range resp {
+		obj, err = ToStringArrayReply(res.Get())
+		assert.Nil(t, err)
+		assert.Equal(t, []string{"godis"}, obj)
+	}
+
+}

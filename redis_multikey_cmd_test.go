@@ -291,6 +291,21 @@ func TestRedis_Subscribe(t *testing.T) {
 	redis.Publish("godis", "publish a message to godis channel")
 	//sleep mills, ensure message can publish to subscribers
 	time.Sleep(500 * time.Millisecond)
+
+	redis1 := NewRedis(option)
+	defer redis1.Close()
+	pubsub.redis = redis1
+	go func() {
+		pubsub.Subscribe("godis1")
+		//pubsub.proceed(redis1, "godis1")
+	}()
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+	redis1.Publish("godis1", "publish a message to godis channel")
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+	pubsub.UnSubscribe("godis1")
+	time.Sleep(500 * time.Millisecond)
 }
 
 func TestRedis_Psubscribe(t *testing.T) {
@@ -329,6 +344,21 @@ func TestRedis_Psubscribe(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	redis.Publish("godis", "publish a message to godis channel")
 	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+
+	redis1 := NewRedis(option)
+	defer redis1.Close()
+	pubsub.redis = redis1
+	go func() {
+		pubsub.PSubscribe("godis")
+		//pubsub.proceedWithPatterns(redis1, "godis1")
+	}()
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+	redis1.Publish("godis", "publish a message to godis channel")
+	//sleep mills, ensure message can publish to subscribers
+	time.Sleep(500 * time.Millisecond)
+	pubsub.PUnSubscribe("godis")
 	time.Sleep(500 * time.Millisecond)
 }
 
