@@ -1552,7 +1552,7 @@ func (r *Redis) ZRevRangeByScoreWithScores(key, max, min string) ([]Tuple, error
 	if err != nil {
 		return nil, err
 	}
-	err = r.client.zrevrangeByScore(key, max, min)
+	err = r.client.zrevrangeByScoreWithScores(key, max, min)
 	if err != nil {
 		return nil, err
 	}

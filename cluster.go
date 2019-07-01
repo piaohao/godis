@@ -1554,56 +1554,56 @@ func (r *RedisCluster) MGet(keys ...string) ([]string, error) {
 }
 
 //MSet  see comment in redis.go
-func (r *RedisCluster) MSet(keysvalues ...string) (string, error) {
+func (r *RedisCluster) MSet(kvs ...string) (string, error) {
 	keys := make([]string, 0)
-	for i := 0; i < len(keysvalues); i++ {
-		keys[i] = keysvalues[i*2]
+	for i := 0; i < len(kvs)/2; i++ {
+		keys = append(keys, kvs[i*2])
 	}
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.MSet(keysvalues...)
+		return redis.MSet(kvs...)
 	}
 	return ToStringReply(command.runBatch(len(keys), keys...))
 }
 
 //MSetNx  see comment in redis.go
-func (r *RedisCluster) MSetNx(keysvalues ...string) (int64, error) {
+func (r *RedisCluster) MSetNx(kvs ...string) (int64, error) {
 	keys := make([]string, 0)
-	for i := 0; i < len(keysvalues); i++ {
-		keys[i] = keysvalues[i*2]
+	for i := 0; i < len(kvs)/2; i++ {
+		keys = append(keys, kvs[i*2])
 	}
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.MSetNx(keysvalues...)
+		return redis.MSetNx(kvs...)
 	}
 	return ToInt64Reply(command.runBatch(len(keys), keys...))
 }
 
 //Rename  see comment in redis.go
-func (r *RedisCluster) Rename(oldkey, newkey string) (string, error) {
+func (r *RedisCluster) Rename(oldKey, newKey string) (string, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.Rename(oldkey, newkey)
+		return redis.Rename(oldKey, newKey)
 	}
-	return ToStringReply(command.runBatch(2, oldkey, newkey))
+	return ToStringReply(command.runBatch(2, oldKey, newKey))
 }
 
 //RenameNx  see comment in redis.go
-func (r *RedisCluster) RenameNx(oldkey, newkey string) (int64, error) {
+func (r *RedisCluster) RenameNx(oldKey, newKey string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.RenameNx(oldkey, newkey)
+		return redis.RenameNx(oldKey, newKey)
 	}
-	return ToInt64Reply(command.runBatch(2, oldkey, newkey))
+	return ToInt64Reply(command.runBatch(2, oldKey, newKey))
 }
 
 //RPopLPush  see comment in redis.go
-func (r *RedisCluster) RPopLPush(srckey, dstkey string) (string, error) {
+func (r *RedisCluster) RPopLPush(srcKey, destKey string) (string, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.RPopLPush(srckey, dstkey)
+		return redis.RPopLPush(srcKey, destKey)
 	}
-	return ToStringReply(command.runBatch(2, srckey, dstkey))
+	return ToStringReply(command.runBatch(2, srcKey, destKey))
 }
 
 //SDiff  see comment in redis.go
@@ -1616,12 +1616,12 @@ func (r *RedisCluster) SDiff(keys ...string) ([]string, error) {
 }
 
 //SDiffStore  see comment in redis.go
-func (r *RedisCluster) SDiffStore(dstkey string, keys ...string) (int64, error) {
+func (r *RedisCluster) SDiffStore(destKey string, keys ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.SDiffStore(dstkey, keys...)
+		return redis.SDiffStore(destKey, keys...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, keys)
+	arr := StringStringArrayToStringArray(destKey, keys)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
@@ -1635,31 +1635,31 @@ func (r *RedisCluster) SInter(keys ...string) ([]string, error) {
 }
 
 //SInterStore  see comment in redis.go
-func (r *RedisCluster) SInterStore(dstkey string, keys ...string) (int64, error) {
+func (r *RedisCluster) SInterStore(destKey string, keys ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.SInterStore(dstkey, keys...)
+		return redis.SInterStore(destKey, keys...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, keys)
+	arr := StringStringArrayToStringArray(destKey, keys)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 //SMove  see comment in redis.go
-func (r *RedisCluster) SMove(srckey, dstkey, member string) (int64, error) {
+func (r *RedisCluster) SMove(srcKey, destKey, member string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.SMove(srckey, dstkey, member)
+		return redis.SMove(srcKey, destKey, member)
 	}
-	return ToInt64Reply(command.runBatch(2, srckey, dstkey))
+	return ToInt64Reply(command.runBatch(2, srcKey, destKey))
 }
 
 //SortStore  see comment in redis.go
-func (r *RedisCluster) SortStore(key, dstkey string, sortingParameters ...SortingParams) (int64, error) {
+func (r *RedisCluster) SortStore(key, destKey string, sortingParameters ...SortingParams) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.SortStore(key, dstkey, sortingParameters...)
+		return redis.SortStore(key, destKey, sortingParameters...)
 	}
-	return ToInt64Reply(command.runBatch(2, key, dstkey))
+	return ToInt64Reply(command.runBatch(2, key, destKey))
 }
 
 //SUnion  see comment in redis.go
@@ -1672,52 +1672,52 @@ func (r *RedisCluster) SUnion(keys ...string) ([]string, error) {
 }
 
 //SUnionStore  see comment in redis.go
-func (r *RedisCluster) SUnionStore(dstkey string, keys ...string) (int64, error) {
+func (r *RedisCluster) SUnionStore(destKey string, keys ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.SUnionStore(dstkey, keys...)
+		return redis.SUnionStore(destKey, keys...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, keys)
+	arr := StringStringArrayToStringArray(destKey, keys)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 //ZInterStore  see comment in redis.go
-func (r *RedisCluster) ZInterStore(dstkey string, sets ...string) (int64, error) {
+func (r *RedisCluster) ZInterStore(destKey string, sets ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.ZInterStore(dstkey, sets...)
+		return redis.ZInterStore(destKey, sets...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, sets)
+	arr := StringStringArrayToStringArray(destKey, sets)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 //ZInterStoreWithParams see redis command
-func (r *RedisCluster) ZInterStoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
+func (r *RedisCluster) ZInterStoreWithParams(destKey string, params ZParams, sets ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.ZInterStoreWithParams(dstkey, params, sets...)
+		return redis.ZInterStoreWithParams(destKey, params, sets...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, sets)
+	arr := StringStringArrayToStringArray(destKey, sets)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 //ZUnionStore see redis command
-func (r *RedisCluster) ZUnionStore(dstkey string, sets ...string) (int64, error) {
+func (r *RedisCluster) ZUnionStore(destKey string, sets ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.ZUnionStore(dstkey, sets...)
+		return redis.ZUnionStore(destKey, sets...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, sets)
+	arr := StringStringArrayToStringArray(destKey, sets)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 
 //ZUnionStoreWithParams see redis command
-func (r *RedisCluster) ZUnionStoreWithParams(dstkey string, params ZParams, sets ...string) (int64, error) {
+func (r *RedisCluster) ZUnionStoreWithParams(destKey string, params ZParams, sets ...string) (int64, error) {
 	command := newRedisClusterCommand(r.MaxAttempts, r.connectionHandler)
 	command.execute = func(redis *Redis) (interface{}, error) {
-		return redis.ZUnionStoreWithParams(dstkey, params, sets...)
+		return redis.ZUnionStoreWithParams(destKey, params, sets...)
 	}
-	arr := StringStringArrayToStringArray(dstkey, sets)
+	arr := StringStringArrayToStringArray(destKey, sets)
 	return ToInt64Reply(command.runBatch(len(arr), arr...))
 }
 

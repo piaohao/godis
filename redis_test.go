@@ -541,6 +541,19 @@ func TestRedis_Lindex(t *testing.T) {
 	assert.Equal(t, "", el)
 }
 
+func TestRedis_List0(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	arr := make([]string, 0)
+	for i := 0; i < 100000; i++ {
+		arr = append(arr, "1")
+	}
+	l, e := redis.LPush("godis", arr...)
+	assert.Nil(t, e)
+	assert.Equal(t, int64(100000), l)
+}
+
 func TestRedis_List(t *testing.T) {
 	flushAll()
 	redis := NewRedis(option)
@@ -623,6 +636,13 @@ func TestRedis_List(t *testing.T) {
 	arr, err = redis.LRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"2", "2.0"}, arr)
+
+	redis.LPushX("godis", "1")
+	redis.RPushX("godis", "3")
+
+	arr, err = redis.LRange("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"1", "2", "2.0", "3"}, arr)
 }
 
 func TestRedis_Move(t *testing.T) {
@@ -779,10 +799,17 @@ func TestRedis_SendByStr(t *testing.T) {
 func TestRedis_Set(t *testing.T) {
 	flushAll()
 	redis := NewRedis(option)
+	defer redis.Close()
 	ret, err := redis.Set("godis", "good")
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", ret)
-	redis.Close()
+
+	str := ""
+	for i := 0; i < 20000; i++ {
+		str += "1"
+	}
+	redis.Set("godis", str)
+	redis.Get("godis")
 }
 
 func TestRedis_SetWithParams(t *testing.T) {
@@ -995,6 +1022,10 @@ func TestRedis_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(5), c)
 
+	f0, err := redis.ZScore("godis", "a")
+	assert.Nil(t, err)
+	assert.Equal(t, float64(1), f0)
+
 	//zcount include the boundary
 	c, err = redis.ZCount("godis", "2", "5")
 	assert.Nil(t, err)
@@ -1011,6 +1042,14 @@ func TestRedis_Zadd(t *testing.T) {
 	arr, err := redis.ZRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
+
+	arr, err = redis.ZRangeByScore("godis", "2", "6.5")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
+
+	arr, err = redis.ZRevRangeByScore("godis", "6.5", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
 
 	arr, err = redis.ZRevRange("godis", 0, -1)
 	assert.Nil(t, err)
@@ -1032,6 +1071,15 @@ func TestRedis_Zadd(t *testing.T) {
 		{element: []byte("c"), score: 3},
 		{element: []byte("d"), score: 4},
 		{element: []byte("e"), score: 6.5},
+	}, tuples)
+
+	tuples, err = redis.ZRevRangeByScoreWithScores("godis", "6.5", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("e"), score: 6.5},
+		{element: []byte("d"), score: 4},
+		{element: []byte("c"), score: 3},
+		{element: []byte("b"), score: 2},
 	}, tuples)
 
 	tuples, err = redis.ZRevRangeWithScores("godis", 0, -1)
@@ -1106,6 +1154,10 @@ func TestRedis_Zadd(t *testing.T) {
 	c, err = redis.ZRank("godis", "f")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), c) //f is not in godis
+
+	c, err = redis.ZRemRangeByRank("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), c) //f is not in godis
 }
 
 func TestRedis_Zscan(t *testing.T) {

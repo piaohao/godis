@@ -234,6 +234,11 @@ func TestRedisCluster_Eval(t *testing.T) {
 }
 
 func TestRedisCluster_Exists(t *testing.T) {
+	redis := NewRedisCluster(clusterOption)
+	redis.Set("godis", "good")
+	c, e := redis.Exists("godis")
+	assert.Nil(t, e)
+	assert.Equal(t, int64(1), c)
 }
 
 func TestRedisCluster_Expire(t *testing.T) {
@@ -469,6 +474,33 @@ func TestRedisCluster_Hmset(t *testing.T) {
 func TestRedisCluster_Hscan(t *testing.T) {
 	redis := NewRedisCluster(clusterOption)
 	clearKeys(redis)
+
+	for i := 0; i < 1000; i++ {
+		redis.HSet("godis", fmt.Sprintf("a%d", i), fmt.Sprintf("%d", i))
+	}
+	c, err := redis.HLen("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1000), c)
+
+	params := &ScanParams{
+		params: map[*keyword][]byte{
+			keywordMatch: []byte("a*"),
+			keywordCount: IntToByteArray(10),
+		},
+	}
+	cursor := "0"
+	total := 0
+	for {
+		result, err := redis.HScan("godis", cursor, params)
+		assert.Nil(t, err)
+		total += len(result.Results)
+		cursor = result.Cursor
+		if result.Cursor == "0" {
+			break
+		}
+	}
+	//total contains key and value
+	assert.Equal(t, 2000, total)
 }
 
 func TestRedisCluster_Hset(t *testing.T) {
@@ -661,6 +693,13 @@ func TestRedisCluster_List(t *testing.T) {
 	arr, err = redis.LRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"2", "2.0"}, arr)
+
+	redis.LPushX("godis", "1")
+	redis.RPushX("godis", "3")
+
+	arr, err = redis.LRange("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"1", "2", "2.0", "3"}, arr)
 }
 
 func TestRedisCluster_Persist(t *testing.T) {
@@ -1179,6 +1218,14 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
+	arr, err = redis.ZRangeByScore("godis", "2", "6.5")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
+
+	arr, err = redis.ZRevRangeByScore("godis", "6.5", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
+
 	arr, err = redis.ZRevRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
@@ -1190,6 +1237,24 @@ func TestRedisCluster_Zadd(t *testing.T) {
 		{element: []byte("c"), score: 3},
 		{element: []byte("d"), score: 4},
 		{element: []byte("e"), score: 6.5},
+	}, tuples)
+
+	tuples, err = redis.ZRangeWithScores("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("b"), score: 2},
+		{element: []byte("c"), score: 3},
+		{element: []byte("d"), score: 4},
+		{element: []byte("e"), score: 6.5},
+	}, tuples)
+
+	tuples, err = redis.ZRevRangeByScoreWithScores("godis", "6.5", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, []Tuple{
+		{element: []byte("e"), score: 6.5},
+		{element: []byte("d"), score: 4},
+		{element: []byte("c"), score: 3},
+		{element: []byte("b"), score: 2},
 	}, tuples)
 
 	tuples, err = redis.ZRevRangeWithScores("godis", 0, -1)
@@ -1264,6 +1329,10 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	c, err = redis.ZRank("godis", "f")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), c) //f is not in godis
+
+	c, err = redis.ZRemRangeByRank("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), c) //f is not in godis
 }
 
 func TestRedisCluster_Zscan(t *testing.T) {
@@ -1295,4 +1364,49 @@ func TestRedisCluster_Zscan(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 2000, total)
+}
+
+func TestRedisCluster_Zinterstore(t *testing.T) {
+	redis := NewRedisCluster(clusterOption)
+	clearKeys(redis)
+	c, err := redis.ZAddByMap("godis1", map[string]float64{"a": 1, "b": 2, "c": 3})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(3), c)
+
+	c, err = redis.ZAddByMap("godis2", map[string]float64{"a": 1, "b": 2})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2), c)
+
+	c, err = redis.ZInterStore("godis3", "godis1", "godis2")
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), c)
+
+	c, err = redis.ZInterStoreWithParams("godis3", *ZParamsSum, "godis1", "godis2")
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), c)
+
+	c, err = redis.ZUnionStore("godis3", "godis1", "godis2")
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), c)
+
+	c, err = redis.ZUnionStoreWithParams("godis3", *ZParamsMax, "godis1", "godis2")
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(0), c)
+}
+
+func TestRedisCluster_Mset(t *testing.T) {
+	redis := NewRedisCluster(clusterOption)
+	clearKeys(redis)
+
+	s, e := redis.MSet("godis1", "good", "godis2", "good")
+	assert.NotNil(t, e)
+	assert.Equal(t, "", s)
+
+	c, e := redis.MSetNx("godis1", "good", "godis2", "good")
+	assert.NotNil(t, e)
+	assert.Equal(t, int64(0), c)
+
+	arr, e := redis.MGet("godis", "godis1", "godis2")
+	assert.NotNil(t, e)
+	assert.Empty(t, arr)
 }
