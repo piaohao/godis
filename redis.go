@@ -42,8 +42,8 @@ func (r *Redis) Close() error {
 	if r == nil {
 		return nil
 	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.dataSource != nil {
 		if r.client.broken {
 			return r.dataSource.returnBrokenResourceObject(r)

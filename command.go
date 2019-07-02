@@ -375,6 +375,8 @@ type RedisPubSub struct {
 
 //Subscribe subscribe some channels
 func (r *RedisPubSub) Subscribe(channels ...string) error {
+	r.redis.mu.RLock()
+	defer r.redis.mu.RUnlock()
 	if r.redis.client == nil {
 		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -391,6 +393,8 @@ func (r *RedisPubSub) Subscribe(channels ...string) error {
 
 //UnSubscribe unsubscribe some channels
 func (r *RedisPubSub) UnSubscribe(channels ...string) error {
+	r.redis.mu.RLock()
+	defer r.redis.mu.RUnlock()
 	if r.redis.client == nil {
 		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -407,6 +411,8 @@ func (r *RedisPubSub) UnSubscribe(channels ...string) error {
 
 //PSubscribe subscribe some pattern channels
 func (r *RedisPubSub) PSubscribe(channels ...string) error {
+	r.redis.mu.RLock()
+	defer r.redis.mu.RUnlock()
 	if r.redis.client == nil {
 		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -423,6 +429,8 @@ func (r *RedisPubSub) PSubscribe(channels ...string) error {
 
 //PUnSubscribe unsubscribe some pattern channels
 func (r *RedisPubSub) PUnSubscribe(channels ...string) error {
+	r.redis.mu.RLock()
+	defer r.redis.mu.RUnlock()
 	if r.redis.client == nil {
 		return newConnectError("redisPubSub is not subscribed to a Redis instance")
 	}
@@ -496,6 +504,8 @@ func (r *RedisPubSub) process(redis *Redis) error {
 			break
 		}
 	}
+	redis.mu.Lock()
+	defer redis.mu.Unlock()
 	// Reset pipeline count because subscribe() calls would have increased it but nothing decremented it.
 	redis.client.resetPipelinedCount()
 	// Invalidate instance since this thread is no longer listening
