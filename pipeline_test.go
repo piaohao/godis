@@ -694,11 +694,11 @@ func Test_multiKeyPipelineBase_Select(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Shutdown(t *testing.T) {
-	redis := NewRedis(option)
+	redis := NewRedis(&Option{Host: "localhost", Port: 9000})
 	defer redis.Close()
 	p := redis.Pipelined()
 	_, err := p.Shutdown()
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	p.Sync()
 
 	time.Sleep(time.Second)

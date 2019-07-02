@@ -1433,12 +1433,12 @@ func TestRedisCluster_Basic(t *testing.T) {
 	assert.Nil(t, resp)
 
 	resp, err = cmd.runWithRetries([]byte("godis"), cluster.MaxAttempts, false,
-		newMovedDataError("move data error", "localhost", 6379, 10000))
-	assert.Nil(t, err)
-	assert.Equal(t, "godis", resp)
+		newMovedDataError("move data error", "localhost", 9000, 10000))
+	assert.NotNil(t, err)
+	assert.Nil(t, resp)
 
 	resp, err = cmd.runWithRetries([]byte("godis"), cluster.MaxAttempts, false,
-		newAskDataError("move data error", "localhost", 6379, 10000))
+		newAskDataError("move data error", "localhost", 9000, 10000))
 	assert.NotNil(t, err)
 	assert.Nil(t, resp)
 }
