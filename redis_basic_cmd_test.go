@@ -377,26 +377,26 @@ func TestRedis_Debug(t *testing.T) {
 	_, err := redis.Debug(*NewDebugParamsObject("godis"))
 	assert.Nil(t, err)
 
-	_, err = redis.Debug(*NewDebugParamsSegfault())
-	assert.NotNil(t, err) //EOF error
-
-	get, err := redis.Get("godis")
-	assert.NotNil(t, err)
-	assert.Equal(t, "", get)
-
-	time.Sleep(1 * time.Second)
+	//_, err = redis.Debug(*NewDebugParamsSegfault())
+	//assert.NotNil(t, err) //EOF error
+	//
+	//get, err := redis.Get("godis")
+	//assert.NotNil(t, err)
+	//assert.Equal(t, "", get)
+	//
+	//time.Sleep(1 * time.Second)
 	redis1 := NewRedis(option)
 	defer redis1.Close()
-	get, err = redis1.Get("godis")
-	assert.Nil(t, err)
-	assert.Equal(t, "", get)
+	//get, err := redis1.Get("godis")
+	//assert.Nil(t, err)
+	//assert.Equal(t, "", get)
 
 	_, err = redis1.Debug(*NewDebugParamsReload())
 	assert.Nil(t, err) //EOF error
 
-	get, err = redis1.Get("godis")
+	get, err := redis1.Get("godis")
 	assert.Nil(t, err)
-	assert.Equal(t, "", get)
+	assert.Equal(t, "good", get)
 
 	redisBroken := NewRedis(option1)
 	defer redisBroken.Close()
