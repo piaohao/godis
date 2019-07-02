@@ -57,6 +57,10 @@ func (c *connection) setTimeoutInfinite() error {
 }
 
 func (c *connection) rollbackTimeout() error {
+	if c.socket == nil {
+		c.broken = true
+		return newConnectError("socket is closed")
+	}
 	err := c.socket.SetDeadline(time.Now().Add(c.connectionTimeout))
 	if err != nil {
 		c.broken = true
@@ -309,5 +313,7 @@ func (c *connection) close() error {
 	if c.socket == nil {
 		return nil
 	}
-	return c.socket.Close()
+	err := c.socket.Close()
+	c.socket = nil
+	return err
 }

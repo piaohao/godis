@@ -104,13 +104,6 @@ func (f factory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	if f.option.Password != "" {
-		_, err := redis.Auth(f.option.Password)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return pool.NewPooledObject(redis), nil
 }
 

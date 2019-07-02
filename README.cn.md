@@ -8,7 +8,7 @@
 godis是一个golang实现的redis客户端,参考jedis实现.  
 godis实现了几乎所有的redis命令,包括单机命令,集群命令,管道命令和事物命令等.  
 如果你用过jedis,你就能非常容易地上手godis,因为godis的方法命名几乎全部来自jedis.  
-值得一提的是,godis实现了单机和集群模式下的分布式锁,godis的锁比redisson快很多,在i7,8核32g的电脑测试,10万次for循环,8个线程,业务逻辑是简单的count++,reidsson需要18-20秒,而godis只需要7秒左右.  
+值得一提的是,godis实现了单机和集群模式下的分布式锁,godis的锁比redisson快很多,在i7,8核32g的电脑测试,10万次for循环,8个线程,业务逻辑是简单的count++,redisson需要18-20秒,而godis只需要7秒左右.  
 godis已经完成了大多数命令的测试用例,比较稳定.  
 非常高兴你能提出任何建议,我会积极地迭代这个项目.  
 

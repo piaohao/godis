@@ -172,9 +172,19 @@ func Test_multiKeyPipelineBase_ClusterAddSlots(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_ClusterDelSlots(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterDelSlots(10000)
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterGetKeysInSlot(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterGetKeysInSlot(1, 1)
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterInfo(t *testing.T) {
@@ -190,6 +200,11 @@ func Test_multiKeyPipelineBase_ClusterInfo(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_ClusterMeet(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterMeet("localhost", 8000)
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterNodes(t *testing.T) {
@@ -212,12 +227,27 @@ func Test_multiKeyPipelineBase_ClusterNodes(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotImporting(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterSetSlotImporting(1, "godis")
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotMigrating(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterSetSlotMigrating(1, "godis")
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotNode(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.ClusterSetSlotNode(1, "godis")
+	assert.Nil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ConfigGet(t *testing.T) {
@@ -576,6 +606,18 @@ func Test_multiKeyPipelineBase_Rename(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Rpoplpush(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.LPush("godis", "1", "2")
+	p := redis.Pipelined()
+	r, e := p.RPopLPush("godis", "godis1")
+	assert.Nil(t, e)
+	p.Sync()
+	resp, e := ToStringReply(r.Get())
+	assert.Nil(t, e)
+	assert.Equal(t, "2", resp)
+
 }
 
 func Test_multiKeyPipelineBase_Save(t *testing.T) {
@@ -652,6 +694,19 @@ func Test_multiKeyPipelineBase_Select(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Shutdown(t *testing.T) {
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	_, err := p.Shutdown()
+	assert.Nil(t, err)
+	p.Sync()
+
+	time.Sleep(time.Second)
+	redis1 := NewRedis(option)
+	defer redis1.Close()
+	s, err := redis1.Set("godis", "good")
+	assert.Nil(t, err)
+	assert.Equal(t, "OK", s)
 }
 
 func Test_multiKeyPipelineBase_Smove(t *testing.T) {
@@ -702,6 +757,15 @@ func Test_multiKeyPipelineBase_SortMulti(t *testing.T) {
 }
 
 func Test_multiKeyPipelineBase_Time(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	p := redis.Pipelined()
+	r1, e := p.Time()
+	assert.Nil(t, e)
+	p.Sync()
+	_, e = ToStringArrayReply(r1.Get())
+	assert.Nil(t, e)
 }
 
 func Test_multiKeyPipelineBase_Watch(t *testing.T) {
@@ -732,11 +796,13 @@ func Test_multiKeyPipelineBase_Zinterstore(t *testing.T) {
 
 	r1, err := p.ZInterStore("godis3", "godis1", "godis2")
 	assert.Nil(t, err)
-	r2, err := p.ZInterStoreWithParams("godis3", *ZParamsSum, "godis1", "godis2")
+	param := newZParams().Aggregate(AggregateSum)
+	r2, err := p.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
 	assert.Nil(t, err)
 	r3, err := p.ZUnionStore("godis3", "godis1", "godis2")
 	assert.Nil(t, err)
-	r4, err := p.ZUnionStoreWithParams("godis3", *ZParamsMax, "godis1", "godis2")
+	param = newZParams().Aggregate(AggregateMax)
+	r4, err := p.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
 	assert.Nil(t, err)
 
 	p.Sync()
@@ -788,4 +854,22 @@ func Test_Transaction(t *testing.T) {
 		assert.Equal(t, []string{"godis"}, obj)
 	}
 
+}
+
+func Test_Transaction2(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	redis.Set("godis", "good")
+
+	p, err := redis.Multi()
+	assert.Nil(t, err)
+
+	s, err := p.Discard()
+	assert.Nil(t, err)
+	assert.Equal(t, "\x00\x00", s)
+
+	s, err = p.Clear()
+	assert.Nil(t, err)
+	assert.Equal(t, "", s)
 }

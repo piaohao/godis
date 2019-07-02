@@ -41,6 +41,15 @@ func TestRedis_Append(t *testing.T) {
 	c, err = redis.Append("godis", " good")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(9), c)
+
+	m, _ := redis.Multi()
+	_, err = redis.Append("godis", "good")
+	assert.NotNil(t, err)
+	m.Discard()
+	redis.client.connection.host = "localhost1"
+	redis.Close()
+	_, err = redis.Append("godis", "good")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Asking(t *testing.T) {
@@ -55,6 +64,17 @@ func TestRedis_Asking(t *testing.T) {
 	s, err := redis1.Asking()
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Asking()
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Asking()
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Bitcount(t *testing.T) {
@@ -64,6 +84,17 @@ func TestRedis_Bitcount(t *testing.T) {
 	s, err := redis.BitCount("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(20), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.BitCount("godis")
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.BitCount("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_BitcountRange(t *testing.T) {
@@ -73,6 +104,17 @@ func TestRedis_BitcountRange(t *testing.T) {
 	s, err := redis.BitCountRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(20), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.BitCountRange("godis", 0, -1)
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.BitCountRange("godis", 0, -1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Bitfield(t *testing.T) {
@@ -80,6 +122,17 @@ func TestRedis_Bitfield(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	_, err := redis.BitField("godis", "INCRBY")
+	assert.NotNil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.BitField("godis", "INCRBY")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.BitField("godis", "INCRBY")
 	assert.NotNil(t, err)
 }
 
@@ -91,6 +144,17 @@ func TestRedis_Bitpos(t *testing.T) {
 	s, err := redis.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
 	assert.Nil(t, err)
 	assert.Equal(t, int64(8), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Decr(t *testing.T) {
@@ -104,6 +168,17 @@ func TestRedis_Decr(t *testing.T) {
 	s, err = redis.Decr("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-2), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Decr("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Decr("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_DecrBy(t *testing.T) {
@@ -117,6 +192,17 @@ func TestRedis_DecrBy(t *testing.T) {
 	s, err = redis.DecrBy("godis", -10)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.DecrBy("godis", 10)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.DecrBy("godis", 10)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Echo(t *testing.T) {
@@ -125,6 +211,17 @@ func TestRedis_Echo(t *testing.T) {
 	s, err := redis.Echo("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "godis", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Echo("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Echo("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Expire(t *testing.T) {
@@ -138,6 +235,17 @@ func TestRedis_Expire(t *testing.T) {
 	ret, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "", ret)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Expire("godis", 1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Expire("godis", 1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_ExpireAt(t *testing.T) {
@@ -151,6 +259,17 @@ func TestRedis_ExpireAt(t *testing.T) {
 	ret, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "", ret)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.ExpireAt("godis", time.Now().Add(1*time.Second).Unix())
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.ExpireAt("godis", time.Now().Add(1*time.Second).Unix())
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Geo(t *testing.T) {
@@ -202,6 +321,65 @@ func TestRedis_Geo(t *testing.T) {
 		NewGeoRadiusParam().WithCoord().WithDist())
 	assert.Nil(t, err)
 	t.Log(resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.GeoAdd("godis", 121, 37, "a")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.GeoAdd("godis", 121, 37, "a")
+	assert.NotNil(t, err)
+}
+
+func TestRedis_Geo2(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	c, err := redis.GeoAdd("godis", 121, 37, "a")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c)
+
+	c, err = redis.GeoAddByMap("godis", map[string]GeoCoordinate{
+		"b": {
+			longitude: 122,
+			latitude:  37,
+		},
+		"c": {
+			longitude: 123,
+			latitude:  37,
+		},
+		"d": {
+			longitude: 124,
+			latitude:  37,
+		},
+		"e": {
+			longitude: 125,
+			latitude:  37,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), c)
+
+	resp, err := redis.GeoRadius("godis", 121, 37, 500, GeoUnitKm,
+		NewGeoRadiusParam().WithCoord().WithDist().SortAscending())
+	assert.Nil(t, err)
+	arr := make([]string, 0)
+	for _, re := range resp {
+		arr = append(arr, string(re.member))
+	}
+	assert.Equal(t, []string{"a", "b", "c", "d", "e"}, arr)
+
+	resp, err = redis.GeoRadius("godis", 121, 37, 500, GeoUnitKm,
+		NewGeoRadiusParam().WithCoord().WithDist().SortDescending().Count(3))
+	assert.Nil(t, err)
+	arr = make([]string, 0)
+	for _, re := range resp {
+		arr = append(arr, string(re.member))
+	}
+	assert.Equal(t, []string{"e", "d", "c"}, arr)
 }
 
 func TestRedis_Get(t *testing.T) {
@@ -211,6 +389,17 @@ func TestRedis_Get(t *testing.T) {
 	s, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Get("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Get("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_GetSet(t *testing.T) {
@@ -223,6 +412,17 @@ func TestRedis_GetSet(t *testing.T) {
 	s, err = redis.GetSet("godis", "good1")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.GetSet("godis", "good")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.GetSet("godis", "good")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Getbit(t *testing.T) {
@@ -232,6 +432,17 @@ func TestRedis_Getbit(t *testing.T) {
 	s, err := redis.GetBit("godis", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, true, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.GetBit("godis", 1)
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.GetBit("godis", 1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Getrange(t *testing.T) {
@@ -244,6 +455,17 @@ func TestRedis_Getrange(t *testing.T) {
 	s, err = redis.GetRange("godis", 0, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, "go", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.GetRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.GetRange("godis", 0, -1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hdel(t *testing.T) {
@@ -259,6 +481,17 @@ func TestRedis_Hdel(t *testing.T) {
 	s, err = redis.HDel("godis", "a")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HDel("godis", "a")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HDel("godis", "a")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hexists(t *testing.T) {
@@ -274,6 +507,17 @@ func TestRedis_Hexists(t *testing.T) {
 	s, err = redis.HExists("godis", "b")
 	assert.Nil(t, err)
 	assert.Equal(t, false, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HExists("godis", "a")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HExists("godis", "a")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hget(t *testing.T) {
@@ -285,6 +529,17 @@ func TestRedis_Hget(t *testing.T) {
 	s, err := redis.HGet("godis", "a")
 	assert.Nil(t, err)
 	assert.Equal(t, "1", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HGet("godis", "a")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HGet("godis", "a")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_HgetAll(t *testing.T) {
@@ -296,6 +551,17 @@ func TestRedis_HgetAll(t *testing.T) {
 	s, err := redis.HGetAll("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, map[string]string{"a": "1"}, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HGetAll("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HGetAll("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_HincrBy(t *testing.T) {
@@ -311,6 +577,17 @@ func TestRedis_HincrBy(t *testing.T) {
 	s, err = redis.HIncrBy("godis", "b", 5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(5), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HIncrBy("godis", "a", 1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HIncrBy("godis", "a", 1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_HincrByFloat(t *testing.T) {
@@ -325,6 +602,17 @@ func TestRedis_HincrByFloat(t *testing.T) {
 	ret, err = redis.HIncrByFloat("godis", "b", 5.0987)
 	assert.Nil(t, err)
 	assert.Equal(t, 5.0987, ret)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HIncrByFloat("godis", "a", 1.5)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HIncrByFloat("godis", "a", 1.5)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hkeys(t *testing.T) {
@@ -336,6 +624,17 @@ func TestRedis_Hkeys(t *testing.T) {
 	s, err := redis.HKeys("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"a"}, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HKeys("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HKeys("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hlen(t *testing.T) {
@@ -347,6 +646,17 @@ func TestRedis_Hlen(t *testing.T) {
 	s, err := redis.HLen("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HLen("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HLen("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hmget(t *testing.T) {
@@ -358,6 +668,17 @@ func TestRedis_Hmget(t *testing.T) {
 	s, err := redis.HMGet("godis", "a")
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"1"}, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HMGet("godis", "a")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HMGet("godis", "a")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hmset(t *testing.T) {
@@ -372,6 +693,17 @@ func TestRedis_Hmset(t *testing.T) {
 
 	c, _ := redis.HLen("godis")
 	assert.Equal(t, int64(3), c)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HMSet("godis", map[string]string{"b": "2", "c": "3"})
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HMSet("godis", map[string]string{"b": "2", "c": "3"})
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hscan(t *testing.T) {
@@ -404,6 +736,17 @@ func TestRedis_Hscan(t *testing.T) {
 	}
 	//total contains key and value
 	assert.Equal(t, 2000, total)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HScan("godis", cursor, params)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HScan("godis", cursor, params)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hset(t *testing.T) {
@@ -417,6 +760,17 @@ func TestRedis_Hset(t *testing.T) {
 	s, err := redis.HLen("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HSet("godis", "a", "1")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HSet("godis", "a", "1")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hsetnx(t *testing.T) {
@@ -436,6 +790,17 @@ func TestRedis_Hsetnx(t *testing.T) {
 	s, err = redis.HGet("godis", "a")
 	assert.Nil(t, err)
 	assert.Equal(t, "1", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HSetNx("godis", "a", "2")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HSetNx("godis", "a", "2")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Hvals(t *testing.T) {
@@ -447,6 +812,17 @@ func TestRedis_Hvals(t *testing.T) {
 	s, err := redis.HVals("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"1"}, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.HVals("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.HVals("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Incr(t *testing.T) {
@@ -472,6 +848,17 @@ func TestRedis_Incr(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "10000", reply)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Incr("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Incr("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_IncrBy(t *testing.T) {
@@ -505,6 +892,17 @@ func TestRedis_IncrBy(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "200000", reply)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.IncrBy("godis", 2)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.IncrBy("godis", 2)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_IncrByFloat(t *testing.T) {
@@ -518,6 +916,17 @@ func TestRedis_IncrByFloat(t *testing.T) {
 	s, err = redis.IncrByFloat("godis", 1.62)
 	assert.Nil(t, err)
 	assert.Equal(t, 3.12, s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.IncrByFloat("godis", 1.62)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.IncrByFloat("godis", 1.62)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Lindex(t *testing.T) {
@@ -539,6 +948,17 @@ func TestRedis_Lindex(t *testing.T) {
 	el, err = redis.LIndex("godis", 3)
 	assert.Nil(t, err)
 	assert.Equal(t, "", el)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.LIndex("godis", 0)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.LIndex("godis", 0)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_List0(t *testing.T) {
@@ -643,6 +1063,57 @@ func TestRedis_List(t *testing.T) {
 	arr, err = redis.LRange("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"1", "2", "2.0", "3"}, arr)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.LPush("godis", "1", "2", "3")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LInsert("godis", ListOptionBefore, "2", "1.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.LLen("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LPop("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPop("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPush("godis", "4")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPopLPush("godis", "0.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LRem("godis", 0, "1.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LSet("godis", 2, "2.0")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LTrim("godis", 1, 2)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.LPush("godis", "1", "2", "3")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LInsert("godis", ListOptionBefore, "2", "1.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.LLen("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LPop("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPop("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPush("godis", "4")
+	assert.NotNil(t, err)
+	_, err = redisBroken.RPopLPush("godis", "0.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LRem("godis", 0, "1.5")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LSet("godis", 2, "2.0")
+	assert.NotNil(t, err)
+	_, err = redisBroken.LTrim("godis", 1, 2)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Move(t *testing.T) {
@@ -662,6 +1133,17 @@ func TestRedis_Move(t *testing.T) {
 	get, err = redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", get)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Move("godis", 1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Move("godis", 1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Persist(t *testing.T) {
@@ -677,6 +1159,17 @@ func TestRedis_Persist(t *testing.T) {
 	c, err := redis.TTL("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), c)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Persist("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Persist("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Pexpire(t *testing.T) {
@@ -690,6 +1183,17 @@ func TestRedis_Pexpire(t *testing.T) {
 	ret, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "", ret)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PExpire("godis", 1000)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PExpire("godis", 1000)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_PexpireAt(t *testing.T) {
@@ -703,6 +1207,17 @@ func TestRedis_PexpireAt(t *testing.T) {
 	ret, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "", ret)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PExpireAt("godis", time.Now().Add(1*time.Second).UnixNano()/1e6)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PExpireAt("godis", time.Now().Add(1*time.Second).UnixNano()/1e6)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Pfadd(t *testing.T) {
@@ -732,6 +1247,17 @@ func TestRedis_Pfadd(t *testing.T) {
 	c, err = redis.PfCount("godis3")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), c)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PfAdd("godis", "a", "b", "c", "d")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PfAdd("godis", "a", "b", "c", "d")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Psetex(t *testing.T) {
@@ -746,6 +1272,17 @@ func TestRedis_Psetex(t *testing.T) {
 	get, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", get)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PSetEx("godis", 1000, "good")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PSetEx("godis", 1000, "good")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Pttl(t *testing.T) {
@@ -755,6 +1292,17 @@ func TestRedis_Pttl(t *testing.T) {
 	s, err := redis.PTTL("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PTTL("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PTTL("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_PubsubChannels(t *testing.T) {
@@ -764,6 +1312,17 @@ func TestRedis_PubsubChannels(t *testing.T) {
 	_, err := redis.PubSubChannels("godis")
 	assert.Nil(t, err)
 
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.PubSubChannels("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.PubSubChannels("godis")
+	assert.NotNil(t, err)
+
 }
 
 func TestRedis_Readonly(t *testing.T) {
@@ -771,6 +1330,17 @@ func TestRedis_Readonly(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	_, err := redis.Readonly()
+	assert.NotNil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Readonly()
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Readonly()
 	assert.NotNil(t, err)
 }
 
@@ -783,6 +1353,17 @@ func TestRedis_Send(t *testing.T) {
 	s, err := ToStringReply(redis.Receive())
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	err = redisBroken.Send(cmdGet, []byte("godis"))
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	err = redisBroken.Send(cmdGet, []byte("godis"))
+	assert.NotNil(t, err)
 }
 
 func TestRedis_SendByStr(t *testing.T) {
@@ -794,6 +1375,17 @@ func TestRedis_SendByStr(t *testing.T) {
 	s, err := ToStringReply(redis.Receive())
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	err = redisBroken.SendByStr("get", []byte("godis"))
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	err = redisBroken.SendByStr("get", []byte("godis"))
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Set(t *testing.T) {
@@ -810,6 +1402,17 @@ func TestRedis_Set(t *testing.T) {
 	}
 	redis.Set("godis", str)
 	redis.Get("godis")
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Set("godis", "good")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Set("godis", "good")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_SetWithParams(t *testing.T) {
@@ -828,6 +1431,17 @@ func TestRedis_SetWithParams(t *testing.T) {
 	get, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good1", get)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetWithParams("godis", "good", "xx")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetWithParams("godis", "good", "xx")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_SetWithParamsAndTime(t *testing.T) {
@@ -840,6 +1454,17 @@ func TestRedis_SetWithParamsAndTime(t *testing.T) {
 	s, err = redis.SetWithParamsAndTime("godis", "good", "nx", "px", 1500)
 	assert.Nil(t, err)
 	assert.Equal(t, "", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetWithParamsAndTime("godis", "good", "nx", "px", 1500)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetWithParamsAndTime("godis", "good", "nx", "px", 1500)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Setbit(t *testing.T) {
@@ -862,6 +1487,17 @@ func TestRedis_Setbit(t *testing.T) {
 	get, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "b", get)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetBit("godis", 6, "1")
+	assert.Nil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetBit("godis", 6, "1")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Setex(t *testing.T) {
@@ -876,6 +1512,17 @@ func TestRedis_Setex(t *testing.T) {
 	get, err := redis.Get("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "", get)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetEx("godis", 1, "good")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetEx("godis", 1, "good")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Setnx(t *testing.T) {
@@ -885,6 +1532,17 @@ func TestRedis_Setnx(t *testing.T) {
 	s, err := redis.SetNx("godis", "good1")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetNx("godis", "good1")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetNx("godis", "good1")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Setrange(t *testing.T) {
@@ -894,6 +1552,17 @@ func TestRedis_Setrange(t *testing.T) {
 	c, err := redis.SetRange("godis", 5, " ok")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(8), c)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SetRange("godis", 5, " ok")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SetRange("godis", 5, " ok")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Smembers(t *testing.T) {
@@ -936,6 +1605,48 @@ func TestRedis_Smembers(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Subset(t, []string{"2", "3"}, arr)
 
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SAdd("godis", "1", "2", "3")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SCard("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SIsMember("godis", "1")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SMembers("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRandMember("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRandMemberBatch("godis", 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRem("godis", "1")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SPopBatch("godis", 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.SPop("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SAdd("godis", "1", "2", "3")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SCard("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SIsMember("godis", "1")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SMembers("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRandMember("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRandMemberBatch("godis", 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.SRem("godis", "1")
+	assert.NotNil(t, err)
+	_, err = redisBroken.SPopBatch("godis", 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.SPop("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Sscan(t *testing.T) {
@@ -967,6 +1678,17 @@ func TestRedis_Sscan(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1000, total)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SScan("godis", cursor, params)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SScan("godis", cursor, params)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Strlen(t *testing.T) {
@@ -976,6 +1698,17 @@ func TestRedis_Strlen(t *testing.T) {
 	s, err := redis.StrLen("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.StrLen("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.StrLen("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Substr(t *testing.T) {
@@ -985,6 +1718,17 @@ func TestRedis_Substr(t *testing.T) {
 	s, err := redis.SubStr("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.SubStr("godis", 0, -1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.SubStr("godis", 0, -1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Ttl(t *testing.T) {
@@ -994,6 +1738,17 @@ func TestRedis_Ttl(t *testing.T) {
 	s, err := redis.TTL("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.TTL("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.TTL("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Type(t *testing.T) {
@@ -1003,6 +1758,17 @@ func TestRedis_Type(t *testing.T) {
 	s, err := redis.Type("godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "string", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.Type("godis")
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Type("godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Zadd(t *testing.T) {
@@ -1160,6 +1926,34 @@ func TestRedis_Zadd(t *testing.T) {
 	assert.Equal(t, int64(4), c) //f is not in godis
 }
 
+func TestRedis_Zadd2(t *testing.T) {
+	flushAll()
+	redis := NewRedis(option)
+	defer redis.Close()
+	zaddParam := NewZAddParams().NX()
+	c, err := redis.ZAdd("godis", 1, "a", zaddParam)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c) //{"a":1}
+
+	zaddParam = NewZAddParams().XX()
+	c, err = redis.ZAdd("godis", 2, "a", zaddParam)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), c) //{"a":2}
+
+	c, err = redis.ZAdd("godis", 3, "b", zaddParam)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), c) //{"a":2}
+
+	zaddParam = NewZAddParams().CH()
+	c, err = redis.ZAdd("godis", 3, "c", zaddParam)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), c)
+
+	arr, err := redis.ZRange("godis", 0, -1)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"a", "c"}, arr)
+}
+
 func TestRedis_Zscan(t *testing.T) {
 	flushAll()
 	redis := NewRedis(option)
@@ -1189,4 +1983,15 @@ func TestRedis_Zscan(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 2000, total)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.ZScan("godis", cursor, params)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.ZScan("godis", cursor, params)
+	assert.NotNil(t, err)
 }

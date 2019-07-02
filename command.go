@@ -16,19 +16,19 @@ func NewZAddParams() *ZAddParams {
 	return &ZAddParams{params: make(map[string]string)}
 }
 
-//XX set XX parameter
+//XX set XX parameter, Only update elements that already exist. Never add elements.
 func (p *ZAddParams) XX() *ZAddParams {
 	p.params["XX"] = "XX"
 	return p
 }
 
-//NX set NX parameter
+//NX set NX parameter, Don't update already existing elements. Always add new elements.
 func (p *ZAddParams) NX() *ZAddParams {
 	p.params["NX"] = "NX"
 	return p
 }
 
-//CH set CH parameter
+//CH set CH parameter, Modify the return value from the number of new elements added, to the total number of elements changed
 func (p *ZAddParams) CH() *ZAddParams {
 	p.params["CH"] = "CH"
 	return p
@@ -74,11 +74,6 @@ func NewSortingParams() *SortingParams {
 	return &SortingParams{params: make([][]byte, 0)}
 }
 
-//GetParams get all sort params
-func (p *SortingParams) GetParams() [][]byte {
-	return p.params
-}
-
 //By set by param with pattern
 func (p *SortingParams) By(pattern string) *SortingParams {
 	p.params = append(p.params, keywordBy.GetRaw())
@@ -105,7 +100,7 @@ func (p *SortingParams) Asc() *SortingParams {
 	return p
 }
 
-//Limit limit the sort result
+//Limit limit the sort result,[x,y)
 func (p *SortingParams) Limit(start, count int) *SortingParams {
 	p.params = append(p.params, keywordLimit.GetRaw())
 	p.params = append(p.params, IntToByteArray(start))
@@ -154,14 +149,6 @@ func (s ScanParams) Match() string {
 		return string(v)
 	}
 	return ""
-}
-
-//Count get the count param value
-func (s ScanParams) Count() int {
-	if v, ok := s.params[keywordCount]; ok {
-		return int(ByteArrayToInt64(v))
-	}
-	return 0
 }
 
 //ListOption  list option
@@ -320,13 +307,7 @@ type ScanResult struct {
 
 //ZParams zset operation params
 type ZParams struct {
-	Name   string //zset param name
 	params [][]byte
-}
-
-//GetRaw get param name byte array
-func (g *ZParams) GetRaw() []byte {
-	return []byte(g.Name)
 }
 
 //GetParams get params byte array
@@ -334,18 +315,49 @@ func (g *ZParams) GetParams() [][]byte {
 	return g.params
 }
 
+//WeightsByDouble Set weights.
+func (g *ZParams) WeightsByDouble(weights ...float64) *ZParams {
+	g.params = append(g.params, keywordWeights.GetRaw())
+	for _, w := range weights {
+		g.params = append(g.params, Float64ToByteArray(w))
+	}
+	return g
+}
+
+//Aggregate Set Aggregate.
+func (g *ZParams) Aggregate(aggregate Aggregate) *ZParams {
+	g.params = append(g.params, keywordAggregate.GetRaw())
+	g.params = append(g.params, aggregate.GetRaw())
+	return g
+}
+
 //newZParams create a new zparams instance
-func newZParams(name string) *ZParams {
-	return &ZParams{Name: name}
+func newZParams() *ZParams {
+	return &ZParams{params: make([][]byte, 0)}
+}
+
+//Aggregate aggregate,sum|min|max
+type Aggregate struct {
+	Name string // name of Aggregate
+}
+
+//GetRaw get the name byte array
+func (g Aggregate) GetRaw() []byte {
+	return []byte(g.Name)
+}
+
+//newAggregate create a new geounit instance
+func newAggregate(name string) Aggregate {
+	return Aggregate{name}
 }
 
 var (
-	//ZParamsSum aggregate result with sum operation
-	ZParamsSum = newZParams("SUM")
-	//ZParamsMin aggregate result with min operation
-	ZParamsMin = newZParams("MIN")
-	//ZParamsMax aggregate result with max operation
-	ZParamsMax = newZParams("MAX")
+	//AggregateSum aggregate result with sum operation
+	AggregateSum = newAggregate("SUM")
+	//AggregateMin aggregate result with min operation
+	AggregateMin = newAggregate("MIN")
+	//AggregateMax aggregate result with max operation
+	AggregateMax = newAggregate("MAX")
 )
 
 //RedisPubSub redis pubsub struct

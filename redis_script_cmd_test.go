@@ -20,6 +20,13 @@ func TestRedis_Eval(t *testing.T) {
 	s, err = redis.Eval(`return redis.call("get",KEYS[1])`, 1, "eval")
 	assert.Nil(t, err)
 	assert.Equal(t, "godis", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.Eval(`return redis.call("get",KEYS[1])`, 1, "godis")
+	assert.NotNil(t, err)
 }
 
 func TestRedis_EvalByKeyArgs(t *testing.T) {
@@ -38,6 +45,13 @@ func TestRedis_EvalByKeyArgs(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "godis", s)
 	TestRedis_Set(t)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.EvalByKeyArgs(`return redis.call("get",KEYS[1])`, []string{"godis"}, []string{})
+	assert.NotNil(t, err)
 }
 
 func TestRedis_ScriptLoad(t *testing.T) {
@@ -54,4 +68,13 @@ func TestRedis_ScriptLoad(t *testing.T) {
 	s, err := redis.EvalSha(sha, 1, "godis")
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.ScriptLoad(`return redis.call("get",KEYS[1])`)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ScriptExists(sha)
+	assert.NotNil(t, err)
 }

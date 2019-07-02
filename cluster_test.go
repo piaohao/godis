@@ -1381,7 +1381,8 @@ func TestRedisCluster_Zinterstore(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 
-	c, err = redis.ZInterStoreWithParams("godis3", *ZParamsSum, "godis1", "godis2")
+	param := newZParams().Aggregate(AggregateSum)
+	c, err = redis.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 
@@ -1389,7 +1390,8 @@ func TestRedisCluster_Zinterstore(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 
-	c, err = redis.ZUnionStoreWithParams("godis3", *ZParamsMax, "godis1", "godis2")
+	param = newZParams().Aggregate(AggregateMax)
+	c, err = redis.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 }
@@ -1409,4 +1411,34 @@ func TestRedisCluster_Mset(t *testing.T) {
 	arr, e := redis.MGet("godis", "godis1", "godis2")
 	assert.NotNil(t, e)
 	assert.Empty(t, arr)
+}
+
+func TestRedisCluster_Basic(t *testing.T) {
+	cluster := NewRedisCluster(clusterOption)
+	clearKeys(cluster)
+	cluster.connectionHandler.cache.slots.Range(func(key, value interface{}) bool {
+		cluster.connectionHandler.cache.slots.Delete(key)
+		return true
+	})
+	s, err := cluster.Echo("godis")
+	assert.Nil(t, err)
+	assert.Equal(t, "godis", s)
+
+	cmd := newRedisClusterCommand(cluster.MaxAttempts, cluster.connectionHandler)
+	cmd.execute = func(redis *Redis) (interface{}, error) {
+		return redis.Echo("godis")
+	}
+	resp, err := cmd.runWithRetries([]byte("godis"), cluster.MaxAttempts, false, newRedirectError("redirect error"))
+	assert.NotNil(t, err)
+	assert.Nil(t, resp)
+
+	resp, err = cmd.runWithRetries([]byte("godis"), cluster.MaxAttempts, false,
+		newMovedDataError("move data error", "localhost", 6379, 10000))
+	assert.Nil(t, err)
+	assert.Equal(t, "godis", resp)
+
+	resp, err = cmd.runWithRetries([]byte("godis"), cluster.MaxAttempts, false,
+		newAskDataError("move data error", "localhost", 6379, 10000))
+	assert.NotNil(t, err)
+	assert.Nil(t, resp)
 }

@@ -1,7 +1,6 @@
 package godis
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -44,11 +43,6 @@ func Float64ToByteArray(a float64) []byte {
 func ByteArrayToFloat64(bytes []byte) float64 {
 	f, _ := strconv.ParseFloat(string(bytes), 64)
 	return f
-}
-
-//ByteArrayToInt64 convert byte array to int64
-func ByteArrayToInt64(bytes []byte) uint64 {
-	return binary.LittleEndian.Uint64(bytes)
 }
 
 //StringStringArrayToByteArray convert string and string array to byte array
@@ -263,8 +257,6 @@ func ToStringReply(reply interface{}, err error) (string, error) {
 	switch reply.(type) {
 	case []byte:
 		return string(reply.([]byte)), nil
-	case string:
-		return reply.(string), nil
 	}
 	return reply.(string), nil
 }
@@ -388,9 +380,9 @@ func (b *stringBuilder) build(data interface{}) (interface{}, error) {
 	case []byte:
 		return string(data.([]byte)), nil
 	case error:
-		return nil, data.(error)
+		return "", data.(error)
 	}
-	return nil, fmt.Errorf("unexpected type:%T", data)
+	return "", fmt.Errorf("unexpected type:%T", data)
 }
 
 type int64Builder struct {
@@ -402,15 +394,13 @@ func newInt64Builder() *int64Builder {
 
 func (b *int64Builder) build(data interface{}) (interface{}, error) {
 	if data == nil {
-		return "", nil
+		return 0, nil
 	}
 	switch data.(type) {
 	case int64:
 		return data.(int64), nil
-	case error:
-		return nil, data.(error)
 	}
-	return nil, fmt.Errorf("unexpected type:%T", data)
+	return 0, fmt.Errorf("unexpected type:%T", data)
 }
 
 type stringArrayBuilder struct {
@@ -435,8 +425,6 @@ func (b *stringArrayBuilder) build(data interface{}) (interface{}, error) {
 			}
 		}
 		return arr, nil
-	case error:
-		return nil, data.(error)
 	}
 	return nil, fmt.Errorf("unexpected type:%T", data)
 }

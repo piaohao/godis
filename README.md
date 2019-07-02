@@ -258,9 +258,9 @@ require github.com/piaohao/godis latest
 `godis` is licensed under the [MIT License](LICENSE), 100% free and open-source, forever.      
 
 # Thanks
-* [jedis,jedis is a popular redis client write by java](https://github.com/xetorthio/jedis)
-* [gf,gf is a amazing web framework write by golang](https://github.com/gogf/gf)
-* [go-commons-pool, refers to apache comnmon-pool](https://github.com/jolestar/go-commons-pool)
+* [[ jedis ] jedis is a popular redis client write by java](https://github.com/xetorthio/jedis)
+* [[ gf ] gf is a amazing web framework write by golang](https://github.com/gogf/gf)
+* [[ go-commons-pool ] refers to apache comnmon-pool](https://github.com/jolestar/go-commons-pool)
 
 # Contact
 

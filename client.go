@@ -316,8 +316,8 @@ func (c *client) rpop(key string) error {
 	return c.sendCommand(cmdRPop, []byte(key))
 }
 
-func (c *client) rpopLpush(srckey, dstkey string) error {
-	return c.sendCommand(cmdRPopLPush, []byte(srckey), []byte(dstkey))
+func (c *client) rpopLpush(srcKey, destKey string) error {
+	return c.sendCommand(cmdRPopLPush, []byte(srcKey), []byte(destKey))
 }
 
 func (c *client) sadd(key string, members ...string) error {
@@ -340,8 +340,8 @@ func (c *client) spopBatch(key string, count int64) error {
 	return c.sendCommand(cmdSPop, []byte(key), Int64ToByteArray(count))
 }
 
-func (c *client) smove(srckey, dstkey, member string) error {
-	return c.sendCommand(cmdSMove, []byte(srckey), []byte(dstkey), []byte(member))
+func (c *client) smove(srcKey, destKey, member string) error {
+	return c.sendCommand(cmdSMove, []byte(srcKey), []byte(destKey), []byte(member))
 }
 
 func (c *client) scard(key string) error {
@@ -356,24 +356,24 @@ func (c *client) sinter(keys ...string) error {
 	return c.sendCommand(cmdSInter, StringArrayToByteArray(keys)...)
 }
 
-func (c *client) sinterstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSInterStore, StringStringArrayToByteArray(dstkey, keys)...)
+func (c *client) sinterstore(destKey string, keys ...string) error {
+	return c.sendCommand(cmdSInterStore, StringStringArrayToByteArray(destKey, keys)...)
 }
 
 func (c *client) sunion(keys ...string) error {
 	return c.sendCommand(cmdSUnion, StringArrayToByteArray(keys)...)
 }
 
-func (c *client) sunionstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSUnionStore, StringStringArrayToByteArray(dstkey, keys)...)
+func (c *client) sunionstore(destKey string, keys ...string) error {
+	return c.sendCommand(cmdSUnionStore, StringStringArrayToByteArray(destKey, keys)...)
 }
 
 func (c *client) sdiff(keys ...string) error {
 	return c.sendCommand(cmdSDiff, StringArrayToByteArray(keys)...)
 }
 
-func (c *client) sdiffstore(dstkey string, keys ...string) error {
-	return c.sendCommand(cmdSDiffStore, StringStringArrayToByteArray(dstkey, keys)...)
+func (c *client) sdiffstore(destKey string, keys ...string) error {
+	return c.sendCommand(cmdSDiffStore, StringStringArrayToByteArray(destKey, keys)...)
 }
 
 func (c *client) srandmember(key string) error {
@@ -460,14 +460,14 @@ func (c *client) sort(key string, sortingParameters ...SortingParams) error {
 	return c.sendCommand(cmdSort, newArr...)
 }
 
-func (c *client) sortMulti(key, dstkey string, sortingParameters ...SortingParams) error {
+func (c *client) sortMulti(key, destKey string, sortingParameters ...SortingParams) error {
 	newArr := make([][]byte, 0)
 	newArr = append(newArr, []byte(key))
 	for _, p := range sortingParameters {
 		newArr = append(newArr, p.params...)
 	}
 	newArr = append(newArr, keywordStore.GetRaw())
-	newArr = append(newArr, []byte(dstkey))
+	newArr = append(newArr, []byte(destKey))
 	return c.sendCommand(cmdSort, newArr...)
 }
 
@@ -507,9 +507,9 @@ func (c *client) zremrangeByScore(key, start, end string) error {
 	return c.sendCommand(cmdZRemRangeByScore, []byte(key), []byte(start), []byte(end))
 }
 
-func (c *client) zunionstore(dstkey string, sets ...string) error {
+func (c *client) zunionstore(destKey string, sets ...string) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(dstkey))
+	arr = append(arr, []byte(destKey))
 	arr = append(arr, IntToByteArray(len(sets)))
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
@@ -517,9 +517,9 @@ func (c *client) zunionstore(dstkey string, sets ...string) error {
 	return c.sendCommand(cmdZUnionStore, arr...)
 }
 
-func (c *client) zunionstoreWithParams(dstkey string, params ZParams, sets ...string) error {
+func (c *client) zunionstoreWithParams(destKey string, params ZParams, sets ...string) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(dstkey))
+	arr = append(arr, []byte(destKey))
 	arr = append(arr, IntToByteArray(len(sets)))
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
@@ -528,9 +528,9 @@ func (c *client) zunionstoreWithParams(dstkey string, params ZParams, sets ...st
 	return c.sendCommand(cmdZUnionStore, arr...)
 }
 
-func (c *client) zinterstore(dstkey string, sets ...string) error {
+func (c *client) zinterstore(destKey string, sets ...string) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(dstkey))
+	arr = append(arr, []byte(destKey))
 	arr = append(arr, IntToByteArray(len(sets)))
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
@@ -538,9 +538,9 @@ func (c *client) zinterstore(dstkey string, sets ...string) error {
 	return c.sendCommand(cmdZInterStore, arr...)
 }
 
-func (c *client) zinterstoreWithParams(dstkey string, params ZParams, sets ...string) error {
+func (c *client) zinterstoreWithParams(destKey string, params ZParams, sets ...string) error {
 	arr := make([][]byte, 0)
-	arr = append(arr, []byte(dstkey))
+	arr = append(arr, []byte(destKey))
 	arr = append(arr, IntToByteArray(len(sets)))
 	for _, s := range sets {
 		arr = append(arr, []byte(s))
