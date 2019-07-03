@@ -368,11 +368,11 @@ type Builder interface {
 }
 
 var (
-	//StringBuilder convert interface to string
+	//StrBuilder convert interface to string
 	StrBuilder = newStrBuilder()
 	//Int64Builder convert interface to int64
 	Int64Builder = newInt64Builder()
-	//StringArrayBuilder convert interface to string array
+	//StrArrBuilder convert interface to string array
 	StrArrBuilder = newStringArrayBuilder()
 )
 
