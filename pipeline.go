@@ -4,7 +4,8 @@ import "sync"
 
 //Response pipeline and transaction response,include replies from redis
 type Response struct {
-	response interface{} //store replys
+	response  interface{} //store replies
+	exception *DataError
 
 	building bool //whether response is building
 	built    bool //whether response is build done
@@ -45,6 +46,9 @@ func (r *Response) Get() (interface{}, error) {
 			return nil, err
 		}
 	}
+	if r.exception != nil {
+		return nil, r.exception
+	}
 	return r.response, nil
 }
 
@@ -62,6 +66,11 @@ func (r *Response) build() error {
 		r.built = true
 	}()
 	if r.data != nil {
+		switch r.data.(type) {
+		case *DataError:
+			r.exception = r.data.(*DataError)
+			return nil
+		}
 		result, err := r.builder.build(r.data)
 		if err != nil {
 			return err
@@ -190,7 +199,7 @@ type queue struct {
 	mu                 sync.Mutex
 }
 
-func newQueable() *queue {
+func newQueue() *queue {
 	return &queue{pipelinedResponses: make([]*Response, 0)}
 }
 
@@ -244,7 +253,7 @@ type multiKeyPipelineBase struct {
 }
 
 func newMultiKeyPipelineBase(client *client) *multiKeyPipelineBase {
-	return &multiKeyPipelineBase{queue: newQueable(), client: client}
+	return &multiKeyPipelineBase{queue: newQueue(), client: client}
 }
 
 //<editor-fold desc="basicpipeline">
@@ -255,7 +264,7 @@ func (p *multiKeyPipelineBase) BgRewriteAof() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //BgSave  see redis command
@@ -264,7 +273,7 @@ func (p *multiKeyPipelineBase) BgSave() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ConfigGet  see redis command
@@ -273,7 +282,7 @@ func (p *multiKeyPipelineBase) ConfigGet(pattern string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //ConfigSet  see redis command
@@ -282,7 +291,7 @@ func (p *multiKeyPipelineBase) ConfigSet(parameter, value string) (*Response, er
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ConfigResetStat  see redis command
@@ -291,7 +300,7 @@ func (p *multiKeyPipelineBase) ConfigResetStat() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //Save  see redis command
@@ -300,7 +309,7 @@ func (p *multiKeyPipelineBase) Save() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //LastSave  see redis command
@@ -318,7 +327,7 @@ func (p *multiKeyPipelineBase) FlushDB() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //FlushAll  see redis command
@@ -327,7 +336,7 @@ func (p *multiKeyPipelineBase) FlushAll() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //Info  see redis command
@@ -336,7 +345,7 @@ func (p *multiKeyPipelineBase) Info() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //Time  see redis command
@@ -345,7 +354,7 @@ func (p *multiKeyPipelineBase) Time() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //DbSize  see redis command
@@ -363,7 +372,7 @@ func (p *multiKeyPipelineBase) Shutdown() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //Ping  see redis command
@@ -372,7 +381,7 @@ func (p *multiKeyPipelineBase) Ping() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //Select  see redis command
@@ -381,7 +390,7 @@ func (p *multiKeyPipelineBase) Select(index int) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //</editor-fold>
@@ -412,7 +421,7 @@ func (p *multiKeyPipelineBase) BLPopTimeout(timeout int, keys ...string) (*Respo
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //BRPopTimeout  see redis command
@@ -421,7 +430,7 @@ func (p *multiKeyPipelineBase) BRPopTimeout(timeout int, keys ...string) (*Respo
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //BLPop  see redis command
@@ -430,7 +439,7 @@ func (p *multiKeyPipelineBase) BLPop(args ...string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //BRPop  see redis command
@@ -439,7 +448,7 @@ func (p *multiKeyPipelineBase) BRPop(args ...string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //Keys  see redis command
@@ -448,7 +457,7 @@ func (p *multiKeyPipelineBase) Keys(pattern string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //MGet  see redis command
@@ -457,7 +466,7 @@ func (p *multiKeyPipelineBase) MGet(keys ...string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //MSet  see redis command
@@ -466,7 +475,7 @@ func (p *multiKeyPipelineBase) MSet(kvs ...string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //MSetNx  see redis command
@@ -484,7 +493,7 @@ func (p *multiKeyPipelineBase) Rename(oldkey, newkey string) (*Response, error) 
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //RenameNx  see redis command
@@ -502,21 +511,21 @@ func (p *multiKeyPipelineBase) RPopLPush(srcKey, destKey string) (*Response, err
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //SDiff  see redis command
 func (p *multiKeyPipelineBase) SDiff(keys ...string) (*Response, error) {
-	err := p.client.sdiff(keys...)
+	err := p.client.sDiff(keys...)
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //SDiffStore  see redis command
 func (p *multiKeyPipelineBase) SDiffStore(destKey string, keys ...string) (*Response, error) {
-	err := p.client.sdiffstore(destKey, keys...)
+	err := p.client.sDiffStore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -525,16 +534,16 @@ func (p *multiKeyPipelineBase) SDiffStore(destKey string, keys ...string) (*Resp
 
 //SInter  see redis command
 func (p *multiKeyPipelineBase) SInter(keys ...string) (*Response, error) {
-	err := p.client.sinter(keys...)
+	err := p.client.sInter(keys...)
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //SInterStore  see redis command
 func (p *multiKeyPipelineBase) SInterStore(destKey string, keys ...string) (*Response, error) {
-	err := p.client.sinterstore(destKey, keys...)
+	err := p.client.sInterStore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -551,8 +560,8 @@ func (p *multiKeyPipelineBase) SMove(srcKey, destKey, member string) (*Response,
 }
 
 //SortMulti  see redis command
-func (p *multiKeyPipelineBase) SortStore(key string, destKey string, sortingParameters ...SortingParams) (*Response, error) {
-	err := p.client.sortMulti(key, destKey, sortingParameters...)
+func (p *multiKeyPipelineBase) SortStore(key string, destKey string, params ...*SortParams) (*Response, error) {
+	err := p.client.sortMulti(key, destKey, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -561,16 +570,16 @@ func (p *multiKeyPipelineBase) SortStore(key string, destKey string, sortingPara
 
 //SUnion  see redis command
 func (p *multiKeyPipelineBase) SUnion(keys ...string) (*Response, error) {
-	err := p.client.sunion(keys...)
+	err := p.client.sUnion(keys...)
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //SUnionStore  see redis command
 func (p *multiKeyPipelineBase) SUnionStore(destKey string, keys ...string) (*Response, error) {
-	err := p.client.sunionstore(destKey, keys...)
+	err := p.client.sUnionStore(destKey, keys...)
 	if err != nil {
 		return nil, err
 	}
@@ -583,7 +592,7 @@ func (p *multiKeyPipelineBase) Watch(keys ...string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ZInterStore  see redis command
@@ -596,7 +605,7 @@ func (p *multiKeyPipelineBase) ZInterStore(destKey string, sets ...string) (*Res
 }
 
 //ZInterStoreWithParams  see redis command
-func (p *multiKeyPipelineBase) ZInterStoreWithParams(destKey string, params ZParams, sets ...string) (*Response, error) {
+func (p *multiKeyPipelineBase) ZInterStoreWithParams(destKey string, params *ZParams, sets ...string) (*Response, error) {
 	err := p.client.zinterstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return nil, err
@@ -614,7 +623,7 @@ func (p *multiKeyPipelineBase) ZUnionStore(destKey string, sets ...string) (*Res
 }
 
 //ZUnionStoreWithParams  see redis command
-func (p *multiKeyPipelineBase) ZUnionStoreWithParams(destKey string, params ZParams, sets ...string) (*Response, error) {
+func (p *multiKeyPipelineBase) ZUnionStoreWithParams(destKey string, params *ZParams, sets ...string) (*Response, error) {
 	err := p.client.zunionstoreWithParams(destKey, params, sets...)
 	if err != nil {
 		return nil, err
@@ -628,7 +637,7 @@ func (p *multiKeyPipelineBase) BRPopLPush(source, destination string, timeout in
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //Publish  see redis command
@@ -646,7 +655,7 @@ func (p *multiKeyPipelineBase) RandomKey() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //BitOp  see redis command
@@ -664,7 +673,7 @@ func (p *multiKeyPipelineBase) PfMerge(destKey string, srcKeys ...string) (*Resp
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //PfCount  see redis command
@@ -686,7 +695,7 @@ func (p *multiKeyPipelineBase) ClusterNodes() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterMeet  see redis command
@@ -695,7 +704,7 @@ func (p *multiKeyPipelineBase) ClusterMeet(ip string, port int) (*Response, erro
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterAddSlots  see redis command
@@ -704,7 +713,7 @@ func (p *multiKeyPipelineBase) ClusterAddSlots(slots ...int) (*Response, error) 
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterDelSlots  see redis command
@@ -713,7 +722,7 @@ func (p *multiKeyPipelineBase) ClusterDelSlots(slots ...int) (*Response, error) 
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterInfo  see redis command
@@ -722,7 +731,7 @@ func (p *multiKeyPipelineBase) ClusterInfo() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterGetKeysInSlot  see redis command
@@ -731,7 +740,7 @@ func (p *multiKeyPipelineBase) ClusterGetKeysInSlot(slot int, count int) (*Respo
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringArrayBuilder), nil
+	return p.getResponse(StrArrBuilder), nil
 }
 
 //ClusterSetSlotNode  see redis command
@@ -740,7 +749,7 @@ func (p *multiKeyPipelineBase) ClusterSetSlotNode(slot int, nodeID string) (*Res
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterSetSlotMigrating  see redis command
@@ -749,7 +758,7 @@ func (p *multiKeyPipelineBase) ClusterSetSlotMigrating(slot int, nodeID string) 
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //ClusterSetSlotImporting  see redis command
@@ -758,7 +767,7 @@ func (p *multiKeyPipelineBase) ClusterSetSlotImporting(slot int, nodeID string) 
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //</editor-fold>
@@ -771,7 +780,7 @@ func (p *multiKeyPipelineBase) Eval(script string, keyCount int, params ...strin
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //EvalSha  see redis command
@@ -780,7 +789,7 @@ func (p *multiKeyPipelineBase) EvalSha(sha1 string, keyCount int, params ...stri
 	if err != nil {
 		return nil, err
 	}
-	return p.getResponse(StringBuilder), nil
+	return p.getResponse(StrBuilder), nil
 }
 
 //</editor-fold>

@@ -18,13 +18,24 @@ type Pool struct {
 	ctx          context.Context
 }
 
-//PoolConfig redis pool config
+//PoolConfig redis pool config, see go-commons-pool ObjectPoolConfig
 type PoolConfig struct {
-	MaxTotal             int
-	MaxIdle              int
-	MinIdle              int
-	MinEvictableIdleTime time.Duration
-	TestOnBorrow         bool
+	MaxTotal int //The cap on the number of objects that can be allocated
+	MaxIdle  int //The cap on the number of "idle" instances in the pool
+	MinIdle  int //The minimum number of idle objects to maintain in the pool
+
+	LIFO               bool //Whether the pool has LIFO (last in, first out) behaviour
+	TestOnBorrow       bool //Whether objects borrowed from the pool will be validated before being returned from the ObjectPool.BorrowObject() method
+	TestWhileIdle      bool //Whether objects sitting idle in the pool will be validated by the idle object evictor (if any - see TimeBetweenEvictionRuns )
+	TestOnReturn       bool //Whether objects borrowed from the pool will be validated when they are returned to the pool via the ObjectPool.ReturnObject() method
+	TestOnCreate       bool //Whether objects created for the pool will be validated before being returned from the ObjectPool.BorrowObject() method.
+	BlockWhenExhausted bool //Whether to block when the ObjectPool.BorrowObject() method is invoked when the pool is exhausted
+
+	MinEvictableIdleTime     time.Duration //The minimum amount of time an object may sit idle in the pool
+	SoftMinEvictableIdleTime time.Duration //if MinEvictableIdleTime is positive, then SoftMinEvictableIdleTime is ignored
+	TimeBetweenEvictionRuns  time.Duration //The amount of time sleep between runs of the idle object evictor goroutine.
+	EvictionPolicyName       string        //The name of the EvictionPolicy implementation
+	NumTestsPerEvictionRun   int           //The maximum number of objects to examine during each run
 }
 
 //NewPool create new pool
@@ -36,7 +47,7 @@ func NewPool(config *PoolConfig, option *Option) *Pool {
 	if config != nil && config.MaxIdle != 0 {
 		poolConfig.MaxIdle = config.MaxIdle
 	}
-	if config != nil && config.MaxIdle != 0 {
+	if config != nil && config.MinIdle != 0 {
 		poolConfig.MinIdle = config.MinIdle
 	}
 	if config != nil && config.MinEvictableIdleTime != 0 {

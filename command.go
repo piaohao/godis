@@ -34,8 +34,8 @@ func (p *ZAddParams) CH() *ZAddParams {
 	return p
 }
 
-//GetByteParams get all params
-func (p *ZAddParams) GetByteParams(key []byte, args ...[]byte) [][]byte {
+//getByteParams get all params
+func (p *ZAddParams) getByteParams(key []byte, args ...[]byte) [][]byte {
 	arr := make([][]byte, 0)
 	arr = append(arr, key)
 	if p.Contains("XX") {
@@ -64,106 +64,123 @@ type BitPosParams struct {
 	params [][]byte
 }
 
-//SortingParams sort params
-type SortingParams struct {
-	params [][]byte
+//SortParams sort params
+type SortParams struct {
+	params []string
 }
 
-//NewSortingParams create new sort params instance
-func NewSortingParams() *SortingParams {
-	return &SortingParams{params: make([][]byte, 0)}
+//NewSortParams create new sort params instance
+func NewSortParams() *SortParams {
+	return &SortParams{params: make([]string, 0)}
+}
+
+func (p *SortParams) getParams() [][]byte {
+	return StrArrToByteArrArr(p.params)
 }
 
 //By set by param with pattern
-func (p *SortingParams) By(pattern string) *SortingParams {
-	p.params = append(p.params, keywordBy.GetRaw())
-	p.params = append(p.params, []byte(pattern))
+func (p *SortParams) By(pattern string) *SortParams {
+	p.params = append(p.params, keywordBy.name)
+	p.params = append(p.params, pattern)
 	return p
 }
 
 //NoSort set by param with nosort
-func (p *SortingParams) NoSort() *SortingParams {
-	p.params = append(p.params, keywordBy.GetRaw())
-	p.params = append(p.params, keywordNosort.GetRaw())
+func (p *SortParams) NoSort() *SortParams {
+	p.params = append(p.params, keywordBy.name)
+	p.params = append(p.params, keywordNosort.name)
 	return p
 }
 
 //Desc set desc param,then sort elements in descending order
-func (p *SortingParams) Desc() *SortingParams {
-	p.params = append(p.params, keywordDesc.GetRaw())
+func (p *SortParams) Desc() *SortParams {
+	p.params = append(p.params, keywordDesc.name)
 	return p
 }
 
 //Asc set asc param,then sort elements in ascending order
-func (p *SortingParams) Asc() *SortingParams {
-	p.params = append(p.params, keywordAsc.GetRaw())
+func (p *SortParams) Asc() *SortParams {
+	p.params = append(p.params, keywordAsc.name)
 	return p
 }
 
 //Limit limit the sort result,[x,y)
-func (p *SortingParams) Limit(start, count int) *SortingParams {
-	p.params = append(p.params, keywordLimit.GetRaw())
-	p.params = append(p.params, IntToByteArray(start))
-	p.params = append(p.params, IntToByteArray(count))
+func (p *SortParams) Limit(start, count int) *SortParams {
+	p.params = append(p.params, keywordLimit.name)
+	p.params = append(p.params, strconv.Itoa(start))
+	p.params = append(p.params, strconv.Itoa(count))
 	return p
 }
 
 //Alpha sort elements in alpha order
-func (p *SortingParams) Alpha() *SortingParams {
-	p.params = append(p.params, keywordAlpha.GetRaw())
+func (p *SortParams) Alpha() *SortParams {
+	p.params = append(p.params, keywordAlpha.name)
 	return p
 }
 
 //Get set get param with patterns
-func (p *SortingParams) Get(patterns ...string) *SortingParams {
+func (p *SortParams) Get(patterns ...string) *SortParams {
 	for _, pattern := range patterns {
-		p.params = append(p.params, keywordGet.GetRaw())
-		p.params = append(p.params, []byte(pattern))
+		p.params = append(p.params, keywordGet.name)
+		p.params = append(p.params, pattern)
 	}
 	return p
 }
 
 //ScanParams scan,hscan,sscan,zscan params
 type ScanParams struct {
-	params map[*keyword][]byte
+	//params map[*keyword][]byte
+	params map[string]string
 }
 
 //NewScanParams create scan params instance
 func NewScanParams() *ScanParams {
-	return &ScanParams{params: make(map[*keyword][]byte)}
+	return &ScanParams{params: make(map[string]string)}
 }
 
-//GetParams get all scan params
-func (s ScanParams) GetParams() [][]byte {
+//Match scan match pattern
+func (s *ScanParams) Match(pattern string) *ScanParams {
+	s.params[keywordMatch.name] = pattern
+	return s
+}
+
+//Count scan result count
+func (s *ScanParams) Count(count int) *ScanParams {
+	s.params[keywordCount.name] = strconv.Itoa(count)
+	return s
+}
+
+//getParams get all scan params
+func (s ScanParams) getParams() [][]byte {
 	arr := make([][]byte, 0)
 	for k, v := range s.params {
-		arr = append(arr, k.GetRaw())
+		arr = append(arr, []byte(k))
 		arr = append(arr, []byte(v))
 	}
 	return arr
 }
 
-//Match get the match param value
-func (s ScanParams) Match() string {
-	if v, ok := s.params[keywordMatch]; ok {
-		return string(v)
+//GetMatch get the match param value
+func (s ScanParams) GetMatch() string {
+	if v, ok := s.params[keywordMatch.name]; ok {
+		return v
 	}
 	return ""
 }
 
 //ListOption  list option
 type ListOption struct {
-	Name string // name  ...
+	name string // name  ...
 }
 
-//GetRaw get the option name byte array
-func (l ListOption) GetRaw() []byte {
-	return []byte(l.Name)
+//getRaw get the option name byte array
+func (l *ListOption) getRaw() []byte {
+	return []byte(l.name)
 }
 
 //NewListOption create new list option instance
-func newListOption(name string) ListOption {
-	return ListOption{name}
+func newListOption(name string) *ListOption {
+	return &ListOption{name}
 }
 
 var (
@@ -175,17 +192,17 @@ var (
 
 //GeoUnit geo unit,m|mi|km|ft
 type GeoUnit struct {
-	Name string // name of geo unit
+	name string // name of geo unit
 }
 
-//GetRaw get the name byte array
-func (g GeoUnit) GetRaw() []byte {
-	return []byte(g.Name)
+//getRaw get the name byte array
+func (g *GeoUnit) getRaw() []byte {
+	return []byte(g.name)
 }
 
 //NewGeoUnit create a new geounit instance
-func newGeoUnit(name string) GeoUnit {
-	return GeoUnit{name}
+func newGeoUnit(name string) *GeoUnit {
+	return &GeoUnit{name}
 }
 
 var (
@@ -199,50 +216,50 @@ var (
 	GeoUnitFt = newGeoUnit("ft")
 )
 
-//GeoRadiusParam geo radius param
-type GeoRadiusParam struct {
+//GeoRadiusParams geo radius param
+type GeoRadiusParams struct {
 	params map[string]string
 }
 
 //NewGeoRadiusParam create a new geo radius param instance
-func NewGeoRadiusParam() *GeoRadiusParam {
-	return &GeoRadiusParam{params: make(map[string]string)}
+func NewGeoRadiusParam() *GeoRadiusParams {
+	return &GeoRadiusParams{params: make(map[string]string)}
 }
 
 //WithCoord fill the geo result with coordinate
-func (p *GeoRadiusParam) WithCoord() *GeoRadiusParam {
+func (p *GeoRadiusParams) WithCoord() *GeoRadiusParams {
 	p.params["withcoord"] = "withcoord"
 	return p
 }
 
 //WithDist fill the geo result with distance
-func (p *GeoRadiusParam) WithDist() *GeoRadiusParam {
+func (p *GeoRadiusParams) WithDist() *GeoRadiusParams {
 	p.params["withdist"] = "withdist"
 	return p
 }
 
 //SortAscending sort th geo result in ascending order
-func (p *GeoRadiusParam) SortAscending() *GeoRadiusParam {
+func (p *GeoRadiusParams) SortAscending() *GeoRadiusParams {
 	p.params["asc"] = "asc"
 	return p
 }
 
 //SortDescending sort the geo result in descending order
-func (p *GeoRadiusParam) SortDescending() *GeoRadiusParam {
+func (p *GeoRadiusParams) SortDescending() *GeoRadiusParams {
 	p.params["desc"] = "desc"
 	return p
 }
 
 //Count fill the geo result with count
-func (p *GeoRadiusParam) Count(count int) *GeoRadiusParam {
+func (p *GeoRadiusParams) Count(count int) *GeoRadiusParams {
 	if count > 0 {
 		p.params["count"] = strconv.Itoa(count)
 	}
 	return p
 }
 
-//GetParams  get geo param byte array
-func (p *GeoRadiusParam) GetParams(args [][]byte) [][]byte {
+//getParams  get geo param byte array
+func (p *GeoRadiusParams) getParams(args [][]byte) [][]byte {
 	arr := make([][]byte, 0)
 	for _, a := range args {
 		arr = append(arr, a)
@@ -258,7 +275,7 @@ func (p *GeoRadiusParam) GetParams(args [][]byte) [][]byte {
 	if p.Contains("count") {
 		arr = append(arr, []byte("count"))
 		count, _ := strconv.Atoi(p.params["count"])
-		arr = append(arr, IntToByteArray(count))
+		arr = append(arr, IntToByteArr(count))
 	}
 
 	if p.Contains("asc") {
@@ -271,25 +288,25 @@ func (p *GeoRadiusParam) GetParams(args [][]byte) [][]byte {
 }
 
 //Contains test geo param contains the key
-func (p *GeoRadiusParam) Contains(key string) bool {
+func (p *GeoRadiusParams) Contains(key string) bool {
 	_, ok := p.params[key]
 	return ok
 }
 
 //Tuple zset tuple
 type Tuple struct {
-	element []byte
+	element string
 	score   float64
 }
 
 //GeoRadiusResponse geo radius response
 type GeoRadiusResponse struct {
-	member     []byte
+	member     string
 	distance   float64
 	coordinate GeoCoordinate
 }
 
-func newGeoRadiusResponse(member []byte) *GeoRadiusResponse {
+func newGeoRadiusResponse(member string) *GeoRadiusResponse {
 	return &GeoRadiusResponse{member: member}
 }
 
@@ -307,48 +324,48 @@ type ScanResult struct {
 
 //ZParams zset operation params
 type ZParams struct {
-	params [][]byte
+	params []string
 }
 
-//GetParams get params byte array
-func (g *ZParams) GetParams() [][]byte {
-	return g.params
+//getParams get params byte array
+func (g *ZParams) getParams() [][]byte {
+	return StrArrToByteArrArr(g.params)
 }
 
 //WeightsByDouble Set weights.
 func (g *ZParams) WeightsByDouble(weights ...float64) *ZParams {
-	g.params = append(g.params, keywordWeights.GetRaw())
+	g.params = append(g.params, keywordWeights.name)
 	for _, w := range weights {
-		g.params = append(g.params, Float64ToByteArray(w))
+		g.params = append(g.params, Float64ToStr(w))
 	}
 	return g
 }
 
 //Aggregate Set Aggregate.
-func (g *ZParams) Aggregate(aggregate Aggregate) *ZParams {
-	g.params = append(g.params, keywordAggregate.GetRaw())
-	g.params = append(g.params, aggregate.GetRaw())
+func (g *ZParams) Aggregate(aggregate *Aggregate) *ZParams {
+	g.params = append(g.params, keywordAggregate.name)
+	g.params = append(g.params, aggregate.name)
 	return g
 }
 
 //newZParams create a new zparams instance
 func newZParams() *ZParams {
-	return &ZParams{params: make([][]byte, 0)}
+	return &ZParams{params: make([]string, 0)}
 }
 
 //Aggregate aggregate,sum|min|max
 type Aggregate struct {
-	Name string // name of Aggregate
+	name string // name of Aggregate
 }
 
-//GetRaw get the name byte array
-func (g Aggregate) GetRaw() []byte {
-	return []byte(g.Name)
+//getRaw get the name byte array
+func (g *Aggregate) getRaw() []byte {
+	return []byte(g.name)
 }
 
 //newAggregate create a new geounit instance
-func newAggregate(name string) Aggregate {
-	return Aggregate{name}
+func newAggregate(name string) *Aggregate {
+	return &Aggregate{name}
 }
 
 var (
@@ -483,19 +500,19 @@ func (r *RedisPubSub) process(redis *Redis) error {
 		}
 		respUpper := strings.ToUpper(string(reply[0].([]byte)))
 		switch respUpper {
-		case keywordSubscribe.Name:
+		case keywordSubscribe.name:
 			r.processSubscribe(reply)
-		case keywordUnsubscribe.Name:
+		case keywordUnsubscribe.name:
 			r.processUnSubscribe(reply)
-		case keywordMessage.Name:
+		case keywordMessage.name:
 			r.processMessage(reply)
-		case keywordPMessage.Name:
-			r.processPmessage(reply)
-		case keywordPSubscribe.Name:
-			r.processPsubscribe(reply)
-		case cmdPUnSubscribe.Name:
-			r.processPunsubcribe(reply)
-		case keywordPong.Name:
+		case keywordPMessage.name:
+			r.processPMessage(reply)
+		case keywordPSubscribe.name:
+			r.processPSubscribe(reply)
+		case cmdPUnSubscribe.name:
+			r.processPUnSubscribe(reply)
+		case keywordPong.name:
 			r.processPong(reply)
 		default:
 			return fmt.Errorf("unknown message type: %v", reply)
@@ -547,7 +564,7 @@ func (r *RedisPubSub) processMessage(reply []interface{}) {
 	r.OnMessage(strChannel, strMsg)
 }
 
-func (r *RedisPubSub) processPmessage(reply []interface{}) {
+func (r *RedisPubSub) processPMessage(reply []interface{}) {
 	bPattern := reply[1].([]byte)
 	bChannel := reply[2].([]byte)
 	bMsg := reply[3].([]byte)
@@ -566,7 +583,7 @@ func (r *RedisPubSub) processPmessage(reply []interface{}) {
 	r.OnPMessage(strPattern, strChannel, strMsg)
 }
 
-func (r *RedisPubSub) processPsubscribe(reply []interface{}) {
+func (r *RedisPubSub) processPSubscribe(reply []interface{}) {
 	r.subscribedChannels = int(reply[2].(int64))
 	bPattern := reply[1].([]byte)
 	strPattern := ""
@@ -576,7 +593,7 @@ func (r *RedisPubSub) processPsubscribe(reply []interface{}) {
 	r.OnPSubscribe(strPattern, r.subscribedChannels)
 }
 
-func (r *RedisPubSub) processPunsubcribe(reply []interface{}) {
+func (r *RedisPubSub) processPUnSubscribe(reply []interface{}) {
 	r.subscribedChannels = int(reply[2].(int64))
 	bPattern := reply[1].([]byte)
 	strPattern := ""
@@ -597,17 +614,17 @@ func (r *RedisPubSub) processPong(reply []interface{}) {
 
 //BitOP bit operation struct
 type BitOP struct {
-	Name string //name if bit operation
+	name string //name if bit operation
 }
 
-//GetRaw get the name byte array
-func (g BitOP) GetRaw() []byte {
-	return []byte(g.Name)
+//getRaw get the name byte array
+func (g *BitOP) getRaw() []byte {
+	return []byte(g.name)
 }
 
 //NewBitOP
-func newBitOP(name string) BitOP {
-	return BitOP{name}
+func newBitOP(name string) *BitOP {
+	return &BitOP{name}
 }
 
 var (
@@ -651,12 +668,12 @@ func NewDebugParamsReload() *DebugParams {
 
 //Reset reset struct
 type Reset struct {
-	Name string //name of reset
+	name string //name of reset
 }
 
-//GetRaw get the name byte array
-func (g *Reset) GetRaw() []byte {
-	return []byte(g.Name)
+//getRaw get the name byte array
+func (g *Reset) getRaw() []byte {
+	return []byte(g.name)
 }
 
 func newReset(name string) *Reset {

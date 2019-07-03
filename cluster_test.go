@@ -87,7 +87,7 @@ func TestRedisCluster_Bitop(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, false, b)
 
-	i, e := redis.BitOp(BitOpAnd, "c", "bit-1", "bit-2")
+	i, e := redis.BitOp(*BitOpAnd, "c", "bit-1", "bit-2")
 	assert.NotNil(t, e)
 	assert.Equal(t, int64(0), i)
 
@@ -101,7 +101,7 @@ func TestRedisCluster_Bitpos(t *testing.T) {
 	clearKeys(redis)
 
 	redis.Set("godis", "\x00\xff\xf0")
-	s, err := redis.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	s, err := redis.BitPos("godis", true, &BitPosParams{params: [][]byte{IntToByteArr(0)}})
 	assert.Nil(t, err)
 	assert.Equal(t, int64(8), s)
 }
@@ -482,12 +482,7 @@ func TestRedisCluster_Hscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("a*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("a*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -557,7 +552,7 @@ func TestRedisCluster_IncrBy(t *testing.T) {
 	redis := NewRedisCluster(clusterOption)
 	clearKeys(redis)
 	var group sync.WaitGroup
-	ch := make(chan bool, 8)
+	ch := make(chan bool, 2)
 	for i := 0; i < 100000; i++ {
 		group.Add(1)
 		ch <- true
@@ -859,12 +854,7 @@ func TestRedisCluster_Scan(t *testing.T) {
 		redis.Set(fmt.Sprintf("{godis}%d", i), fmt.Sprintf("godis%d", i))
 	}
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("{godis}*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("{godis}*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -1068,17 +1058,17 @@ func TestRedisCluster_Sort(t *testing.T) {
 	redis := NewRedisCluster(clusterOption)
 	clearKeys(redis)
 	redis.LPush("godis", "3", "2", "1", "4", "6", "5")
-	p := NewSortingParams().Desc()
-	arr, e := redis.Sort("godis", *p)
+	p := NewSortParams().Desc()
+	arr, e := redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"6", "5", "4", "3", "2", "1"}, arr)
 
-	p = NewSortingParams().Asc()
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().Asc()
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, arr)
 
-	_, e = redis.SortStore("godis", "godis1", *p)
+	_, e = redis.SortStore("godis", "godis1", p)
 	assert.NotNil(t, e)
 }
 
@@ -1092,12 +1082,7 @@ func TestRedisCluster_Sscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -1201,8 +1186,12 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(5), c)
 
+	score, err := redis.ZScore("godis", "a")
+	assert.Nil(t, err)
+	assert.Equal(t, float64(1), score)
+
 	//zcount include the boundary
-	c, err = redis.ZCount("godis", "2", "5")
+	c, err = redis.ZCount("godis", 2, 5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), c)
 
@@ -1218,11 +1207,11 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
-	arr, err = redis.ZRangeByScore("godis", "2", "6.5")
+	arr, err = redis.ZRangeByScore("godis", 2, 6.5)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
-	arr, err = redis.ZRevRangeByScore("godis", "6.5", "2")
+	arr, err = redis.ZRevRangeByScore("godis", 6.5, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
 
@@ -1230,61 +1219,61 @@ func TestRedisCluster_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
 
-	tuples, err := redis.ZRangeByScoreWithScores("godis", "2", "6.5")
+	tuples, err := redis.ZRangeByScoreWithScores("godis", 2, 6.5)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
-		{element: []byte("d"), score: 4},
-		{element: []byte("e"), score: 6.5},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
+		{element: "d", score: 4},
+		{element: "e", score: 6.5},
 	}, tuples)
 
 	tuples, err = redis.ZRangeWithScores("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
-		{element: []byte("d"), score: 4},
-		{element: []byte("e"), score: 6.5},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
+		{element: "d", score: 4},
+		{element: "e", score: 6.5},
 	}, tuples)
 
-	tuples, err = redis.ZRevRangeByScoreWithScores("godis", "6.5", "2")
+	tuples, err = redis.ZRevRangeByScoreWithScores("godis", 6.5, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
-		{element: []byte("c"), score: 3},
-		{element: []byte("b"), score: 2},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
+		{element: "c", score: 3},
+		{element: "b", score: 2},
 	}, tuples)
 
 	tuples, err = redis.ZRevRangeWithScores("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
-		{element: []byte("c"), score: 3},
-		{element: []byte("b"), score: 2},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
+		{element: "c", score: 3},
+		{element: "b", score: 2},
 	}, tuples)
 
-	arr, err = redis.ZRangeByScoreBatch("godis", "2", "6.5", 0, 2)
+	arr, err = redis.ZRangeByScoreBatch("godis", 2, 6.5, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c"}, arr)
 
-	tuples, err = redis.ZRangeByScoreWithScoresBatch("godis", "2", "6.5", 0, 2)
+	tuples, err = redis.ZRangeByScoreWithScoresBatch("godis", 2, 6.5, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
 	}, tuples)
 
-	tuples, err = redis.ZRevRangeByScoreWithScoresBatch("godis", "6.5", "2", 0, 2)
+	tuples, err = redis.ZRevRangeByScoreWithScoresBatch("godis", 6.5, 2, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
 	}, tuples)
 
-	c, err = redis.ZRemRangeByScore("godis", "2", "2.5")
+	c, err = redis.ZRemRangeByScore("godis", 2, 2.5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), c)
 
@@ -1346,12 +1335,7 @@ func TestRedisCluster_Zscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -1382,7 +1366,7 @@ func TestRedisCluster_Zinterstore(t *testing.T) {
 	assert.Equal(t, int64(0), c)
 
 	param := newZParams().Aggregate(AggregateSum)
-	c, err = redis.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
+	c, err = redis.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 
@@ -1391,7 +1375,7 @@ func TestRedisCluster_Zinterstore(t *testing.T) {
 	assert.Equal(t, int64(0), c)
 
 	param = newZParams().Aggregate(AggregateMax)
-	c, err = redis.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
+	c, err = redis.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), c)
 }

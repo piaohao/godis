@@ -3,6 +3,7 @@ package godis
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -63,24 +64,17 @@ const (
 )
 
 var (
-	bytesTrue  = IntToByteArray(1)
-	bytesFalse = IntToByteArray(0)
+	bytesTrue  = IntToByteArr(1)
+	bytesFalse = IntToByteArr(0)
 	bytesTilde = []byte("~")
 
 	positiveInfinityBytes = []byte("+inf")
 	negativeInfinityBytes = []byte("-inf")
 )
 
-const (
-	maxUint = ^uint(0)
-	minUint = 0
-	maxInt  = int(maxUint >> 1)
-	minInt  = -maxInt - 1
-)
-
 var (
 	sizeTable = []int{9, 99, 999, 9999, 99999, 999999, 9999999, 99999999,
-		999999999, maxInt}
+		999999999, math.MaxInt64}
 
 	digitTens = []byte{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1',
 		'1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2',
@@ -588,12 +582,12 @@ func (p *protocol) extractParts(from string) (string, string) {
 
 // redis protocol command
 type protocolCommand struct {
-	Name string // name of command
+	name string // name of command
 }
 
-// GetRaw get name byte array
-func (p protocolCommand) GetRaw() []byte {
-	return []byte(p.Name)
+// getRaw get name byte array
+func (p protocolCommand) getRaw() []byte {
+	return []byte(p.name)
 }
 
 func newProtocolCommand(name string) protocolCommand {
@@ -789,12 +783,12 @@ var (
 
 // redis keyword
 type keyword struct {
-	Name string // name of keyword
+	name string // name of keyword
 }
 
-// GetRaw byte array of name
-func (k *keyword) GetRaw() []byte {
-	return []byte(k.Name)
+// getRaw byte array of name
+func (k *keyword) getRaw() []byte {
+	return []byte(k.name)
 }
 
 func newKeyword(name string) *keyword {

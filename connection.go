@@ -78,7 +78,7 @@ func (c *connection) sendCommand(cmd protocolCommand, args ...[]byte) error {
 	if err != nil {
 		return err
 	}
-	if err := c.protocol.sendCommand(cmd.GetRaw(), args...); err != nil {
+	if err := c.protocol.sendCommand(cmd.getRaw(), args...); err != nil {
 		return err
 	}
 	c.pipelinedCommands++

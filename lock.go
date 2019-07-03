@@ -58,7 +58,7 @@ func (l *Locker) TryLock(key string) (*Lock, error) {
 		status, err := redis.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 		redis.Close()
 		if err == nil {
-			if status == keywordOk.Name {
+			if status == keywordOk.name {
 				return &Lock{name: key}, nil
 			}
 		}
@@ -92,7 +92,7 @@ func (l *Locker) UnLock(lock *Lock) error {
 //ClusterLocker cluster lock client
 type ClusterLocker struct {
 	timeout      time.Duration
-	ch           chan int
+	ch           chan bool
 	redisCluster *RedisCluster
 }
 
@@ -106,7 +106,7 @@ func NewClusterLocker(option *ClusterOption, lockOption *LockOption) *ClusterLoc
 	}
 	return &ClusterLocker{
 		timeout:      lockOption.Timeout,
-		ch:           make(chan int, 1),
+		ch:           make(chan bool, 1),
 		redisCluster: NewRedisCluster(option),
 	}
 }
@@ -123,7 +123,7 @@ func (l *ClusterLocker) TryLock(key string) (*Lock, error) {
 		if len(l.ch) == 0 {
 			status, err := l.redisCluster.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 			//get lock success
-			if err == nil && status == keywordOk.Name {
+			if err == nil && status == keywordOk.name {
 				return &Lock{name: key}, nil
 			}
 		}
@@ -138,7 +138,7 @@ func (l *ClusterLocker) TryLock(key string) (*Lock, error) {
 
 //UnLock when your business end,then release the locker
 func (l *ClusterLocker) UnLock(lock *Lock) error {
-	l.ch <- 1
+	l.ch <- true
 	c, err := l.redisCluster.Del(lock.name)
 	if c == 0 {
 		return nil

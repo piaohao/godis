@@ -8,11 +8,10 @@ import (
 
 func TestPool_Basic(t *testing.T) {
 	pool := NewPool(&PoolConfig{
-		MaxTotal:             4,
-		MaxIdle:              2,
-		MinIdle:              2,
-		MinEvictableIdleTime: 10,
-		TestOnBorrow:         true,
+		MaxTotal:     4,
+		MaxIdle:      2,
+		MinIdle:      2,
+		TestOnBorrow: true,
 	}, &Option{
 		Host:              "localhost",
 		Port:              6379,
@@ -34,18 +33,20 @@ func TestPool_Basic(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, "godis", s)
 
-	//redis1, e := pool.GetResource()
-	//assert.Nil(t, e)
-	//e = pool.returnBrokenResourceObject(redis1)
-	//assert.Nil(t, e)
-	//s, e = redis1.Echo("godis")
-	//assert.NotNil(t, e)
-	//assert.Equal(t, "", s)
+	redis1, e := pool.GetResource()
+	assert.Nil(t, e)
+	e = pool.returnBrokenResourceObject(redis1)
+	assert.Nil(t, e)
+	s, e = redis1.Echo("godis")
+	assert.NotNil(t, e)
+	assert.Equal(t, "", s)
 
-	redis2, e := pool.GetResource()
+	pool.internalPool.Clear(nil)
+
+	redis3, e := pool.GetResource()
 	assert.Nil(t, e)
 	pool.Destroy()
-	s, e = redis2.Echo("godis")
+	s, e = redis3.Echo("godis")
 	assert.Nil(t, e)
 	assert.Equal(t, "godis", s)
 

@@ -346,49 +346,49 @@ func TestRedis_Sort(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	redis.LPush("godis", "3", "2", "1", "4", "6", "5")
-	p := NewSortingParams().Desc()
-	arr, e := redis.Sort("godis", *p)
+	p := NewSortParams().Desc()
+	arr, e := redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"6", "5", "4", "3", "2", "1"}, arr)
 
-	p = NewSortingParams().Desc().Limit(0, 1)
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().Desc().Limit(0, 1)
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"6"}, arr)
 
-	p = NewSortingParams().Asc()
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().Asc()
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, arr)
 
-	p = NewSortingParams().Alpha()
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().Alpha()
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, arr)
 
-	p = NewSortingParams().By("*").Get("*")
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().By("*").Get("*")
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"", "", "", "", "", ""}, arr)
 
-	c, e := redis.SortStore("godis", "godis1", *p)
+	c, e := redis.SortStore("godis", "godis1", p)
 	assert.Nil(t, e)
 	assert.Equal(t, int64(6), c)
 
-	p = NewSortingParams().NoSort()
-	arr, e = redis.Sort("godis", *p)
+	p = NewSortParams().NoSort()
+	arr, e = redis.Sort("godis", p)
 	assert.Nil(t, e)
 	assert.Equal(t, []string{"3", "2", "1", "4", "6", "5"}, arr)
 
 	redisBroken := NewRedis(option1)
 	defer redisBroken.Close()
 	m, _ := redisBroken.Multi()
-	_, e = redisBroken.Sort("godis", *p)
+	_, e = redisBroken.Sort("godis", p)
 	assert.NotNil(t, e)
 	m.Discard()
 	redisBroken.client.connection.host = "localhost1"
 	redisBroken.Close()
-	_, e = redisBroken.Sort("godis", *p)
+	_, e = redisBroken.Sort("godis", p)
 	assert.NotNil(t, e)
 }
 
@@ -437,7 +437,7 @@ func TestRedis_Zinterstore(t *testing.T) {
 	assert.Equal(t, int64(2), c)
 
 	param := newZParams().Aggregate(AggregateSum)
-	c, err = redis.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
+	c, err = redis.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(2), c)
 
@@ -446,7 +446,7 @@ func TestRedis_Zinterstore(t *testing.T) {
 	assert.Equal(t, int64(3), c)
 
 	param = newZParams().Aggregate(AggregateMax)
-	c, err = redis.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
+	c, err = redis.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.Nil(t, err)
 	assert.Equal(t, int64(3), c)
 
@@ -455,22 +455,22 @@ func TestRedis_Zinterstore(t *testing.T) {
 	m, _ := redisBroken.Multi()
 	_, err = redisBroken.ZInterStore("godis3", "godis1", "godis2")
 	assert.NotNil(t, err)
-	_, err = redisBroken.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
+	_, err = redisBroken.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	_, err = redisBroken.ZUnionStore("godis3", "godis1", "godis2")
 	assert.NotNil(t, err)
-	_, err = redisBroken.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
+	_, err = redisBroken.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	m.Discard()
 	redisBroken.client.connection.host = "localhost1"
 	redisBroken.Close()
 	_, err = redisBroken.ZInterStore("godis3", "godis1", "godis2")
 	assert.NotNil(t, err)
-	_, err = redisBroken.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
+	_, err = redisBroken.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 	_, err = redisBroken.ZUnionStore("godis3", "godis1", "godis2")
 	assert.NotNil(t, err)
-	_, err = redisBroken.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
+	_, err = redisBroken.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.NotNil(t, err)
 }
 
@@ -729,7 +729,7 @@ func TestRedis_Bitop(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, false, b)
 
-	i, e := redis.BitOp(BitOpAnd, "and-result", "bit-1", "bit-2")
+	i, e := redis.BitOp(*BitOpAnd, "and-result", "bit-1", "bit-2")
 	assert.Nil(t, e)
 	assert.Equal(t, int64(1), i)
 
@@ -742,14 +742,14 @@ func TestRedis_Bitop(t *testing.T) {
 	m, _ := redisBroken.Multi()
 	_, e = redisBroken.SetBit("bit-1", 0, "1")
 	assert.Nil(t, e)
-	_, e = redisBroken.BitOp(BitOpAnd, "and-result", "bit-1", "bit-2")
+	_, e = redisBroken.BitOp(*BitOpAnd, "and-result", "bit-1", "bit-2")
 	assert.NotNil(t, e)
 	m.Discard()
 	redisBroken.client.connection.host = "localhost1"
 	redisBroken.Close()
 	_, e = redisBroken.SetBit("bit-1", 0, "1")
 	assert.NotNil(t, e)
-	_, e = redisBroken.BitOp(BitOpAnd, "and-result", "bit-1", "bit-2")
+	_, e = redisBroken.BitOp(*BitOpAnd, "and-result", "bit-1", "bit-2")
 	assert.NotNil(t, e)
 }
 
@@ -764,12 +764,7 @@ func TestRedis_Scan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, c, 1000)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("godis*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("godis*").Count(10)
 	cursor := "0"
 	total := 0
 	for {

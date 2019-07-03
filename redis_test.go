@@ -141,19 +141,19 @@ func TestRedis_Bitpos(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	redis.Set("godis", "\x00\xff\xf0")
-	s, err := redis.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	s, err := redis.BitPos("godis", true, &BitPosParams{params: [][]byte{IntToByteArr(0)}})
 	assert.Nil(t, err)
 	assert.Equal(t, int64(8), s)
 
 	redisBroken := NewRedis(option)
 	defer redisBroken.Close()
 	m, _ := redisBroken.Multi()
-	_, err = redisBroken.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	_, err = redisBroken.BitPos("godis", true, &BitPosParams{params: [][]byte{IntToByteArr(0)}})
 	assert.Nil(t, err)
 	m.Discard()
 	redisBroken.client.connection.host = "localhost1"
 	redisBroken.Close()
-	_, err = redisBroken.BitPos("godis", true, BitPosParams{params: [][]byte{IntToByteArray(0)}})
+	_, err = redisBroken.BitPos("godis", true, &BitPosParams{params: [][]byte{IntToByteArr(0)}})
 	assert.NotNil(t, err)
 }
 
@@ -717,12 +717,7 @@ func TestRedis_Hscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("a*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("a*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -865,7 +860,7 @@ func TestRedis_IncrBy(t *testing.T) {
 	flushAll()
 	pool := NewPool(nil, option)
 	var group sync.WaitGroup
-	ch := make(chan bool, 8)
+	ch := make(chan bool, 2)
 	for i := 0; i < 100000; i++ {
 		group.Add(1)
 		ch <- true
@@ -1350,7 +1345,7 @@ func TestRedis_Send(t *testing.T) {
 	defer redis.Close()
 	err := redis.Send(cmdGet, []byte("godis"))
 	assert.Nil(t, err)
-	s, err := ToStringReply(redis.Receive())
+	s, err := ToStrReply(redis.Receive())
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
 
@@ -1372,7 +1367,7 @@ func TestRedis_SendByStr(t *testing.T) {
 	defer redis.Close()
 	err := redis.SendByStr("get", []byte("godis"))
 	assert.Nil(t, err)
-	s, err := ToStringReply(redis.Receive())
+	s, err := ToStrReply(redis.Receive())
 	assert.Nil(t, err)
 	assert.Equal(t, "good", s)
 
@@ -1660,12 +1655,7 @@ func TestRedis_Sscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
@@ -1793,7 +1783,7 @@ func TestRedis_Zadd(t *testing.T) {
 	assert.Equal(t, float64(1), f0)
 
 	//zcount include the boundary
-	c, err = redis.ZCount("godis", "2", "5")
+	c, err = redis.ZCount("godis", 2, 5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), c)
 
@@ -1809,11 +1799,11 @@ func TestRedis_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
-	arr, err = redis.ZRangeByScore("godis", "2", "6.5")
+	arr, err = redis.ZRangeByScore("godis", 2, 6.5)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c", "d", "e"}, arr)
 
-	arr, err = redis.ZRevRangeByScore("godis", "6.5", "2")
+	arr, err = redis.ZRevRangeByScore("godis", 6.5, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
 
@@ -1821,61 +1811,61 @@ func TestRedis_Zadd(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"e", "d", "c", "b"}, arr)
 
-	tuples, err := redis.ZRangeByScoreWithScores("godis", "2", "6.5")
+	tuples, err := redis.ZRangeByScoreWithScores("godis", 2, 6.5)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
-		{element: []byte("d"), score: 4},
-		{element: []byte("e"), score: 6.5},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
+		{element: "d", score: 4},
+		{element: "e", score: 6.5},
 	}, tuples)
 
 	tuples, err = redis.ZRangeWithScores("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
-		{element: []byte("d"), score: 4},
-		{element: []byte("e"), score: 6.5},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
+		{element: "d", score: 4},
+		{element: "e", score: 6.5},
 	}, tuples)
 
-	tuples, err = redis.ZRevRangeByScoreWithScores("godis", "6.5", "2")
+	tuples, err = redis.ZRevRangeByScoreWithScores("godis", 6.5, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
-		{element: []byte("c"), score: 3},
-		{element: []byte("b"), score: 2},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
+		{element: "c", score: 3},
+		{element: "b", score: 2},
 	}, tuples)
 
 	tuples, err = redis.ZRevRangeWithScores("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
-		{element: []byte("c"), score: 3},
-		{element: []byte("b"), score: 2},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
+		{element: "c", score: 3},
+		{element: "b", score: 2},
 	}, tuples)
 
-	arr, err = redis.ZRangeByScoreBatch("godis", "2", "6.5", 0, 2)
+	arr, err = redis.ZRangeByScoreBatch("godis", 2, 6.5, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"b", "c"}, arr)
 
-	tuples, err = redis.ZRangeByScoreWithScoresBatch("godis", "2", "6.5", 0, 2)
+	tuples, err = redis.ZRangeByScoreWithScoresBatch("godis", 2, 6.5, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("b"), score: 2},
-		{element: []byte("c"), score: 3},
+		{element: "b", score: 2},
+		{element: "c", score: 3},
 	}, tuples)
 
-	tuples, err = redis.ZRevRangeByScoreWithScoresBatch("godis", "6.5", "2", 0, 2)
+	tuples, err = redis.ZRevRangeByScoreWithScoresBatch("godis", 6.5, 2, 0, 2)
 	assert.Nil(t, err)
 	assert.Equal(t, []Tuple{
-		{element: []byte("e"), score: 6.5},
-		{element: []byte("d"), score: 4},
+		{element: "e", score: 6.5},
+		{element: "d", score: 4},
 	}, tuples)
 
-	c, err = redis.ZRemRangeByScore("godis", "2", "2.5")
+	c, err = redis.ZRemRangeByScore("godis", 2, 2.5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), c)
 
@@ -1924,6 +1914,125 @@ func TestRedis_Zadd(t *testing.T) {
 	c, err = redis.ZRemRangeByRank("godis", 0, -1)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), c) //f is not in godis
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	m, _ := redisBroken.Multi()
+	_, err = redisBroken.ZAdd("godis", 1, "a", zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZAddByMap("godis", map[string]float64{"b": 2, "c": 3, "d": 4, "e": 5}, zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZCard("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZScore("godis", "a")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZCount("godis", 2, 5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZIncrBy("godis", 1.5, "e", zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRem("godis", "a")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScore("godis", 2, 6.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScore("godis", 6.5, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreWithScores("godis", 2, 6.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeWithScores("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScoreWithScores("godis", 6.5, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeWithScores("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreBatch("godis", 2, 6.5, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreWithScoresBatch("godis", 2, 6.5, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScoreWithScoresBatch("godis", 6.5, 2, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByScore("godis", 2, 2.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZLexCount("godis", "-", "+")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByLex("godis", "-", "+")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByLexBatch("godis", "-", "+", 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByLex("godis", "+", "-")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByLexBatch("godis", "+", "-", 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByLex("godis", "[c", "[d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRank("godis", "d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRank("godis", "d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByRank("godis", 0, -1)
+	assert.NotNil(t, err)
+	m.Discard()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	_, err = redisBroken.ZAdd("godis", 1, "a", zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZAddByMap("godis", map[string]float64{"b": 2, "c": 3, "d": 4, "e": 5}, zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZCard("godis")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZScore("godis", "a")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZCount("godis", 2, 5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZIncrBy("godis", 1.5, "e", zaddParam)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRem("godis", "a")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScore("godis", 2, 6.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScore("godis", 6.5, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRange("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreWithScores("godis", 2, 6.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeWithScores("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScoreWithScores("godis", 6.5, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeWithScores("godis", 0, -1)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreBatch("godis", 2, 6.5, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByScoreWithScoresBatch("godis", 2, 6.5, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByScoreWithScoresBatch("godis", 6.5, 2, 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByScore("godis", 2, 2.5)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZLexCount("godis", "-", "+")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByLex("godis", "-", "+")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRangeByLexBatch("godis", "-", "+", 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByLex("godis", "+", "-")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRangeByLexBatch("godis", "+", "-", 0, 2)
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByLex("godis", "[c", "[d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRank("godis", "d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRevRank("godis", "d")
+	assert.NotNil(t, err)
+	_, err = redisBroken.ZRemRangeByRank("godis", 0, -1)
+	assert.NotNil(t, err)
 }
 
 func TestRedis_Zadd2(t *testing.T) {
@@ -1965,12 +2074,7 @@ func TestRedis_Zscan(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), c)
 
-	params := &ScanParams{
-		params: map[*keyword][]byte{
-			keywordMatch: []byte("*"),
-			keywordCount: IntToByteArray(10),
-		},
-	}
+	params := NewScanParams().Match("*").Count(10)
 	cursor := "0"
 	total := 0
 	for {
