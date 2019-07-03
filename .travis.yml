@@ -27,7 +27,6 @@ install:
 script:
   - docker run --rm -it -d -p 7000-7005:7000-7005 --net=host areyouok/redis-cluster
   - sleep 10
-  - GOARCH=386 go test -v ./...
   - GOARCH=amd64 go test -v ./... -race -coverprofile=coverage.txt -covermode=atomic
 
 after_success:

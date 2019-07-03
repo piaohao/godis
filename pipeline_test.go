@@ -16,9 +16,17 @@ func Test_multiKeyPipelineBase_Bgrewriteaof(t *testing.T) {
 	r, err := p.BgRewriteAof()
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(r.Get())
+	resp, err := ToStrReply(r.Get())
 	assert.Nil(t, err)
 	assert.NotEmpty(t, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.BgRewriteAof()
+	assert.NotNil(t, err)
 
 }
 
@@ -33,9 +41,17 @@ func Test_multiKeyPipelineBase_Bgsave(t *testing.T) {
 	r, err := p.BgSave()
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(r.Get())
+	resp, err := ToStrReply(r.Get())
 	assert.Nil(t, err)
 	assert.NotEmpty(t, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.BgSave()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Bitop(t *testing.T) {
@@ -63,7 +79,7 @@ func Test_multiKeyPipelineBase_Bitop(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, false, b)
 
-	i, e := p.BitOp(BitOpAnd, "and-result", "bit-1", "bit-2")
+	i, e := p.BitOp(*BitOpAnd, "and-result", "bit-1", "bit-2")
 	assert.Nil(t, e)
 	p.Sync()
 	resp, e := ToInt64Reply(i.Get())
@@ -73,6 +89,14 @@ func Test_multiKeyPipelineBase_Bitop(t *testing.T) {
 	b, e = redis.GetBit("and-result", 0)
 	assert.Nil(t, e)
 	assert.Equal(t, true, b)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BitOp(*BitOpAnd, "and-result", "bit-1", "bit-2")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Blpop(t *testing.T) {
@@ -86,9 +110,17 @@ func Test_multiKeyPipelineBase_Blpop(t *testing.T) {
 	arr, e := p.BLPop("job", "command", "request", "0")
 	assert.Nil(t, e)
 	p.Sync()
-	resp, e := ToStringArrayReply(arr.Get())
+	resp, e := ToStrArrReply(arr.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"command", "update system..."}, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BLPop("job", "command", "request", "0")
+	assert.NotNil(t, err)
 
 }
 
@@ -106,6 +138,14 @@ func Test_multiKeyPipelineBase_BlpopTimout(t *testing.T) {
 	redis2.LPush("command", "update system...")
 	redis2.LPush("request", "visit page")
 	time.Sleep(500 * time.Millisecond)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BLPopTimeout(5, "command", "update system...")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Brpop(t *testing.T) {
@@ -119,9 +159,17 @@ func Test_multiKeyPipelineBase_Brpop(t *testing.T) {
 	arr, e := p.BRPop("job", "command", "request", "0")
 	assert.Nil(t, e)
 	p.Sync()
-	resp, e := ToStringArrayReply(arr.Get())
+	resp, e := ToStrArrReply(arr.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"command", "update system..."}, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BRPop("job", "command", "request", "0")
+	assert.NotNil(t, err)
 
 }
 
@@ -140,6 +188,14 @@ func Test_multiKeyPipelineBase_BrpopTimout(t *testing.T) {
 	redis2.LPush("request", "visit page")
 	time.Sleep(1 * time.Second)
 
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BRPopTimeout(5, "command", "update system...")
+	assert.NotNil(t, err)
+
 }
 
 func Test_multiKeyPipelineBase_Brpoplpush(t *testing.T) {
@@ -157,6 +213,14 @@ func Test_multiKeyPipelineBase_Brpoplpush(t *testing.T) {
 	redis2.LPush("request", "visit page")
 	time.Sleep(1 * time.Second)
 
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.BRPopLPush("command", "update system...", 5)
+	assert.NotNil(t, err)
+
 }
 
 func Test_multiKeyPipelineBase_ClusterAddSlots(t *testing.T) {
@@ -166,9 +230,17 @@ func Test_multiKeyPipelineBase_ClusterAddSlots(t *testing.T) {
 	slots, err := p.ClusterAddSlots(10000)
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(slots.Get())
+	resp, err := ToStrReply(slots.Get())
 	assert.NotNil(t, err)
 	assert.Equal(t, "", resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterAddSlots(10000)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterDelSlots(t *testing.T) {
@@ -177,6 +249,14 @@ func Test_multiKeyPipelineBase_ClusterDelSlots(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterDelSlots(10000)
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterDelSlots(10000)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterGetKeysInSlot(t *testing.T) {
@@ -185,6 +265,14 @@ func Test_multiKeyPipelineBase_ClusterGetKeysInSlot(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterGetKeysInSlot(1, 1)
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterGetKeysInSlot(1, 1)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterInfo(t *testing.T) {
@@ -194,9 +282,17 @@ func Test_multiKeyPipelineBase_ClusterInfo(t *testing.T) {
 	s, err := p.ClusterInfo()
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(s.Get())
+	resp, err := ToStrReply(s.Get())
 	assert.Nil(t, err)
 	assert.NotEmpty(t, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterInfo()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterMeet(t *testing.T) {
@@ -205,6 +301,14 @@ func Test_multiKeyPipelineBase_ClusterMeet(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterMeet("localhost", 8000)
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterMeet("localhost", 8000)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterNodes(t *testing.T) {
@@ -214,7 +318,7 @@ func Test_multiKeyPipelineBase_ClusterNodes(t *testing.T) {
 	s, err := p.ClusterNodes()
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(s.Get())
+	resp, err := ToStrReply(s.Get())
 	assert.Nil(t, err)
 	assert.NotEmpty(t, resp)
 
@@ -224,6 +328,14 @@ func Test_multiKeyPipelineBase_ClusterNodes(t *testing.T) {
 	redis1.ClusterSlaves(nodeID)
 	//assert.Nil(t, err)
 	//assert.NotEmpty(t, slaves)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterNodes()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotImporting(t *testing.T) {
@@ -232,6 +344,14 @@ func Test_multiKeyPipelineBase_ClusterSetSlotImporting(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterSetSlotImporting(1, "godis")
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterSetSlotImporting(1, "godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotMigrating(t *testing.T) {
@@ -240,6 +360,14 @@ func Test_multiKeyPipelineBase_ClusterSetSlotMigrating(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterSetSlotMigrating(1, "godis")
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterSetSlotMigrating(1, "godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ClusterSetSlotNode(t *testing.T) {
@@ -248,6 +376,14 @@ func Test_multiKeyPipelineBase_ClusterSetSlotNode(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.ClusterSetSlotNode(1, "godis")
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ClusterSetSlotNode(1, "godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ConfigGet(t *testing.T) {
@@ -257,9 +393,17 @@ func Test_multiKeyPipelineBase_ConfigGet(t *testing.T) {
 	reply, err := p.ConfigGet("timeout")
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringArrayReply(reply.Get())
+	resp, err := ToStrArrReply(reply.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"timeout", "0"}, resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ConfigGet("timeout")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ConfigResetStat(t *testing.T) {
@@ -269,6 +413,14 @@ func Test_multiKeyPipelineBase_ConfigResetStat(t *testing.T) {
 	_, err := p.ConfigResetStat()
 	assert.Nil(t, err)
 	p.Sync()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ConfigResetStat()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_ConfigSet(t *testing.T) {
@@ -288,18 +440,26 @@ func Test_multiKeyPipelineBase_ConfigSet(t *testing.T) {
 	assert.Nil(t, err)
 	//assert.Equal(t, []string{"timeout", "0"}, reply1)
 	p.Sync()
-	resp1, err := ToStringReply(reply.Get())
+	resp1, err := ToStrReply(reply.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", resp1)
-	resp2, err := ToStringArrayReply(reply1.Get())
+	resp2, err := ToStrArrReply(reply1.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"timeout", "30"}, resp2)
-	resp3, err := ToStringReply(reply2.Get())
+	resp3, err := ToStrReply(reply2.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "\x00\x00", resp3)
-	resp4, err := ToStringArrayReply(reply3.Get())
+	resp4, err := ToStrArrReply(reply3.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"timeout", "0"}, resp4)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ConfigSet("timeout", "30")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_DbSize(t *testing.T) {
@@ -315,6 +475,14 @@ func Test_multiKeyPipelineBase_DbSize(t *testing.T) {
 	c, err := ToInt64Reply(ret.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(2), c)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.DbSize()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Del(t *testing.T) {
@@ -330,6 +498,14 @@ func Test_multiKeyPipelineBase_Del(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), obj)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Del("godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Eval(t *testing.T) {
@@ -347,12 +523,20 @@ func Test_multiKeyPipelineBase_Eval(t *testing.T) {
 	assert.Nil(t, err)
 
 	p.Sync()
-	resp1, _ := ToStringReply(s1.Get())
+	resp1, _ := ToStrReply(s1.Get())
 	assert.Equal(t, "good", resp1)
-	resp2, _ := ToStringReply(s2.Get())
+	resp2, _ := ToStrReply(s2.Get())
 	assert.Equal(t, "\x00\x00", resp2)
-	resp3, _ := ToStringReply(s3.Get())
+	resp3, _ := ToStrReply(s3.Get())
 	assert.Equal(t, "godis", resp3)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Eval(`return redis.call("get",KEYS[1])`, 1, "godis")
+	assert.NotNil(t, err)
 
 }
 
@@ -365,9 +549,17 @@ func Test_multiKeyPipelineBase_Evalsha(t *testing.T) {
 	s, err := p.EvalSha("111", 1, "godis")
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(s.Get())
+	resp, err := ToStrReply(s.Get())
 	assert.NotNil(t, err)
 	assert.Equal(t, "", resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.EvalSha("111", 1, "godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Exists(t *testing.T) {
@@ -389,6 +581,14 @@ func Test_multiKeyPipelineBase_Exists(t *testing.T) {
 	obj, err = ToInt64Reply(del2.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), obj)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Exists("godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_FlushAll(t *testing.T) {
@@ -401,10 +601,10 @@ func Test_multiKeyPipelineBase_FlushAll(t *testing.T) {
 	p := redis.Pipelined()
 	del, err := p.FlushAll()
 	assert.Nil(t, err)
-	_, err = ToStringReply(del.Get())
+	_, err = ToStrReply(del.Get())
 	assert.NotNil(t, err)
 	p.Sync()
-	obj, err := ToStringReply(del.Get())
+	obj, err := ToStrReply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", obj)
 	redis.Close()
@@ -413,6 +613,14 @@ func Test_multiKeyPipelineBase_FlushAll(t *testing.T) {
 	ret, _ := redis.Get("godis")
 	assert.Equal(t, "", ret)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.FlushAll()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_FlushDB(t *testing.T) {
@@ -425,10 +633,10 @@ func Test_multiKeyPipelineBase_FlushDB(t *testing.T) {
 	p := redis.Pipelined()
 	del, err := p.FlushDB()
 	assert.Nil(t, err)
-	_, err = ToStringReply(del.Get())
+	_, err = ToStrReply(del.Get())
 	assert.NotNil(t, err)
 	p.Sync()
-	obj, err := ToStringReply(del.Get())
+	obj, err := ToStrReply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", obj)
 	redis.Close()
@@ -437,6 +645,14 @@ func Test_multiKeyPipelineBase_FlushDB(t *testing.T) {
 	ret, _ := redis.Get("godis")
 	assert.Equal(t, "", ret)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.FlushDB()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Info(t *testing.T) {
@@ -445,12 +661,20 @@ func Test_multiKeyPipelineBase_Info(t *testing.T) {
 	p := redis.Pipelined()
 	del, err := p.Info()
 	assert.Nil(t, err)
-	_, err = ToStringReply(del.Get())
+	_, err = ToStrReply(del.Get())
 	assert.NotNil(t, err)
 	p.Sync()
-	_, err = ToStringReply(del.Get())
+	_, err = ToStrReply(del.Get())
 	assert.Nil(t, err)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Info()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Keys(t *testing.T) {
@@ -463,13 +687,21 @@ func Test_multiKeyPipelineBase_Keys(t *testing.T) {
 	p := redis.Pipelined()
 	del, err := p.Keys("*")
 	assert.Nil(t, err)
-	_, err = ToStringArrayReply(del.Get())
+	_, err = ToStrArrReply(del.Get())
 	assert.NotNil(t, err)
 	p.Sync()
-	obj, err := ToStringArrayReply(del.Get())
+	obj, err := ToStrArrReply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"godis"}, obj)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Keys("*")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Lastsave(t *testing.T) {
@@ -478,6 +710,14 @@ func Test_multiKeyPipelineBase_Lastsave(t *testing.T) {
 	p := redis.Pipelined()
 	_, err := p.LastSave()
 	assert.Nil(t, err)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.LastSave()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Mget(t *testing.T) {
@@ -496,16 +736,28 @@ func Test_multiKeyPipelineBase_Mget(t *testing.T) {
 	assert.Nil(t, e)
 
 	p.Sync()
-	resp1, e := ToStringReply(s.Get())
+	resp1, e := ToStrReply(s.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, "OK", resp1)
 	resp2, e := ToInt64Reply(c.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(0), resp2)
 
-	resp3, e := ToStringArrayReply(arr.Get())
+	resp3, e := ToStrArrReply(arr.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"good", "good", "good"}, resp3)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.MSet("godis1", "good", "godis2", "good")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.MSetNx("godis1", "good1")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.MGet("godis", "godis1", "godis2")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Pfcount(t *testing.T) {
@@ -540,12 +792,22 @@ func Test_multiKeyPipelineBase_Pfcount(t *testing.T) {
 	resp2, err := ToInt64Reply(reply2.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), resp2)
-	resp3, err := ToStringReply(reply3.Get())
+	resp3, err := ToStrReply(reply3.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "\x00\x00", resp3)
 	resp4, err := ToInt64Reply(reply4.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), resp4)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.PfCount("godis")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.PfMerge("godis3", "godis", "godis1")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Ping(t *testing.T) {
@@ -555,10 +817,18 @@ func Test_multiKeyPipelineBase_Ping(t *testing.T) {
 	del, err := p.Ping()
 	assert.Nil(t, err)
 	p.Sync()
-	obj, err := ToStringReply(del.Get())
+	obj, err := ToStrReply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "PONG", obj)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Ping()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Publish(t *testing.T) {
@@ -572,6 +842,14 @@ func Test_multiKeyPipelineBase_Publish(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), obj)
 	redis.Close()
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Publish("godis", "good")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_RandomKey(t *testing.T) {
@@ -582,9 +860,17 @@ func Test_multiKeyPipelineBase_RandomKey(t *testing.T) {
 	s, e := p.RandomKey()
 	assert.Nil(t, e)
 	p.Sync()
-	resp, e := ToStringReply(s.Get())
+	resp, e := ToStrReply(s.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, "godis", resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.RandomKey()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Rename(t *testing.T) {
@@ -597,12 +883,22 @@ func Test_multiKeyPipelineBase_Rename(t *testing.T) {
 	c, e := p.RenameNx("godis1", "godis2")
 	assert.Nil(t, e)
 	p.Sync()
-	resp1, e := ToStringReply(s.Get())
+	resp1, e := ToStrReply(s.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, "OK", resp1)
 	resp2, e := ToInt64Reply(c.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(1), resp2)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.Rename("godis", "godis1")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.RenameNx("godis1", "godis2")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Rpoplpush(t *testing.T) {
@@ -614,10 +910,17 @@ func Test_multiKeyPipelineBase_Rpoplpush(t *testing.T) {
 	r, e := p.RPopLPush("godis", "godis1")
 	assert.Nil(t, e)
 	p.Sync()
-	resp, e := ToStringReply(r.Get())
+	resp, e := ToStrReply(r.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, "2", resp)
 
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.RPopLPush("godis", "godis1")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Save(t *testing.T) {
@@ -629,9 +932,17 @@ func Test_multiKeyPipelineBase_Save(t *testing.T) {
 	ret, err := p.Save()
 	assert.Nil(t, err)
 	p.Sync()
-	resp, err := ToStringReply(ret.Get())
+	resp, err := ToStrReply(ret.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Save()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Sdiff(t *testing.T) {
@@ -656,24 +967,42 @@ func Test_multiKeyPipelineBase_Sdiff(t *testing.T) {
 	assert.Nil(t, e)
 
 	p.Sync()
-	resp1, e := ToStringArrayReply(reply1.Get())
+	resp1, e := ToStrArrReply(reply1.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"1"}, resp1)
 	resp2, e := ToInt64Reply(reply2.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(1), resp2)
-	resp3, e := ToStringArrayReply(reply3.Get())
+	resp3, e := ToStrArrReply(reply3.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"2", "3"}, resp3)
 	resp4, e := ToInt64Reply(reply4.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(2), resp4)
-	resp5, e := ToStringArrayReply(reply5.Get())
+	resp5, e := ToStrArrReply(reply5.Get())
 	assert.Nil(t, e)
 	assert.ElementsMatch(t, []string{"1", "2", "3", "4"}, resp5)
 	resp6, e := ToInt64Reply(reply6.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(4), resp6)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.SDiff("godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.SDiffStore("godis3", "godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.SInter("godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.SInterStore("godis4", "godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.SUnion("godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.SUnionStore("godis5", "godis1", "godis2")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Select(t *testing.T) {
@@ -685,12 +1014,20 @@ func Test_multiKeyPipelineBase_Select(t *testing.T) {
 	reply2, err := p.Select(16)
 	assert.Nil(t, err)
 	p.Sync()
-	resp1, err := ToStringReply(reply1.Get())
+	resp1, err := ToStrReply(reply1.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", resp1)
-	resp2, err := ToStringReply(reply2.Get())
+	resp2, err := ToStrReply(reply2.Get())
 	assert.NotNil(t, err)
 	assert.Equal(t, "", resp2)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Select(15)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Shutdown(t *testing.T) {
@@ -707,6 +1044,14 @@ func Test_multiKeyPipelineBase_Shutdown(t *testing.T) {
 	s, err := redis1.Set("godis", "good")
 	assert.Nil(t, err)
 	assert.Equal(t, "OK", s)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.Shutdown()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Smove(t *testing.T) {
@@ -729,6 +1074,14 @@ func Test_multiKeyPipelineBase_Smove(t *testing.T) {
 
 	arr, _ = redis.SMembers("godis1")
 	assert.ElementsMatch(t, []string{"2", "3", "4"}, arr)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.SMove("godis", "godis1", "2")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_SortMulti(t *testing.T) {
@@ -736,24 +1089,24 @@ func Test_multiKeyPipelineBase_SortMulti(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
 	redis.LPush("godis", "3", "2", "1", "4", "6", "5")
-	param := NewSortingParams().Desc()
+	param := NewSortParams().Desc()
 
 	p := redis.Pipelined()
-	//arr, e := p.Sort("godis", *param)
-	//assert.Nil(t, e)
-	//assert.Equal(t, []string{"6", "5", "4", "3", "2", "1"}, arr)
-	//
-	//param = NewSortingParams().Asc()
-	//arr, e = p.Sort("godis", *param)
-	//assert.Nil(t, e)
-	//assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, arr)
 
-	c, e := p.SortStore("godis", "godis1", *param)
+	c, e := p.SortStore("godis", "godis1", param)
 	assert.Nil(t, e)
 	p.Sync()
 	resp, e := ToInt64Reply(c.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, int64(6), resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.SortStore("godis", "godis1", param)
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Time(t *testing.T) {
@@ -764,8 +1117,16 @@ func Test_multiKeyPipelineBase_Time(t *testing.T) {
 	r1, e := p.Time()
 	assert.Nil(t, e)
 	p.Sync()
-	_, e = ToStringArrayReply(r1.Get())
+	_, e = ToStrArrReply(r1.Get())
 	assert.Nil(t, e)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.Time()
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Watch(t *testing.T) {
@@ -776,9 +1137,17 @@ func Test_multiKeyPipelineBase_Watch(t *testing.T) {
 	s, e := p.Watch("godis")
 	assert.Nil(t, e)
 	p.Sync()
-	resp, e := ToStringReply(s.Get())
+	resp, e := ToStrReply(s.Get())
 	assert.Nil(t, e)
 	assert.Equal(t, "OK", resp)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err := brokenPipe.Watch("godis")
+	assert.NotNil(t, err)
 }
 
 func Test_multiKeyPipelineBase_Zinterstore(t *testing.T) {
@@ -797,12 +1166,12 @@ func Test_multiKeyPipelineBase_Zinterstore(t *testing.T) {
 	r1, err := p.ZInterStore("godis3", "godis1", "godis2")
 	assert.Nil(t, err)
 	param := newZParams().Aggregate(AggregateSum)
-	r2, err := p.ZInterStoreWithParams("godis3", *param, "godis1", "godis2")
+	r2, err := p.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.Nil(t, err)
 	r3, err := p.ZUnionStore("godis3", "godis1", "godis2")
 	assert.Nil(t, err)
 	param = newZParams().Aggregate(AggregateMax)
-	r4, err := p.ZUnionStoreWithParams("godis3", *param, "godis1", "godis2")
+	r4, err := p.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
 	assert.Nil(t, err)
 
 	p.Sync()
@@ -818,6 +1187,20 @@ func Test_multiKeyPipelineBase_Zinterstore(t *testing.T) {
 	resp4, err := ToInt64Reply(r4.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, int64(3), resp4)
+
+	redisBroken := NewRedis(option)
+	defer redisBroken.Close()
+	redisBroken.client.connection.host = "localhost1"
+	redisBroken.Close()
+	brokenPipe := redisBroken.Pipelined()
+	_, err = brokenPipe.ZInterStore("godis3", "godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.ZInterStoreWithParams("godis3", param, "godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.ZUnionStore("godis3", "godis1", "godis2")
+	assert.NotNil(t, err)
+	_, err = brokenPipe.ZUnionStoreWithParams("godis3", param, "godis1", "godis2")
+	assert.NotNil(t, err)
 }
 
 func Test_Transaction(t *testing.T) {
@@ -830,10 +1213,10 @@ func Test_Transaction(t *testing.T) {
 	assert.Nil(t, err)
 	del, err := p.Keys("*")
 	assert.Nil(t, err)
-	_, err = ToStringArrayReply(del.Get())
+	_, err = ToStrArrReply(del.Get())
 	assert.NotNil(t, err)
 	p.Exec()
-	obj, err := ToStringArrayReply(del.Get())
+	obj, err := ToStrArrReply(del.Get())
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"godis"}, obj)
 
@@ -844,16 +1227,15 @@ func Test_Transaction(t *testing.T) {
 	assert.Nil(t, err)
 	del, err = p.Keys("*")
 	assert.Nil(t, err)
-	_, err = ToStringArrayReply(del.Get())
+	_, err = ToStrArrReply(del.Get())
 	assert.NotNil(t, err)
 	resp, err := p.ExecGetResponse()
 	assert.Nil(t, err)
 	for _, res := range resp {
-		obj, err = ToStringArrayReply(res.Get())
+		obj, err = ToStrArrReply(res.Get())
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"godis"}, obj)
 	}
-
 }
 
 func Test_Transaction2(t *testing.T) {

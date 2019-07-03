@@ -6,28 +6,39 @@ import (
 	"strconv"
 )
 
-//BoolToByteArray convert bool to byte array
-func BoolToByteArray(a bool) []byte {
+//BoolToByteArr convert bool to byte array
+func BoolToByteArr(a bool) []byte {
 	if a {
 		return bytesTrue
 	}
 	return bytesFalse
 }
 
-//IntToByteArray convert int to byte array
-func IntToByteArray(a int) []byte {
+//IntToByteArr convert int to byte array
+func IntToByteArr(a int) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, int64(a), 10)
 }
 
-//Int64ToByteArray  convert int64 to byte array
-func Int64ToByteArray(a int64) []byte {
+//Int64ToByteArr  convert int64 to byte array
+func Int64ToByteArr(a int64) []byte {
 	buf := make([]byte, 0)
 	return strconv.AppendInt(buf, a, 10)
 }
 
-//Float64ToByteArray convert float64 to byte array
-func Float64ToByteArray(a float64) []byte {
+//Float64ToStr convert float64  to string
+func Float64ToStr(a float64) string {
+	if math.IsInf(a, 1) {
+		return "+inf"
+	} else if math.IsInf(a, -1) {
+		return "-inf"
+	} else {
+		return strconv.FormatFloat(a, 'f', -1, 64)
+	}
+}
+
+//Float64ToByteArr convert float64 to byte array
+func Float64ToByteArr(a float64) []byte {
 	var incrBytes []byte
 	if math.IsInf(a, 1) {
 		incrBytes = []byte("+inf")
@@ -39,14 +50,14 @@ func Float64ToByteArray(a float64) []byte {
 	return incrBytes
 }
 
-//ByteArrayToFloat64 convert byte array to float64
-func ByteArrayToFloat64(bytes []byte) float64 {
+//ByteArrToFloat64 convert byte array to float64
+func ByteArrToFloat64(bytes []byte) float64 {
 	f, _ := strconv.ParseFloat(string(bytes), 64)
 	return f
 }
 
-//StringStringArrayToByteArray convert string and string array to byte array
-func StringStringArrayToByteArray(str string, arr []string) [][]byte {
+//StrStrArrToByteArrArr convert string and string array to byte array
+func StrStrArrToByteArrArr(str string, arr []string) [][]byte {
 	params := make([][]byte, 0)
 	params = append(params, []byte(str))
 	for _, v := range arr {
@@ -55,8 +66,8 @@ func StringStringArrayToByteArray(str string, arr []string) [][]byte {
 	return params
 }
 
-//StringStringArrayToStringArray convert string and string array to string array
-func StringStringArrayToStringArray(str string, arr []string) []string {
+//StrStrArrToStrArr convert string and string array to string array
+func StrStrArrToStrArr(str string, arr []string) []string {
 	params := make([]string, 0)
 	params = append(params, str)
 	for _, v := range arr {
@@ -65,8 +76,8 @@ func StringStringArrayToStringArray(str string, arr []string) []string {
 	return params
 }
 
-//StringArrayToByteArray convert string array to byte array list
-func StringArrayToByteArray(arr []string) [][]byte {
+//StrArrToByteArrArr convert string array to byte array list
+func StrArrToByteArrArr(arr []string) [][]byte {
 	newArr := make([][]byte, 0)
 	for _, a := range arr {
 		newArr = append(newArr, []byte(a))
@@ -74,8 +85,8 @@ func StringArrayToByteArray(arr []string) [][]byte {
 	return newArr
 }
 
-//StringToFloat64Reply convert string reply to float64 reply
-func StringToFloat64Reply(reply string, err error) (float64, error) {
+//StrToFloat64Reply convert string reply to float64 reply
+func StrToFloat64Reply(reply string, err error) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
@@ -86,8 +97,8 @@ func StringToFloat64Reply(reply string, err error) (float64, error) {
 	return f, nil
 }
 
-//StringArrayToMapReply convert string array reply to map reply
-func StringArrayToMapReply(reply []string, err error) (map[string]string, error) {
+//StrArrToMapReply convert string array reply to map reply
+func StrArrToMapReply(reply []string, err error) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -106,16 +117,16 @@ func Int64ToBoolReply(reply int64, err error) (bool, error) {
 	return reply == 1, nil
 }
 
-//ByteArrToStringReply convert byte array reply to string reply
-func ByteArrToStringReply(reply []byte, err error) (string, error) {
+//ByteArrToStrReply convert byte array reply to string reply
+func ByteArrToStrReply(reply []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
 	return string(reply), nil
 }
 
-//StringArrToTupleReply convert string array reply to tuple array reply
-func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
+//StrArrToTupleReply convert string array reply to tuple array reply
+func StrArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 	if len(reply) == 0 {
 		return []Tuple{}, nil
 	}
@@ -125,13 +136,13 @@ func StringArrToTupleReply(reply []string, err error) ([]Tuple, error) {
 		if err != nil {
 			return nil, err
 		}
-		newArr = append(newArr, Tuple{element: []byte(reply[i]), score: f})
+		newArr = append(newArr, Tuple{element: reply[i], score: f})
 	}
 	return newArr, err
 }
 
-//ObjectArrToScanResultReply convert object array reply to scanresult reply
-func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, error) {
+//ObjArrToScanResultReply convert object array reply to scanresult reply
+func ObjArrToScanResultReply(reply []interface{}, err error) (*ScanResult, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
 	}
@@ -143,8 +154,8 @@ func ObjectArrToScanResultReply(reply []interface{}, err error) (*ScanResult, er
 	return &ScanResult{Cursor: nexCursor, Results: result}, err
 }
 
-//ObjectArrToGeoCoordinateReply convert object array reply to GeoCoordinate reply
-func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordinate, error) {
+//ObjArrToGeoCoordinateReply convert object array reply to GeoCoordinate reply
+func ObjArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
 	}
@@ -171,8 +182,8 @@ func ObjectArrToGeoCoordinateReply(reply []interface{}, err error) ([]*GeoCoordi
 	return arr, err
 }
 
-//ObjectArrToGeoRadiusResponseReply convert object array reply to GeoRadiusResponse reply
-func ObjectArrToGeoRadiusResponseReply(reply []interface{}, err error) ([]GeoRadiusResponse, error) {
+//ObjArrToGeoRadiusResponseReply convert object array reply to GeoRadiusResponse reply
+func ObjArrToGeoRadiusResponseReply(reply []interface{}, err error) ([]GeoRadiusResponse, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
 	}
@@ -182,7 +193,7 @@ func ObjectArrToGeoRadiusResponseReply(reply []interface{}, err error) ([]GeoRad
 		var resp GeoRadiusResponse
 		for _, r := range reply {
 			informations := r.([]interface{})
-			resp = *newGeoRadiusResponse(informations[0].([]byte))
+			resp = *newGeoRadiusResponse(string(informations[0].([]byte)))
 			size := len(informations)
 			for idx := 1; idx < size; idx++ {
 				info := informations[idx]
@@ -190,25 +201,25 @@ func ObjectArrToGeoRadiusResponseReply(reply []interface{}, err error) ([]GeoRad
 				case []interface{}:
 					coord := info.([]interface{})
 					resp.coordinate = GeoCoordinate{
-						longitude: ByteArrayToFloat64(coord[0].([]byte)),
-						latitude:  ByteArrayToFloat64(coord[1].([]byte)),
+						longitude: ByteArrToFloat64(coord[0].([]byte)),
+						latitude:  ByteArrToFloat64(coord[1].([]byte)),
 					}
 				default:
-					resp.distance = ByteArrayToFloat64(info.([]byte))
+					resp.distance = ByteArrToFloat64(info.([]byte))
 				}
 			}
 			arr = append(arr, resp)
 		}
 	default:
 		for _, r := range reply {
-			arr = append(arr, *newGeoRadiusResponse(r.([]byte)))
+			arr = append(arr, *newGeoRadiusResponse(string(r.([]byte))))
 		}
 	}
 	return arr, err
 }
 
-//ObjectArrToMapArrayReply convert object array reply to map array reply
-func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]string, error) {
+//ObjArrToMapArrayReply convert object array reply to map array reply
+func ObjArrToMapArrayReply(reply []interface{}, err error) ([]map[string]string, error) {
 	if err != nil || len(reply) == 0 {
 		return nil, err
 	}
@@ -224,8 +235,8 @@ func ObjectArrToMapArrayReply(reply []interface{}, err error) ([]map[string]stri
 	return masters, nil
 }
 
-//ObjectToEvalResult resolve response data when use script command
-func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
+//ObjToEvalResult resolve response data when use script command
+func ObjToEvalResult(reply interface{}, err error) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +247,7 @@ func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 		list := reply.([]interface{})
 		result := make([]interface{}, 0)
 		for _, l := range list {
-			evalResult, err := ObjectToEvalResult(l, nil)
+			evalResult, err := ObjToEvalResult(l, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -249,8 +260,8 @@ func ObjectToEvalResult(reply interface{}, err error) (interface{}, error) {
 
 //<editor-fold desc="cluster reply convert">
 
-//ToStringReply convert object reply to string reply
-func ToStringReply(reply interface{}, err error) (string, error) {
+//ToStrReply convert object reply to string reply
+func ToStrReply(reply interface{}, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
@@ -269,8 +280,8 @@ func ToInt64Reply(reply interface{}, err error) (int64, error) {
 	return reply.(int64), nil
 }
 
-//ToInt64ArrayReply convert object reply to int64 array reply
-func ToInt64ArrayReply(reply interface{}, err error) ([]int64, error) {
+//ToInt64ArrReply convert object reply to int64 array reply
+func ToInt64ArrReply(reply interface{}, err error) ([]int64, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -293,16 +304,16 @@ func ToFloat64Reply(reply interface{}, err error) (float64, error) {
 	return reply.(float64), nil
 }
 
-//ToBoolArrayReply convert object reply to bool array reply
-func ToBoolArrayReply(reply interface{}, err error) ([]bool, error) {
+//ToBoolArrReply convert object reply to bool array reply
+func ToBoolArrReply(reply interface{}, err error) ([]bool, error) {
 	if err != nil {
 		return nil, err
 	}
 	return reply.([]bool), nil
 }
 
-//ToStringArrayReply convert object reply to string array reply
-func ToStringArrayReply(reply interface{}, err error) ([]string, error) {
+//ToStrArrReply convert object reply to string array reply
+func ToStrArrReply(reply interface{}, err error) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -325,24 +336,24 @@ func ToMapReply(reply interface{}, err error) (map[string]string, error) {
 	return reply.(map[string]string), nil
 }
 
-//ToTupleArrayReply convert object reply to tuple array reply
-func ToTupleArrayReply(reply interface{}, err error) ([]Tuple, error) {
+//ToTupleArrReply convert object reply to tuple array reply
+func ToTupleArrReply(reply interface{}, err error) ([]Tuple, error) {
 	if err != nil {
 		return nil, err
 	}
 	return reply.([]Tuple), nil
 }
 
-//ToGeoArrayReply convert object reply to geocoordinate array reply
-func ToGeoArrayReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
+//ToGeoCoordArrReply convert object reply to geocoordinate array reply
+func ToGeoCoordArrReply(reply interface{}, err error) ([]*GeoCoordinate, error) {
 	if err != nil {
 		return nil, err
 	}
 	return reply.([]*GeoCoordinate), nil
 }
 
-//ToGeoRespArrayReply convert object reply to GeoRadiusResponse array reply
-func ToGeoRespArrayReply(reply interface{}, err error) ([]GeoRadiusResponse, error) {
+//ToGeoRespArrReply convert object reply to GeoRadiusResponse array reply
+func ToGeoRespArrReply(reply interface{}, err error) ([]GeoRadiusResponse, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -357,22 +368,22 @@ type Builder interface {
 }
 
 var (
-	//StringBuilder convert interface to string
-	StringBuilder = newStringBuilder()
+	//StrBuilder convert interface to string
+	StrBuilder = newStrBuilder()
 	//Int64Builder convert interface to int64
 	Int64Builder = newInt64Builder()
-	//StringArrayBuilder convert interface to string array
-	StringArrayBuilder = newStringArrayBuilder()
+	//StrArrBuilder convert interface to string array
+	StrArrBuilder = newStringArrayBuilder()
 )
 
-type stringBuilder struct {
+type strBuilder struct {
 }
 
-func newStringBuilder() *stringBuilder {
-	return &stringBuilder{}
+func newStrBuilder() *strBuilder {
+	return &strBuilder{}
 }
 
-func (b *stringBuilder) build(data interface{}) (interface{}, error) {
+func (b *strBuilder) build(data interface{}) (interface{}, error) {
 	if data == nil {
 		return "", nil
 	}
@@ -403,14 +414,14 @@ func (b *int64Builder) build(data interface{}) (interface{}, error) {
 	return 0, fmt.Errorf("unexpected type:%T", data)
 }
 
-type stringArrayBuilder struct {
+type strArrBuilder struct {
 }
 
-func newStringArrayBuilder() *stringArrayBuilder {
-	return &stringArrayBuilder{}
+func newStringArrayBuilder() *strArrBuilder {
+	return &strArrBuilder{}
 }
 
-func (b *stringArrayBuilder) build(data interface{}) (interface{}, error) {
+func (b *strArrBuilder) build(data interface{}) (interface{}, error) {
 	if data == nil {
 		return []string{}, nil
 	}

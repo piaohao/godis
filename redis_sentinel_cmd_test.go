@@ -8,7 +8,7 @@ import (
 func TestRedis_SentinelFailover(t *testing.T) {
 	redis := NewRedis(option)
 	defer redis.Close()
-	s, err := redis.SentinelFailover("a")
+	s, err := redis.SentinelFailOver("a")
 	assert.NotNil(t, err)
 	assert.Equal(t, "", s)
 
@@ -16,7 +16,7 @@ func TestRedis_SentinelFailover(t *testing.T) {
 	defer redisBroken.Close()
 	redisBroken.client.connection.host = "localhost1"
 	redisBroken.Close()
-	_, err = redisBroken.SentinelFailover("a")
+	_, err = redisBroken.SentinelFailOver("a")
 	assert.NotNil(t, err)
 }
 
