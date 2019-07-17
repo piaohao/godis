@@ -70,7 +70,6 @@ func (p *Pool) GetResource() (*Redis, error) {
 		return nil, newConnectError(err.Error())
 	}
 	redis := obj.(*Redis)
-	redis.client.socket.SetDeadline(time.Now().Add(redis.client.soTimeout))
 	redis.setDataSource(p)
 	return redis, nil
 }

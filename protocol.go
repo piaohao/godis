@@ -167,13 +167,17 @@ func (r *redisOutputStream) writeCrLf() error {
 }
 
 func (r *redisOutputStream) flushBuffer() error {
-	if r.count > 0 {
-		_, err := r.Write(r.buf[0:r.count])
-		if err != nil {
-			return err
-		}
-		r.count = 0
+	if r.count <= 0 {
+		return nil
 	}
+	if err := r.c.socket.SetDeadline(time.Now().Add(r.c.soTimeout)); err != nil {
+		return newConnectError(err.Error())
+	}
+	_, err := r.Write(r.buf[0:r.count])
+	if err != nil {
+		return err
+	}
+	r.count = 0
 	return nil
 }
 
@@ -214,11 +218,13 @@ func (r *redisOutputStream) writeWithPos(b []byte, off, size int) error {
 }
 
 func (r *redisOutputStream) flush() error {
-	r.flushBuffer()
+	if err := r.flushBuffer(); err != nil {
+		return newConnectError(err.Error())
+	}
 	if err := r.Flush(); err != nil {
 		return err
 	}
-	return r.c.socket.SetDeadline(time.Now().Add(r.c.soTimeout))
+	return nil
 }
 
 // receive message from redis
