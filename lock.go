@@ -57,10 +57,11 @@ func (l *Locker) TryLock(key string) (*Lock, error) {
 		}
 		status, err := redis.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 		redis.Close()
-		if err == nil {
-			if status == keywordOk.name {
-				return &Lock{name: key}, nil
+		if err == nil && status == keywordOk.name {
+			if len(l.ch) > 0 {
+				<-l.ch
 			}
+			return &Lock{name: key}, nil
 		}
 		select {
 		case <-l.ch:
@@ -124,6 +125,9 @@ func (l *ClusterLocker) TryLock(key string) (*Lock, error) {
 			status, err := l.redisCluster.SetWithParamsAndTime(key, value, "nx", "px", l.timeout.Nanoseconds()/1e6)
 			//get lock success
 			if err == nil && status == keywordOk.name {
+				if len(l.ch) > 0 {
+					<-l.ch
+				}
 				return &Lock{name: key}, nil
 			}
 		}
