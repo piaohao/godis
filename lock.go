@@ -79,7 +79,9 @@ func (l *Locker) UnLock(lock *Lock) error {
 		return err
 	}
 	defer redis.Close()
-	l.ch <- true
+	if len(l.ch) == 0 {
+		l.ch <- true
+	}
 	c, err := redis.Del(lock.name)
 	if err != nil {
 		return err
@@ -142,7 +144,9 @@ func (l *ClusterLocker) TryLock(key string) (*Lock, error) {
 
 //UnLock when your business end,then release the locker
 func (l *ClusterLocker) UnLock(lock *Lock) error {
-	l.ch <- true
+	if len(l.ch) == 0 {
+		l.ch <- true
+	}
 	c, err := l.redisCluster.Del(lock.name)
 	if c == 0 {
 		return nil
