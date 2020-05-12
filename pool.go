@@ -57,9 +57,11 @@ func NewPool(config *PoolConfig, option *Option) *Pool {
 		poolConfig.TestOnBorrow = config.TestOnBorrow
 	}
 	ctx := context.Background()
+	internalPool := pool.NewObjectPool(ctx, newFactory(option), poolConfig)
+	internalPool.PreparePool(ctx)
 	return &Pool{
 		ctx:          ctx,
-		internalPool: pool.NewObjectPool(ctx, newFactory(option), poolConfig),
+		internalPool: internalPool,
 	}
 }
 

@@ -72,3 +72,21 @@ func TestPool_Basic2(t *testing.T) {
 	_, e := pool.GetResource()
 	assert.NotNil(t, e) //auth error
 }
+
+func TestPool_Basic3(t *testing.T) {
+	pool := NewPool(&PoolConfig{
+		MaxTotal:             30,
+		MaxIdle:              20,
+		MinIdle:              10,
+		MinEvictableIdleTime: 10,
+		TestOnBorrow:         true,
+	}, &Option{
+		Host:              "localhost",
+		Port:              6380,
+		ConnectionTimeout: 2 * time.Second,
+		SoTimeout:         2 * time.Second,
+		Db:                0,
+	})
+	_, e := pool.GetResource()
+	assert.NotNil(t, e) //auth error
+}
